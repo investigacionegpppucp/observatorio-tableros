@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Protestas sociales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../comun/lib/leaflet-1.9.4.css">
+  <link rel="stylesheet" href="../comun/tema.css">
+  <link rel="stylesheet" href="../comun/estilos.css">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Protestas sociales</h1>
+        <p class="subtitulo" id="subtitulo"></p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtros: los controles comunes y los de cada módulo se agregan desde tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-general" aria-controls="m-general" data-modulo="general">General</button>
+    <button role="tab" id="tab-actores" aria-controls="m-actores" data-modulo="actores">¿Quiénes protestan?</button>
+    <button role="tab" id="tab-acciones" aria-controls="m-acciones" data-modulo="acciones">¿Cómo protestan?</button>
+    <button role="tab" id="tab-adversarios" aria-controls="m-adversarios" data-modulo="adversarios">¿Contra quién?</button>
+    <button role="tab" id="tab-reclamos" aria-controls="m-reclamos" data-modulo="reclamos">¿Por qué protestan?</button>
+  </nav>
+
+  <main>
+    <!-- ================= GENERAL ================= -->
+    <section class="modulo" id="m-general" role="tabpanel" aria-labelledby="tab-general">
+      <p class="resumen" id="r-general">Cargando datos…</p>
+      <div class="kpis">
+        <div class="kpi" id="k-general-1"></div>
+        <div class="kpi" id="k-general-2"></div>
+        <div class="kpi" id="k-general-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Eventos de protesta por año</h3>
+          <p>Número de eventos registrados. La franja verde marca el período elegido.</p></header>
+        <div class="grafico" id="g-general-evol"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>Eventos de protesta por gobierno</h3>
+          <p id="d-general-pres">Número de eventos en cada período presidencial.</p></header>
+        <div class="grafico" id="g-general-pres"></div>
+        <p class="pista">Haz clic en un gobierno para ver solo sus años.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3>Eventos de protesta por región</h3>
+          <p>Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-general"></div><div class="leyenda-mapa" id="ley-general"></div></div>
+          <div class="tabla-caja" id="t-general-regiones"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= ACTORES ================= -->
+    <section class="modulo" id="m-actores" role="tabpanel" aria-labelledby="tab-actores" hidden>
+      <p class="resumen" id="r-actores"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-actores-1"></div>
+        <div class="kpi" id="k-actores-2"></div>
+        <div class="kpi" id="k-actores-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Participación de actores por tipo</h3>
+          <p>Número de actores participantes por año. Un evento puede tener hasta dos actores.</p></header>
+        <div class="grafico" id="g-actores-evol"></div>
+      </article>
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3>Actores por sector</h3><p id="d-actores-barras"></p></header>
+          <div class="leyenda" id="ley-actores-barras"></div>
+          <div class="grafico" id="g-actores-barras"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Sectores y actores más frecuentes</h3><p>Los 15 actores con más participaciones en la selección.</p></header>
+          <div class="tabla-caja" id="t-actores-detalle"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Actores participantes por región</h3><p>Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-actores"></div><div class="leyenda-mapa" id="ley-actores"></div></div>
+          <div class="tabla-caja" id="t-actores-regiones"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= ACCIONES ================= -->
+    <section class="modulo" id="m-acciones" role="tabpanel" aria-labelledby="tab-acciones" hidden>
+      <p class="resumen" id="r-acciones"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-acciones-1"></div>
+        <div class="kpi" id="k-acciones-2"></div>
+        <div class="kpi" id="k-acciones-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Acciones de protesta por año</h3>
+          <p>Un evento puede registrar hasta cuatro acciones. La franja verde marca el período elegido.</p></header>
+        <div class="grafico bajo" id="g-acciones-anual"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>Evolución de las acciones más frecuentes</h3><p id="d-acciones-evol"></p></header>
+        <div class="grafico" id="g-acciones-evol"></div>
+      </article>
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3>Acciones de protesta según tipo</h3><p id="d-acciones-barras"></p></header>
+          <div class="leyenda" id="ley-acciones-barras"></div>
+          <div class="grafico" id="g-acciones-barras"></div>
+          <p class="pista">Haz clic en una acción para filtrar por ella.</p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Acción más frecuente en cada región</h3><p>Entre las acciones elegidas, en el período.</p></header>
+          <div id="mapa-acciones-top"></div>
+          <div class="leyenda-mapa" id="ley-acciones-top"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Acciones de protesta por región</h3><p>Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-acciones"></div><div class="leyenda-mapa" id="ley-acciones"></div></div>
+          <div class="tabla-caja" id="t-acciones-regiones"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= ADVERSARIOS ================= -->
+    <section class="modulo" id="m-adversarios" role="tabpanel" aria-labelledby="tab-adversarios" hidden>
+      <p class="resumen" id="r-adversarios"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-adversarios-1"></div>
+        <div class="kpi" id="k-adversarios-2"></div>
+        <div class="kpi" id="k-adversarios-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Evolución de los adversarios más frecuentes</h3><p id="d-adversarios-evol"></p></header>
+        <div class="grafico" id="g-adversarios-evol"></div>
+      </article>
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3>Eventos según adversario</h3><p id="d-adversarios-barras"></p></header>
+          <div class="leyenda" id="ley-adversarios-barras"></div>
+          <div class="grafico" id="g-adversarios-barras"></div>
+          <p class="pista">Haz clic en un adversario para filtrar por él.</p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Instituciones más mencionadas</h3><p>Las 15 instituciones con más eventos en la selección.</p></header>
+          <div class="tabla-caja" id="t-adversarios-detalle"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Eventos según región</h3><p>Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-adversarios"></div><div class="leyenda-mapa" id="ley-adversarios"></div></div>
+          <div class="tabla-caja" id="t-adversarios-regiones"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= RECLAMOS ================= -->
+    <section class="modulo" id="m-reclamos" role="tabpanel" aria-labelledby="tab-reclamos" hidden>
+      <p class="resumen" id="r-reclamos"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-reclamos-1"></div>
+        <div class="kpi" id="k-reclamos-2"></div>
+        <div class="kpi" id="k-reclamos-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Evolución de los reclamos</h3><p id="d-reclamos-evol"></p></header>
+        <div class="grafico" id="g-reclamos-evol"></div>
+      </article>
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3>Eventos según tipo de reclamo</h3><p id="d-reclamos-barras"></p></header>
+          <div class="leyenda" id="ley-reclamos-barras"></div>
+          <div class="grafico" id="g-reclamos-barras"></div>
+          <p class="pista">Haz clic en un reclamo para filtrar por él.</p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Subreclamos más frecuentes</h3><p>Los 15 subreclamos con más eventos en la selección.</p></header>
+          <div class="tabla-caja" id="t-reclamos-detalle"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Eventos según región</h3><p>Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-reclamos"></div><div class="leyenda-mapa" id="ley-reclamos"></div></div>
+          <div class="tabla-caja" id="t-reclamos-regiones"></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> <span id="fuente"></span></p>
+    <p><strong>Notas:</strong> Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.
+      Las variantes de escritura de una misma categoría (por ejemplo, «Sociedad civil» y «Sociedad Civil») se unificaron.
+      En 2025 se incorporaron también registros de versiones digitales de diarios.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Protestas sociales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../comun/lib/echarts-5.6.0.min.js"></script>
+  <script src="../comun/lib/leaflet-1.9.4.js"></script>
+  <script src="../comun/config.js"></script>
+  <script src="../comun/base.js"></script>
+  <script src="../comun/graficos.js"></script>
+  <script src="../comun/mapa.js"></script>
+  <script src="../comun/filtros.js"></script>
+  <script src="../comun/descarga.js"></script>
+  <script src="tablero.js"></script>
+</body>
+</html>

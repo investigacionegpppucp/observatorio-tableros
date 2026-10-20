@@ -1,0 +1,47 @@
+/* =========================================================
+   Tema de los tableros del Observatorio
+   Todo lo que define la estética (colores, fuente, radios, espacios)
+   vive aquí. Para adaptar los tableros al sitio nuevo basta con
+   cambiar estos valores; los gráficos leen los colores de este
+   archivo al cargar (comun/graficos.js, función leerTema).
+   ========================================================= */
+:root {
+  /* Marca */
+  --navy: #042355;
+  --azul: #003fa3;
+  --azul-medio: #067bc2;
+  --azul-claro: #779cf7;
+  --rojo: #c61c44;
+  --rosa: #e06991;
+  --verde: #78a300;
+  --lima: #add94b;
+  --lima-suave: #d9f490;
+
+  /* Neutros */
+  --fondo: #f2f4f7;
+  --superficie: #ffffff;
+  --linea: #dce1e8;
+  --texto: #1c2533;
+  --texto-suave: #4f5a6b;
+
+  /* Gráficos: orden categórico fijo (validado con dataviz/validate_palette.js:
+     banda de luminosidad, croma, separación para daltonismo y contraste ≥ 3:1) */
+  --serie-1: #3a5fcd;
+  --serie-2: #c61c44;
+  --serie-3: #6f9800;
+  --serie-4: #067bc2;
+  --serie-5: #e06991;
+  --serie-otros: #9aa3b0;
+  /* Una sola serie y escala secuencial (de claro a oscuro) */
+  --serie-unica: #003fa3;
+  --escala-1: #e3eafb;
+  --escala-2: #b4c6fa;
+  --escala-3: #779cf7;
+  --escala-4: #003fa3;
+  --escala-5: #042355;
+
+  --fuente: "Avenir Next", "Avenir", "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --radio: 4px;
+  --ancho: 1200px;
+  color-scheme: light;
+}
