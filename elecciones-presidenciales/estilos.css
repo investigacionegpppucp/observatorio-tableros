@@ -1,0 +1,41 @@
+/* =========================================================
+   Estilos propios del tablero de Elecciones presidenciales.
+   Lo compartido (franja, filtros, pestañas, tarjetas, mapa) está
+   en comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* Colores propios de este tablero (los de la marca están en comun/tema.css) */
+  --c1: var(--serie-1); --c2: var(--serie-2); --c3: var(--serie-3);
+  --bl1: #2d4fb8; --nu1: #587a00; --bl2: #a3b8f2; --nu2: #b5d364;
+  --primero: #0f2257; --segundo: #95acee;
+}
+h2.seccion { margin: 0 0 4px; font-size: 26px; font-weight: 800; color: var(--navy); }
+p.intro { margin: 0 0 20px; color: var(--texto-suave); font-size: 16px; max-width: 820px; }
+
+/* Leyendas: línea (series de tiempo), punto (dumbbells), cuadro (barras) y celda sin dato */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+.ley i.p { border-radius: 50%; }
+.ley i.s { border: 1px dashed #9aa5b5; background: #fff; }
+.ley .grupo { display: inline-flex; gap: 4px; align-items: center; }
+
+.grafico.mujeres { height: 250px; }
+.subtitulo-grafico { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--texto); }
+.mapa-y-ranking { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
+.mapa-y-ranking .grafico { height: 600px; margin-top: 0; }
+
+/* Filtros: solo en la pestaña por elección */
+.filtros .segmentado button:disabled { opacity: 0.4; cursor: not-allowed; }
+.filtros .segmentado button:hover:not(:disabled):not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.14); color: #fff; }
+
+@media (max-width: 900px) {
+  .mapa-y-ranking { grid-template-columns: 1fr; }
+  .mapa-y-ranking .grafico { height: 560px; }
+}
+@media (max-width: 560px) {
+  .filtros .segmentado { width: 100%; }
+  .filtros .segmentado button { flex: 1; min-width: 0; }
+}
+.cabecera-interior { padding-bottom: 12px; }

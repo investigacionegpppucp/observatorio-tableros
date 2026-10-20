@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elecciones presidenciales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../comun/lib/leaflet-1.9.4.css?v=26353f2">
+  <link rel="stylesheet" href="../comun/tema.css?v=26353f2">
+  <link rel="stylesheet" href="../comun/estilos.css?v=26353f2">
+  <link rel="stylesheet" href="estilos.css?v=26353f2">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Elecciones presidenciales</h1>
+        <p class="subtitulo">Cómo cambiaron la participación, el voto no válido y la competencia en las elecciones presidenciales del Perú, de 1931 a 2026.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <nav class="modulos" role="tablist" aria-label="Secciones del tablero">
+    <button type="button" role="tab" id="tab-general" aria-controls="p-general" data-pestana="general">General</button>
+    <button type="button" role="tab" id="tab-eleccion" aria-controls="p-eleccion" data-pestana="eleccion">Por elección y región</button>
+  </nav>
+
+  <!-- Filtros: solo para la pestaña por elección -->
+  <section class="filtros" id="filtros" aria-label="Filtros" hidden>
+    <div class="filtro"><label for="f-eleccion">Elección</label><select id="f-eleccion" class="corto"></select></div>
+    <div class="filtro"><span class="etiqueta" id="lbl-vuelta">Vuelta</span>
+      <div class="segmentado" role="group" aria-labelledby="lbl-vuelta"><button type="button" data-v="1">Primera</button><button type="button" data-v="2">Segunda</button></div></div>
+    <div class="filtro"><span class="etiqueta" id="lbl-ambito">Ámbito</span>
+      <div class="segmentado" role="group" aria-labelledby="lbl-ambito"><button type="button" data-ambito="nacional">Nacional</button><button type="button" data-ambito="regional">Regional</button></div></div>
+    <div class="filtro" id="c-region"><label for="f-region">Región</label><select id="f-region"></select></div>
+  </section>
+
+  <main>
+    <!-- ================= GENERAL: toda la serie, nacional ================= -->
+    <section id="p-general" role="tabpanel" aria-labelledby="tab-general">
+      <h2 class="seccion">General (1931-2026)</h2>
+      <p class="intro">Resultados nacionales de todas las elecciones presidenciales, con el voto de los peruanos en el extranjero.</p>
+
+      <article class="tarjeta">
+        <header><h3>Participación</h3><p>Votos emitidos sobre electores hábiles.</p></header>
+        <div class="ley"><span><i class="l" style="border-color:var(--c1)"></i>Primera vuelta</span><span><i class="l" style="border-color:var(--c2)"></i>Segunda vuelta</span></div>
+        <div class="grafico" id="g-parti"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>Voto no válido</h3><p>Votos en blanco y nulos sobre votos emitidos. Hay datos desde 1963.</p></header>
+        <div class="ley">
+          <span class="grupo"><i style="background:var(--bl1)"></i><i style="background:var(--nu1)"></i>Primera vuelta: en blanco y nulos</span>
+          <span class="grupo"><i style="background:var(--bl2)"></i><i style="background:var(--nu2)"></i>Segunda vuelta: en blanco y nulos</span>
+        </div>
+        <div class="grafico" id="g-nv-hist"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>¿Qué tan reñida fue la primera vuelta?</h3><p>Votos del primero y del segundo sobre votos válidos. La barra es la distancia entre ambos.</p></header>
+        <div class="ley"><span><i class="p" style="background:var(--primero)"></i>Primer lugar</span><span><i class="p" style="background:var(--segundo)"></i>Segundo lugar</span></div>
+        <div class="grafico" id="g-margen1"></div>
+      </article>
+
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3>¿Y la segunda vuelta?</h3><p>Votos del ganador y del segundo sobre votos válidos.</p></header>
+          <div class="ley"><span><i class="p" style="background:var(--primero)"></i>Ganador</span><span><i class="p" style="background:var(--segundo)"></i>Segundo lugar</span></div>
+          <div class="grafico" id="g-margen2"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Organizaciones candidatas</h3><p>Organizaciones políticas en la primera vuelta.</p></header>
+          <div class="ley" aria-hidden="true"><span>&nbsp;</span></div>
+          <div class="grafico" id="g-org"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Cuántas mujeres hubo en las planchas?</h3><p>Porcentaje de candidatas por cargo en la primera vuelta.</p></header>
+        <div class="ley" id="ley-mujeres"></div>
+        <div class="grafico mujeres" id="g-mujeres"></div>
+      </article>
+    </section>
+
+    <!-- ================= POR ELECCIÓN Y REGIÓN ================= -->
+    <section id="p-eleccion" role="tabpanel" aria-labelledby="tab-eleccion" hidden>
+      <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
+
+      <article class="tarjeta">
+        <header><h3 id="t-mapa"></h3><p>Organización más votada en cada región. Haz clic en una región, o en el globo para el extranjero.</p></header>
+        <div class="ley" id="ley-mapa"></div>
+        <div class="mapa-y-ranking">
+          <div id="g-mapa" role="group" aria-label="Mapa de regiones"></div>
+          <div><p class="subtitulo-grafico">Participación por región</p><div class="grafico" id="g-reg"></div></div>
+        </div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3 id="t-nv-reg"></h3><p>Votos en blanco y nulos sobre votos emitidos, por región.</p></header>
+        <div class="ley"><span><i style="background:var(--bl1)"></i>En blanco</span><span><i style="background:var(--nu1)"></i>Nulos</span></div>
+        <div class="grafico" id="g-nv-reg"></div>
+      </article>
+
+      <section id="evolucion-region">
+        <div class="grilla">
+          <article class="tarjeta">
+            <header><h3 id="t-ev-parti"></h3><p>Primera vuelta. La línea gris es el Perú, como referencia.</p></header>
+            <div class="grafico" id="g-ev-parti"></div>
+          </article>
+          <article class="tarjeta">
+            <header><h3 id="t-ev-nv"></h3><p>Primera vuelta. La línea gris es el Perú, como referencia.</p></header>
+            <div class="grafico" id="g-ev-nv"></div>
+          </article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> <span id="fuente"></span>.</p>
+    <p><strong>Notas:</strong> Los peruanos en el extranjero votan con una categoría propia desde 1980. Los resultados nacionales los incluyen desde 1985;
+      en 1980 no se suman porque la fuente no trae sus electores, y en 1995, sin electores registrados en el extranjero, la participación es solo la del Perú.
+      En el mapa, el extranjero es el globo. Hasta 2016, Lima es todo el departamento; desde 2021, Lima Metropolitana, y Lima Provincias va aparte.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Elecciones presidenciales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../comun/lib/echarts-5.6.0.min.js?v=26353f2"></script>
+  <script src="../comun/lib/leaflet-1.9.4.js?v=26353f2"></script>
+  <script src="../comun/config.js?v=26353f2"></script>
+  <script src="../comun/base.js?v=26353f2"></script>
+  <script src="../comun/graficos.js?v=26353f2"></script>
+  <script src="../comun/mapa.js?v=26353f2"></script>
+  <script src="../comun/descarga.js?v=26353f2"></script>
+  <script src="tablero.js?v=26353f2"></script>
+</body>
+</html>

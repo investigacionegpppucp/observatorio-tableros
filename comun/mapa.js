@@ -6,6 +6,9 @@
    Uso:
      const mapa = new Obs.Mapa("m-general", geo, { alClic: elegirRegion, nombre: nombreRegion });
      mapa.pintar({ valores, color, texto, elegida });
+   Opcional, para los residentes en el extranjero (no tienen polígono):
+     new Obs.Mapa(id, geo, { ..., globo: { alClic: () => elegir("EXTRANJERO") } });
+     mapa.pintarGlobo({ color, titulo, texto, elegido, aria });  // color null = sin datos
    ========================================================= */
 window.Obs = window.Obs || {};
 
@@ -56,7 +59,7 @@ window.Obs = window.Obs || {};
   };
 
   Obs.Mapa = class {
-    constructor(id, geo, { alClic = () => {}, nombre = (r) => r } = {}) {
+    constructor(id, geo, { alClic = () => {}, nombre = (r) => r, globo = null } = {}) {
       this.id = id;
       this.geo = geo;
       this.alClic = alClic;
@@ -72,6 +75,25 @@ window.Obs = window.Obs || {};
       }).addTo(this.principal));
       this.lima = this.crear(el.querySelector(".mapa-lima"), { dragging: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false });
       this.principal.on("dblclick", () => this.principal.fitBounds(LIMITES_PERU, { padding: [8, 8] }));
+      if (globo) {
+        this.globo = document.createElement("button");
+        this.globo.type = "button";
+        this.globo.className = "globo";
+        this.globo.onclick = globo.alClic;
+        el.append(this.globo);
+      }
+    }
+
+    // Botón con un globo terráqueo, arriba a la izquierda, sobre el océano
+    pintarGlobo({ color = null, titulo = "Extranjero", texto = "", elegido = false, aria = titulo }) {
+      const fondo = color ?? "#ccd3dd";
+      this.globo.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="20" fill="${fondo}"/>` +
+        `<g fill="none" stroke="#fff" stroke-width="1.8"><circle cx="20" cy="20" r="11"/><ellipse cx="20" cy="20" rx="4.8" ry="11"/>` +
+        `<path d="M9 20h22M10.6 14.5h18.8M10.6 25.5h18.8"/></g></svg>` +
+        `<span><strong>${Obs.escapar(titulo)}</strong><em>${Obs.escapar(color ? texto : "Sin datos")}</em></span>`;
+      this.globo.disabled = !color;
+      this.globo.setAttribute("aria-pressed", elegido);
+      this.globo.setAttribute("aria-label", aria);
     }
 
     crear(el, opciones) {
