@@ -49,7 +49,7 @@ const vv = (p) => (Array.isArray(p.value) ? p.value[1] : p.value);
 const sinNulosIniciales = (datos) => { const k = datos.findIndex((v) => v != null); return datos.map((v, i) => [i, v]).slice(Math.max(k, 0)); };
 const linea = (nombreS, datos, color, extra = {}) => ({ name: nombreS, type: "line", data: sinNulosIniciales(datos), connectNulls: true, symbol: "circle", symbolSize: 8, showAllSymbol: true,
   lineStyle: { width: 2, color }, itemStyle: { color, borderColor: "#fff", borderWidth: 2 }, ...extra });
-const finRotulo = (fmt = (v) => pct(v, 0)) => ({ show: true, formatter: (p) => fmt(p.value[1]), color: C.texto, fontFamily: C.fuente, fontSize: 14, fontWeight: 700 });
+const finRotulo = (fmt = (v) => pct(v)) => ({ show: true, formatter: (p) => fmt(p.value[1]), color: C.texto, fontFamily: C.fuente, fontSize: 14, fontWeight: 700 });
 
 let FILAS = [], ELECCIONES = [], ANIOS = [], DISTRITOS = [];
 const fila = (d, e, v) => FILAS.find((f) => f.d === d && f.e === e && f.v === v) ?? null;
@@ -92,7 +92,7 @@ function vistazo() {
     series: [
       linea("Primera vuelta", p1, C.c1, { areaStyle: { color: "rgba(58,95,205,.08)" }, endLabel: finRotulo(),
         markPoint: { symbol: "circle", symbolSize: 1, label: { show: true, position: "top", distance: 10, ...txt({ color: C.texto, fontWeight: 700 }), formatter: (p) => p.name },
-          data: [{ name: `Máximo: ${pct(max, 0)} en ${ANIOS[p1.indexOf(max)]}`, coord: [p1.indexOf(max), max] }, { name: `Mínimo: ${pct(min, 0)} en ${ANIOS[p1.indexOf(min)]}`, coord: [p1.indexOf(min), min], label: { position: "right" } }] } }),
+          data: [{ name: `Máximo: ${pct(max)} en ${ANIOS[p1.indexOf(max)]}`, coord: [p1.indexOf(max), max] }, { name: `Mínimo: ${pct(min)} en ${ANIOS[p1.indexOf(min)]}`, coord: [p1.indexOf(min), min], label: { position: "right" } }] } }),
       linea("Segunda vuelta", p2, C.c2, { endLabel: finRotulo() }),
     ],
   }, true);
@@ -136,7 +136,7 @@ function vistazo() {
   CARGOS.forEach(([, d], f) => d.forEach((x, k) => (x == null ? sinDato : celdas).push([k, f, x ?? "-"])));
   const izqM = movil ? 82 : 150;
   graf("g-mujeres").setOption({ ...BASE(),
-    tooltip: { ...Obs.tooltipBase(), formatter: (p) => `<strong>${ANIOS[p.value[0]]}</strong><br>${CARGOS[p.value[1]][0]}: <strong>${p.value[2] === "-" ? "sin dato" : pct(p.value[2], 0)}</strong>` },
+    tooltip: { ...Obs.tooltipBase(), formatter: (p) => `<strong>${ANIOS[p.value[0]]}</strong><br>${CARGOS[p.value[1]][0]}: <strong>${p.value[2] === "-" ? "sin dato" : pct(p.value[2])}</strong>` },
     grid: { left: izqM, right: 18, top: 10, bottom: 34 },
     xAxis: ejeAnios("g-mujeres", izqM, 18, ANIOS, { axisLine: { show: false } }),
     yAxis: { type: "category", data: CARGOS.map((c) => c[0]), inverse: true, ...eje({ axisLine: { show: false }, splitLine: { show: false }, axisLabel: txt({ color: C.texto }) }) },
@@ -149,7 +149,7 @@ function vistazo() {
         return { type: "rect", shape: { x: x - w / 2 + 3, y: y - h / 2 + 3, width: w - 6, height: h - 6, r: 2 }, style: { fill: "#fff", stroke: "#b5bfcc", lineWidth: 1, lineDash: [4, 3] } };
       } }],
   }, true);
-  describir("g-mujeres", `Mapa de calor con el porcentaje de candidatas por cargo y elección. En ${ANIOS.at(-1)}: ${pct(mp.at(-1), 0)} en la presidencia, ${pct(mv1.at(-1), 0)} en la primera vicepresidencia y ${pct(mv2.at(-1), 0)} en la segunda.`);
+  describir("g-mujeres", `Mapa de calor con el porcentaje de candidatas por cargo y elección. En ${ANIOS.at(-1)}: ${pct(mp.at(-1))} en la presidencia, ${pct(mv1.at(-1))} en la primera vicepresidencia y ${pct(mv2.at(-1))} en la segunda.`);
 }
 
 /* Voto no válido en el tiempo: una columna apilada (en blanco + nulos) por vuelta, con el
@@ -159,7 +159,7 @@ function columnasNoValido(id, filas) {
   const el = document.getElementById(id);
   const anios = [...new Set(filas.map((f) => f.e))], n = anios.length;
   const izq = 8, der = 8, ancho = el.clientWidth - izq - der;
-  const anchoCol = Math.min(40, (ancho / n) * 0.36);
+  const anchoCol = Math.min(42, (ancho / n) * 0.4);
   if (anchoCol < 24) {
     barrasNoValido(id, [...filas].reverse().map((r) => ({ clave: `${r.e}-${r.v}`, eje: r.v === 1 ? String(r.e) : "2.ª vuelta", sub: r.v === 2, blanco: r.blanco, nulo: r.nulo, tip: `${r.e}, ${r.v === 1 ? "primera" : "segunda"} vuelta` })));
     return;
@@ -168,12 +168,12 @@ function columnasNoValido(id, filas) {
   const gr = graf(id); gr.resize();
   const max = Math.max(...filas.map((f) => f.blanco + f.nulo)) * 1.08;
   const doble = new Set(anios.filter((e) => filas.filter((f) => f.e === e).length === 2));
-  const rotulo = (x, y, texto, color, tam = 12, peso = 700) => ({ type: "text", style: { x, y, text: texto, align: "center", verticalAlign: "middle", fill: color, font: `${peso} ${tam}px ${C.fuente}` } });
+  const rotulo = (x, y, texto, color, tam = 11, peso = 600) => ({ type: "text", style: { x, y, text: texto, align: "center", verticalAlign: "middle", fill: color, font: `${peso} ${tam}px ${C.fuente}` } });
   gr.setOption({ ...BASE(),
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
       formatter: (ps) => { const e = +ps[0].axisValue; return `<strong>${e}</strong>` + [1, 2].map((v) => { const r = filas.find((f) => f.e === e && f.v === v);
         return r ? `<br><strong>${v === 1 ? "Primera" : "Segunda"} vuelta</strong>: ${pct(r.blanco + r.nulo)}<br>&nbsp;&nbsp;En blanco ${pct(r.blanco)}, nulos ${pct(r.nulo)}` : ""; }).join(""); } },
-    grid: { left: izq, right: der, top: 30, bottom: 34 },
+    grid: { left: izq, right: der, top: 48, bottom: 34 },
     xAxis: { type: "category", data: anios.map(String), ...eje({ splitLine: { show: false } }), axisLabel: txt({ color: C.texto, fontWeight: 700, interval: 0 }) },
     yAxis: { type: "value", max, show: false },
     series: [{ type: "custom", encode: { x: 0, y: [1, 2] }, data: filas.map((f) => [anios.indexOf(f.e), f.blanco, f.nulo, f.v]),
@@ -186,10 +186,18 @@ function columnasNoValido(id, filas) {
           { type: "rect", shape: { x, y: yb, width: anchoCol, height: y0 - yb }, style: { fill: cb } },
           // 2 px de separación entre tramos
           { type: "rect", shape: { x, y: yt, width: anchoCol, height: Math.max(yb - yt - 2, 0), r: [3, 3, 0, 0] }, style: { fill: cn } },
-          rotulo(cx + dx, yt - 10, pct(b + nl, 0), C.texto, 14, 800),
         ];
-        if (y0 - yb >= 18) hijos.push(rotulo(cx + dx, (y0 + yb) / 2, pct(b, 0), v === 1 ? "#fff" : C.navy));
-        if (yb - yt >= 18) hijos.push(rotulo(cx + dx, (yb + yt) / 2 - 1, pct(nl, 0), v === 1 ? "#fff" : C.navy));
+        // total encima; si las dos columnas del año quedan a la misma altura, el de la segunda vuelta sube
+        let yTotal = yt - 10;
+        if (v === 2 && doble.has(anios[k])) {
+          const r1 = filas.find((f) => f.e === anios[k] && f.v === 1), [, yt1] = api.coord([k, r1.blanco + r1.nulo]);
+          if (Math.abs(yt - yt1) < 18) yTotal = Math.min(yt, yt1) - 28;
+        }
+        hijos.push(rotulo(cx + dx, yTotal, pct(b + nl), C.texto, 14, 800));
+        // porcentaje dentro de cada tramo, solo si cabe
+        const cabe = (alto) => anchoCol >= 32 && alto >= 15;
+        if (cabe(y0 - yb)) hijos.push(rotulo(cx + dx, (y0 + yb) / 2, pct(b), v === 1 ? "#fff" : C.navy));
+        if (cabe(yb - yt - 2)) hijos.push(rotulo(cx + dx, (yb + yt) / 2 - 1, pct(nl), v === 1 ? "#fff" : C.navy));
         return { type: "group", children: hijos };
       } }],
   }, true);
@@ -207,7 +215,7 @@ function barrasNoValido(id, filas) {
   const tono = (f, claro, pleno) => (f.sub ? claro : pleno);
   const atenuar = filas.some((f) => f.resaltar);
   const op = (f) => (atenuar && !f.resaltar ? 0.35 : 1); // las demás regiones van en tonos claros, con texto oscuro
-  const dentro = (oscuro) => ({ show: true, position: "inside", fontFamily: C.fuente, fontSize: 12, fontWeight: 700, color: oscuro ? C.navy : "#fff" });
+  const dentro = (oscuro) => ({ show: true, position: "inside", fontFamily: C.fuente, fontSize: 11, fontWeight: 600, color: oscuro ? C.navy : "#fff" });
   gr.setOption({ ...BASE(),
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
       formatter: (ps) => { const f = filas[ps[0].dataIndex]; return `<strong>${f.tip}</strong><br>En blanco: ${pct(f.blanco)}<br>Nulos: ${pct(f.nulo)}<br>Total no válido: <strong>${pct(f.blanco + f.nulo)}</strong>`; } },
@@ -221,7 +229,7 @@ function barrasNoValido(id, filas) {
       { type: "bar", stack: "t", barWidth: 22, data: filas.map((f) => ({ value: f.nulo, itemStyle: { color: op(f) < 1 ? "#d6e2b5" : tono(f, C.nu2, C.nu1), borderRadius: [0, 3, 3, 0] },
           label: { ...dentro(f.sub || op(f) < 1), formatter: () => (cabe(f.nulo) ? pct(f.nulo, 1) : "") } })) },
       { type: "bar", stack: "t", barWidth: 22, silent: true, itemStyle: { color: "transparent" }, data: filas.map(() => 0.0001),
-        label: { show: true, position: "right", distance: 6, ...txt({ color: C.texto, fontWeight: 800 }), formatter: (p) => pct(filas[p.dataIndex].blanco + filas[p.dataIndex].nulo, 0) } },
+        label: { show: true, position: "right", distance: 6, ...txt({ color: C.texto, fontWeight: 800 }), formatter: (p) => pct(filas[p.dataIndex].blanco + filas[p.dataIndex].nulo) } },
     ],
   }, true);
 }
@@ -340,7 +348,7 @@ function mapa(s, vuelta) {
   MAPA.pintar({ valores, color: (r) => color(r.g1), elegida: poligonoDe(estado.region),
     texto: (r) => `${Obs.escapar(titulo(r.g1))}: ${pct(r.p1)}` + (r.g2 ? `<br>${Obs.escapar(titulo(r.g2))}: ${pct(r.p2)}` : "") });
   const ext = porDistrito.get(EXT);
-  MAPA.pintarGlobo({ color: ext ? color(ext.g1) : null, titulo: "Extranjero", texto: ext ? `${titulo(ext.g1)}, ${pct(ext.p1, 0)}` : "", elegido: estado.region === EXT,
+  MAPA.pintarGlobo({ color: ext ? color(ext.g1) : null, titulo: "Extranjero", texto: ext ? `${titulo(ext.g1)}, ${pct(ext.p1)}` : "", elegido: estado.region === EXT,
     aria: ext ? `Peruanos en el extranjero: ganó ${titulo(ext.g1)} con ${pct(ext.p1)}. Elegir` : "Peruanos en el extranjero: sin datos en esta elección" });
   const orden = [...regs].filter((r) => r.parti != null).sort((a, b) => a.parti - b.parti);
   graf("g-reg").off("click"); graf("g-reg").on("click", (p) => elegirRegion(orden[p.dataIndex].d));
@@ -350,7 +358,7 @@ function mapa(s, vuelta) {
     xAxis: { type: "value", show: false, max: 1 },
     yAxis: { type: "category", data: orden.map((r) => nombre(r.d)), triggerEvent: true, ...eje({ axisLine: { show: false }, splitLine: { show: false }, axisLabel: txt({ color: C.texto }) }) },
     series: [{ type: "bar", barMaxWidth: 10, cursor: "pointer", data: orden.map((r) => ({ value: r.parti, itemStyle: { color: r.d === estado.region ? C.navy : C.c1, borderRadius: [0, 3, 3, 0] } })),
-      label: { show: true, position: "right", fontSize: 12, color: C.texto, fontFamily: C.fuente, formatter: (p) => pct(p.value, 0) } }],
+      label: { show: true, position: "right", fontSize: 12, color: C.texto, fontFamily: C.fuente, formatter: (p) => pct(p.value) } }],
   }, true);
   describir("g-reg", orden.length ? `Participación por región, de menor a mayor. Más baja: ${nombre(orden[0].d)}, ${pct(orden[0].parti)}; más alta: ${nombre(orden.at(-1).d)}, ${pct(orden.at(-1).parti)}.` : "Sin datos de participación.");
 }
