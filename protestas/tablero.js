@@ -11,7 +11,6 @@
    Parámetros de URL (para enlazar o incrustar una vista concreta):
      ?modulo=general|actores|acciones|adversarios|reclamos
      &region=CUSCO          región elegida (código en mayúsculas)
-     &comparar=NACIONAL     región de comparación
      &desde=2000&hasta=2025 período
      &acciones=0-3          categorías elegidas de cada módulo (índices)
      &embed=1               oculta título y pie (para un iframe)
@@ -62,7 +61,6 @@ const estado = {
   modulo: "general",
   ambito: "nacional",     // "nacional" o "regional" (muestra la lista de regiones)
   region: "NACIONAL",
-  comparar: "",           // "" = sin comparación
   desde: null,
   hasta: null,
   cat: {},                // módulo -> Set de categorías elegidas (índices del diccionario)
@@ -87,23 +85,23 @@ const masFrecuente = (cfg, todas) => `más frecuente${todas ? "" : cfg.femenino 
 const textoPeriodo = () => (estado.desde === estado.hasta ? `en ${estado.desde}` : `entre ${estado.desde} y ${estado.hasta}`);
 const etiquetaDic = (dic, i) => D.dic[dic][i];
 const todasElegidas = (m) => estado.cat[m].size === D.dic[CONFIG[m].dic].length;
-const hayComparacion = () => estado.comparar && estado.comparar !== estado.region;
 
-// Serie anual (todos los años de la base) a partir de filas
+// Años del período elegido: los gráficos anuales muestran solo estos años
+const aniosPeriodo = () => ANIOS.filter((a) => a >= estado.desde && a <= estado.hasta);
+// Serie anual del período a partir de filas
 const anual = (filas) => {
   const m = Obs.sumarPor(filas, "anio");
-  return ANIOS.map((a) => m.get(a) ?? 0);
+  return aniosPeriodo().map((a) => m.get(a) ?? 0);
 };
 const mayor = (mapa) => [...mapa].sort((a, b) => b[1] - a[1])[0];
 
 /* ---------------------------------------------------------
-   filtrar(): función pura. Recibe los datos y el estado y devuelve
+   filtrar(): función pura. Recibe las tablas y el estado y devuelve
    los subconjuntos que necesita el módulo activo. Cada gráfico usa
    el subconjunto que ignora su propio filtro:
-     principal      período + región + categorías
-     todosLosAnios  región + categorías (evolución anual)
-     todasLasCat    período + región (barras de la propia categoría)
-     regiones       período + categorías (mapa y ranking regional)
+     principal    período + región + categorías
+     todasLasCat  período + región (barras de la propia categoría)
+     regiones     período + categorías (mapa y ranking regional)
    --------------------------------------------------------- */
 function filtrar(tablas, e) {
   const cfg = CONFIG[e.modulo];
@@ -111,20 +109,12 @@ function filtrar(tablas, e) {
   const cat = cfg ? e.cat[e.modulo] : null;
   const enAnios = (f) => f.anio >= e.desde && f.anio <= e.hasta;
   const enCat = (f) => !cat || cat.has(f[cfg.dim]);
-  const deRegion = (cod) => {
-    if (cod === "NACIONAL") return () => true;
-    const i = REGION_INDICE.get(cod);
-    return (f) => f.region === i;
-  };
-  const subconjuntos = (enRegion) => ({
-    principal: filas.filter((f) => enAnios(f) && enCat(f) && enRegion(f)),
-    todosLosAnios: filas.filter((f) => enCat(f) && enRegion(f)),
-    todasLasCat: filas.filter((f) => enAnios(f) && enRegion(f)),
-  });
+  const i = REGION_INDICE.get(e.region);
+  const enRegion = e.region === "NACIONAL" ? () => true : (f) => f.region === i;
   return {
-    ...subconjuntos(deRegion(e.region)),
+    principal: filas.filter((f) => enAnios(f) && enCat(f) && enRegion(f)),
+    todasLasCat: filas.filter((f) => enAnios(f) && enRegion(f)),
     regiones: filas.filter((f) => enAnios(f) && enCat(f)),
-    comp: e.comparar && e.comparar !== e.region ? subconjuntos(deRegion(e.comparar)) : null,
   };
 }
 
@@ -152,11 +142,9 @@ function pintarRegiones(m, filas, unidad) {
     { total: { n: Obs.total(filas) }, alClic: elegirRegion, elegida: estado.region });
 }
 
-// Evolución anual: un panel para la región elegida y otro para la comparación
+// Evolución anual, solo con los años del período
 function pintarEvolucion(id, seriesDe, sub) {
-  const paneles = [{ titulo: nombreRegion(estado.region), series: seriesDe(sub.todosLosAnios) }];
-  if (sub.comp) paneles.push({ titulo: nombreRegion(estado.comparar), series: seriesDe(sub.comp.todosLosAnios) });
-  Obs.lineas(id, ANIOS, paneles, { rango: [estado.desde, estado.hasta], altoPanel: sub.comp ? 240 : 320 });
+  Obs.lineas(id, aniosPeriodo(), [{ titulo: nombreRegion(estado.region), series: seriesDe(sub.principal) }], { altoPanel: 320 });
 }
 
 /* Colores fijos por categoría: las 5 primeras del diccionario (las más
@@ -192,33 +180,13 @@ function seriesPorCategoria(m, referencia) {
   };
 }
 
-// Barras por categoría; con comparación, en % del total de cada ámbito para que sean comparables
-function pintarBarras(id, m, campo, dic, filas, filasComp, { seleccion = null, alClic = null, limite = null } = {}) {
-  const totR = Obs.total(filas);
+// Barras por categoría
+function pintarBarras(id, m, campo, dic, filas, { seleccion = null, alClic = null, limite = null } = {}) {
   const porR = Obs.sumarPor(filas, campo);
-  const porK = filasComp ? Obs.sumarPor(filasComp, campo) : null;
-  const totK = filasComp ? Obs.total(filasComp) : 0;
-  const pct = Boolean(filasComp);
-  const claves = new Set([...porR.keys(), ...(porK ? porK.keys() : [])]);
-  const items = [...claves].map((c) => ({
-    clave: c, etiqueta: etiquetaDic(dic, c),
-    valor: pct ? (porR.get(c) ?? 0) / (totR || 1) : porR.get(c) ?? 0,
-    comp: pct ? (porK.get(c) ?? 0) / (totK || 1) : null,
-  }));
-  Obs.barras(id, items, {
-    formato: pct ? (v) => Obs.fmtPct(v) : (v) => Obs.fmtN(v),
-    nombre: nombreRegion(estado.region),
-    comparacion: pct ? nombreRegion(estado.comparar) : null,
-    seleccion, alClic, limite,
-  });
-  const ley = document.getElementById(`ley-${m}-barras`);
-  if (ley) ley.innerHTML = pct
-    ? `<span><i style="background:${Obs.tema().unica}"></i>${nombreRegion(estado.region)}</span><span><i class="marca" style="background:${Obs.tema().navy}"></i>${nombreRegion(estado.comparar)}</span>`
-    : "";
+  const items = [...porR].map(([c, n]) => ({ clave: c, etiqueta: etiquetaDic(dic, c), valor: n }));
+  Obs.barras(id, items, { nombre: nombreRegion(estado.region), seleccion, alClic, limite });
   const desc = document.getElementById(`d-${m}-barras`);
-  if (desc) desc.textContent = pct
-    ? `% del total de ${CONFIG[m]?.unidad ?? "eventos"} de cada ámbito, ${textoPeriodo()}.`
-    : `Número de ${CONFIG[m]?.unidad ?? "eventos"} ${textoPeriodo()}.`;
+  if (desc) desc.textContent = `Número de ${CONFIG[m]?.unidad ?? "eventos"} ${textoPeriodo()}.`;
 }
 
 // Tabla de detalle (sector y actor, adversario e institución...): las 15 combinaciones más frecuentes
@@ -235,10 +203,6 @@ function pintarDetalle(m, filas) {
     top, { total: { n: Obs.total(filas) } });
 }
 
-function pieComparacion(sub, valor) {
-  return sub.comp ? `${nombreRegion(estado.comparar)}: ${valor(sub.comp)}` : "";
-}
-
 /* ---------------------------------------------------------
    Módulos
    --------------------------------------------------------- */
@@ -247,27 +211,24 @@ function moduloGeneral(sub) {
   const nAnios = estado.hasta - estado.desde + 1;
   const porAnio = Obs.sumarPor(sub.principal, "anio");
   const [anioMax, nMax] = mayor(porAnio) ?? ["—", 0];
-  Obs.kpi("k-general-1", { etiqueta: "Eventos de protesta", valor: Obs.fmtN(total), pie: pieComparacion(sub, (c) => Obs.fmtN(Obs.total(c.principal))) });
-  Obs.kpi("k-general-2", { etiqueta: "Promedio por año", valor: Obs.fmtN(total / nAnios), pie: pieComparacion(sub, (c) => Obs.fmtN(Obs.total(c.principal) / nAnios)) });
+  Obs.kpi("k-general-1", { etiqueta: "Eventos de protesta", valor: Obs.fmtN(total) });
+  Obs.kpi("k-general-2", { etiqueta: "Promedio por año", valor: Obs.fmtN(total / nAnios) });
   Obs.kpi("k-general-3", { etiqueta: "Año con más eventos", texto: String(anioMax), pie: total ? `${Obs.fmtN(nMax)} eventos` : "" });
   document.getElementById("r-general").innerHTML = total
     ? `${enAmbito(estado.region)} se registraron <strong>${Obs.fmtN(total)} eventos de protesta</strong> ${textoPeriodo()}.` +
-      (nAnios > 1 ? ` El año con más eventos fue <strong>${anioMax}</strong>, con ${Obs.fmtN(nMax)}.` : "") +
-      (sub.comp ? ` ${enAmbito(estado.comparar)}, ${Obs.fmtN(Obs.total(sub.comp.principal))}.` : "")
+      (nAnios > 1 ? ` El año con más eventos fue <strong>${anioMax}</strong>, con ${Obs.fmtN(nMax)}.` : "")
     : `${enAmbito(estado.region)} no se registraron eventos de protesta ${textoPeriodo()}.`;
 
   pintarEvolucion("g-general-evol", (filas) => [{ nombre: "Eventos", color: Obs.tema().unica, valores: anual(filas) }], sub);
 
   // Por gobierno, en orden cronológico; el clic elige sus años
   const porPres = Obs.sumarPor(sub.principal, "presidente");
-  const porPresK = sub.comp ? Obs.sumarPor(sub.comp.principal, "presidente") : null;
-  const items = D.presidentes.map((p, i) => ({ clave: i, etiqueta: p.nombre, valor: porPres.get(i) ?? 0, comp: porPresK ? porPresK.get(i) ?? 0 : null }));
+  const items = D.presidentes.map((p, i) => ({ clave: i, etiqueta: p.nombre, valor: porPres.get(i) ?? 0 }));
   Obs.barras("g-general-pres", items, {
-    ordenar: false, nombre: nombreRegion(estado.region), comparacion: sub.comp ? nombreRegion(estado.comparar) : null,
+    ordenar: false, nombre: nombreRegion(estado.region),
     alClic: (i) => actualizar({ desde: D.presidentes[i].desde, hasta: D.presidentes[i].hasta }),
   });
-  document.getElementById("d-general-pres").textContent = `Número de eventos en cada período presidencial, ${textoPeriodo()}.` +
-    (sub.comp ? " La marca vertical indica el valor de la comparación." : "");
+  document.getElementById("d-general-pres").textContent = `Número de eventos en cada período presidencial, ${textoPeriodo()}.`;
 
   pintarRegiones("general", sub.regiones, "eventos");
 }
@@ -284,7 +245,6 @@ function moduloCategorias(m, sub) {
   Obs.kpi(`k-${m}-1`, {
     etiqueta: uno != null ? cfg.uno(etiquetaDic(cfg.dic, uno)) : cfg.total,
     valor: Obs.fmtN(total),
-    pie: pieComparacion(sub, (c) => Obs.fmtN(Obs.total(c.principal))),
   });
   Obs.kpi(`k-${m}-2`, {
     etiqueta: `${cfg.nombreDim} ${masFrecuente(cfg, todas)}`,
@@ -315,21 +275,22 @@ function moduloCategorias(m, sub) {
   const seriesDe = seriesPorCategoria(m, sub.principal);
   pintarEvolucion(`g-${m}-evol`, seriesDe, sub);
   const descEvol = document.getElementById(`d-${m}-evol`);
-  if (descEvol) descEvol.textContent = (estado.cat[m].size > 5 ? `Las cinco categorías más frecuentes ${enLugar(estado.region)} ${textoPeriodo()}; el resto se agrupa en «Otras». ` : "") +
-    "La franja verde marca el período elegido.";
+  if (descEvol) descEvol.textContent = estado.cat[m].size > 5
+    ? `Las cinco categorías más frecuentes ${enLugar(estado.region)} ${textoPeriodo()}; el resto se agrupa en «Otras».`
+    : `Número de ${cfg.unidad} por año, ${textoPeriodo()}.`;
 
   // Barras: actores por sector (respeta el tipo); el resto, por su propia categoría (ignora su filtro y resalta lo elegido)
   if (m === "actores") {
-    pintarBarras("g-actores-barras", m, "sector", "sector", sub.principal, sub.comp?.principal, { limite: 15 });
+    pintarBarras("g-actores-barras", m, "sector", "sector", sub.principal, { limite: 15 });
   } else {
-    pintarBarras(`g-${m}-barras`, m, cfg.dim, cfg.dic, sub.todasLasCat, sub.comp?.todasLasCat, {
+    pintarBarras(`g-${m}-barras`, m, cfg.dim, cfg.dic, sub.todasLasCat, {
       seleccion: todas ? null : estado.cat[m],
       alClic: (c) => alternarCategoria(m, c),
     });
   }
 
   if (m === "acciones") {
-    Obs.columnas("g-acciones-anual", ANIOS, anual(sub.todosLosAnios), { rango: [estado.desde, estado.hasta], nombre: nombreRegion(estado.region) });
+    Obs.columnas("g-acciones-anual", aniosPeriodo(), anual(sub.principal), { nombre: nombreRegion(estado.region) });
     pintarAccionMasFrecuente(sub.regiones);
   } else {
     pintarDetalle(m, sub.principal);
@@ -368,7 +329,6 @@ const PINTAR = {
 function actualizar(parche) {
   Object.assign(estado, parche);
   if (estado.ambito === "nacional") estado.region = "NACIONAL";
-  if (estado.comparar === estado.region) estado.comparar = "";
   render();
 }
 
@@ -410,7 +370,6 @@ function actualizarURL() {
   Obs.escribirURL({
     modulo: estado.modulo === "general" ? null : estado.modulo,
     region: estado.region === "NACIONAL" ? null : estado.region,
-    comparar: estado.comparar || null,
     desde: estado.desde === D.anios[0] ? null : estado.desde,
     hasta: estado.hasta === D.anios[1] ? null : estado.hasta,
     ...cats,
@@ -444,18 +403,15 @@ Obs.iniciar("protestas", async () => {
   if (MODULOS.includes(p.get("modulo"))) estado.modulo = p.get("modulo");
   const reg = (p.get("region") || "").toUpperCase();
   if (REGION_INDICE.has(reg)) Object.assign(estado, { ambito: "regional", region: reg });
-  const comp = (p.get("comparar") || "").toUpperCase();
-  if (comp === "NACIONAL" || REGION_INDICE.has(comp)) estado.comparar = comp;
   for (const m of Object.keys(CONFIG)) {
     const n = D.dic[CONFIG[m].dic].length;
     const pedidos = (p.get(m) || "").split("-").filter((x) => x !== "").map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < n);
     estado.cat[m] = pedidos.length ? new Set(pedidos) : todasCategorias(m);
   }
-  if (estado.comparar === estado.region) estado.comparar = "";
 
   // Controles
   const filtros = document.getElementById("filtros");
-  controles = Obs.controlesComunes(filtros, { regiones: D.regiones, anios: D.anios, alCambiar: actualizar });
+  controles = Obs.controlesComunes(filtros, { regiones: D.regiones, anios: D.anios, alCambiar: actualizar, comparar: false });
   for (const [m, cfg] of Object.entries(CONFIG)) {
     multis[m] = new Obs.Multiseleccion(filtros, {
       id: `f-${m}`, etiqueta: cfg.etiqueta, todos: cfg.todos,

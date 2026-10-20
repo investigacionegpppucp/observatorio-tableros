@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- CAMBIAR: título del tablero -->
+  <title>Tablero de ejemplo | Observatorio para la Democracia y Gobernabilidad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../comun/lib/leaflet-1.9.4.css">
+  <link rel="stylesheet" href="../comun/tema.css">
+  <link rel="stylesheet" href="../comun/estilos.css">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Tablero de ejemplo</h1>
+        <p class="subtitulo" id="subtitulo"></p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <!-- Una pestaña por módulo; con un solo módulo se puede borrar este nav -->
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-resumen" aria-controls="m-resumen" data-modulo="resumen">Resumen</button>
+  </nav>
+
+  <main>
+    <section class="modulo" id="m-resumen" role="tabpanel" aria-labelledby="tab-resumen">
+      <p class="resumen" id="r-resumen">Cargando datos…</p>
+      <div class="kpis">
+        <div class="kpi" id="k-1"></div>
+        <div class="kpi" id="k-2"></div>
+        <div class="kpi" id="k-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Evolución por año</h3><p>Años del período elegido.</p></header>
+        <div class="grafico" id="g-evol"></div>
+      </article>
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3>Según categoría</h3><p id="d-barras"></p></header>
+          <div class="grafico" id="g-barras"></div>
+          <p class="pista">Haz clic en una categoría para filtrar por ella.</p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Según región</h3><p>Haz clic en una región para elegirla en todo el tablero.</p></header>
+          <div id="mapa-resumen"></div>
+          <div class="leyenda-mapa" id="ley-resumen"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> <span id="fuente"></span></p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Tablero de ejemplo</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../comun/lib/echarts-5.6.0.min.js"></script>
+  <script src="../comun/lib/leaflet-1.9.4.js"></script>
+  <script src="../comun/config.js"></script>
+  <script src="../comun/base.js"></script>
+  <script src="../comun/graficos.js"></script>
+  <script src="../comun/mapa.js"></script>
+  <script src="../comun/filtros.js"></script>
+  <script src="../comun/descarga.js"></script>
+  <script src="tablero.js"></script>
+</body>
+</html>

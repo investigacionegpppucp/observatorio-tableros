@@ -132,15 +132,12 @@ window.Obs = window.Obs || {};
   };
 
   /* ---------- Columnas por año ----------
-     Resalta el rango de años elegido y atenúa el resto (el gráfico
-     ignora el filtro de años, que es su propia categoría). */
+     Recibe solo los años del período elegido: el eje se ajusta a ellos. */
   Obs.columnas = (id, anios, valores, opciones = {}) => {
     const t = Obs.tema();
-    const { rango = null, formato = (v) => Obs.fmtN(v), nombre = "", alClic = null } = opciones;
+    const { formato = (v) => Obs.fmtN(v), nombre = "", alClic = null } = opciones;
     if (!valores.some((v) => v > 0)) return Obs.vacio(id);
-    const dentro = (a) => !rango || (a >= rango[0] && a <= rango[1]);
-    const enRango = anios.map((a, i) => [a, valores[i]]).filter(([a]) => dentro(a));
-    const maxEnRango = Math.max(...enRango.map(([, v]) => v));
+    const maximo = Math.max(...valores);
     const g = Obs.grafico(id);
     g.setOption({
       textStyle: { fontFamily: t.fuente },
@@ -153,9 +150,9 @@ window.Obs = window.Obs || {};
         type: "bar", barCategoryGap: "22%", cursor: alClic ? "pointer" : "default",
         data: anios.map((a, i) => ({
           value: valores[i],
-          itemStyle: { color: t.unica, borderRadius: [2, 2, 0, 0], opacity: dentro(a) ? 1 : 0.25 },
-          // solo se rotula el máximo del rango elegido
-          label: { show: dentro(a) && valores[i] === maxEnRango, position: "top", formatter: (p) => formato(p.value), ...texto({ fontWeight: 700 }) },
+          itemStyle: { color: t.unica, borderRadius: [2, 2, 0, 0] },
+          // con pocos años se rotulan todas las columnas; con muchos, solo el máximo
+          label: { show: anios.length <= 12 || valores[i] === maximo, position: "top", formatter: (p) => formato(p.value), ...texto({ fontWeight: 700 }) },
         })),
       }],
     }, true);
@@ -170,7 +167,7 @@ window.Obs = window.Obs || {};
      escalas en un mismo eje. */
   Obs.lineas = (id, anios, paneles, opciones = {}) => {
     const t = Obs.tema();
-    const { rango = null, formato = (v) => Obs.fmtN(v), altoPanel = 300 } = opciones;
+    const { formato = (v) => Obs.fmtN(v), altoPanel = 300 } = opciones;
     const conDatos = paneles.filter((p) => p.series.some((s) => s.valores.some((v) => v > 0)));
     if (!conDatos.length) return Obs.vacio(id);
     const el = document.getElementById(id);
@@ -188,19 +185,18 @@ window.Obs = window.Obs || {};
       const top = leyenda + k * (altoPanel + titulo) + titulo + 10;
       grid.push({ left: 56, right: derecha, top, height: altoPanel - 40 });
       xAxis.push({
-        gridIndex: k, type: "category", data: anios, boundaryGap: false,
+        gridIndex: k, type: "category", data: anios, boundaryGap: anios.length === 1,
         axisTick: { show: false }, axisLine: { lineStyle: { color: t.linea } }, axisLabel: texto({ color: t.textoSuave }),
       });
       yAxis.push({ gridIndex: k, type: "value", splitLine: { lineStyle: { color: t.linea } }, axisLabel: { ...texto({ color: t.textoSuave }), formatter: (v) => Obs.fmtN(v) } });
       if (titulo) graphic.push({ type: "text", left: 0, top: top - titulo, style: { text: panel.titulo, fill: t.navy, font: `700 15px ${t.fuente}` } });
-      panel.series.forEach((s, j) => {
+      panel.series.forEach((s) => {
         series.push({
           name: s.nombre, type: "line", xAxisIndex: k, yAxisIndex: k, data: s.valores,
-          symbol: "circle", symbolSize: 8, showSymbol: false, lineStyle: { width: 2, color: s.color }, itemStyle: { color: s.color },
+          // un punto en cada año
+          symbol: "circle", symbolSize: 7, showSymbol: true, lineStyle: { width: 2, color: s.color }, itemStyle: { color: s.color },
           emphasis: { focus: "series" },
           endLabel: etiquetasDirectas && nombres.length > 1 ? { show: true, formatter: s.nombre, ...texto({ color: t.texto, width: derecha - 14, overflow: "truncate" }) } : undefined,
-          // franja suave sobre el rango de años elegido
-          markArea: j === 0 && rango && (rango[0] > +anios[0] || rango[1] < +anios[anios.length - 1]) ? { silent: true, itemStyle: { color: "rgba(173,217,75,.18)" }, data: [[{ xAxis: String(rango[0]) }, { xAxis: String(rango[1]) }]] } : undefined,
         });
       });
     });
