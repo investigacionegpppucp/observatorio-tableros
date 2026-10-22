@@ -1,0 +1,64 @@
+/* =========================================================
+   Estilos propios del tablero de Aprobación del Congreso.
+   Lo compartido (franja, filtros, tarjetas, tablas) está en
+   comun/estilos.css; los colores de marca, en comun/tema.css.
+   ========================================================= */
+.cabecera-interior { padding-bottom: 12px; }
+
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Alturas de los gráficos */
+.grafico.serie { height: 470px; }
+.tabla-caja.sin-tope { max-height: none; overflow-x: auto; overflow-y: visible; }
+
+/* Botón de la franja de filtros */
+.boton-filtro {
+  height: 44px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, 0.55); border-radius: var(--radio);
+  background: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.boton-filtro:hover { background: rgba(255, 255, 255, 0.14); }
+.boton-filtro:focus-visible { outline: 3px solid var(--lima); outline-offset: 2px; }
+
+/* Leyendas: cuadro de color (partido) y celda sin dato */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley .titulo { color: var(--texto); }
+.ley i { display: inline-block; width: 14px; height: 14px; border-radius: 2px; margin-right: 6px; vertical-align: -2px; }
+.ley i.s { border: 1px dashed #9aa5b5; background: #fff; }
+
+/* Tabla de gobiernos: la fila entera se elige; el botón de la primera celda da el foco de teclado */
+.tabla td small { display: block; color: var(--texto-suave); font-size: 14px; }
+.tabla tr[data-gobierno] { cursor: pointer; }
+.tabla tbody tr[data-gobierno]:hover td { background: var(--fondo); }
+.tabla tr.elegida td { background: rgba(0, 63, 163, 0.08); }
+.tabla tr.elegida .fila-boton { color: var(--azul); }
+.fila-boton { padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--texto); text-align: left; cursor: pointer; }
+.fila-boton:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.partido { display: flex; align-items: center; gap: 8px; }
+.partido + .partido { margin-top: 2px; }
+.partido i { flex: none; width: 12px; height: 12px; border-radius: 2px; }
+.tabla .media { white-space: nowrap; }
+.sin-corte { white-space: nowrap; }
+.tabla .media .barrita { background: var(--serie-unica); }
+
+.columna { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.columna > .tarjeta { margin-bottom: 0; }
+.subtabla { margin: 14px 0 4px; font-size: 15px; font-weight: 800; color: var(--navy); }
+.subtabla:first-child { margin-top: 4px; }
+
+.texto-largo p { max-width: 860px; margin: 12px 0 0; font-size: 16px; line-height: 1.6; }
+
+@media (max-width: 900px) {
+  .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grafico.serie { height: 420px; }
+}
+@media (max-width: 560px) {
+  .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpis-4 .kpi { padding: 14px 14px; }
+  .kpis-4 .kpi-valor { font-size: 28px; }
+  .boton-filtro { width: 100%; }
+  .tabla { font-size: 14px; }
+  .tabla .num { white-space: normal; }
+  .tabla .media { white-space: nowrap; }
+  .tabla td, .tabla th { padding: 8px 8px; }
+}

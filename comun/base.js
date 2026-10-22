@@ -95,10 +95,11 @@ window.Obs = window.Obs || {};
   window.addEventListener("unhandledrejection", (e) => Obs.mostrarError(e.reason?.message || String(e.reason)));
 
   // Punto de entrada común: marca el modo incrustado, revisa las librerías y arranca el tablero
-  Obs.iniciar = async (tablero, arrancar) => {
+  // { mapa: false }: el tablero no usa mapas, así que no exige Leaflet
+  Obs.iniciar = async (tablero, arrancar, { mapa = true } = {}) => {
     Obs.tablero = tablero;
     if (Obs.esEmbed()) document.body.classList.add("embed");
-    if (typeof echarts === "undefined" || typeof L === "undefined") {
+    if (typeof echarts === "undefined" || (mapa && typeof L === "undefined")) {
       return Obs.mostrarError("no cargaron las librerías de gráficos (comun/lib).");
     }
     await arrancar();
