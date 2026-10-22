@@ -8,6 +8,7 @@
    «Aprobación», con una fila por mes: Periodo (AAAA-MM-01),
    Gobierno, Premier, Aprobacion_premier, Desaprobacion_premier,
    No sabe_premier y Aprobacion_presidente (proporciones de 0 a 1).
+   El tablero usa solo las dos aprobaciones.
    La aprobación del premier se mide desde 1999; las filas
    anteriores (solo presidente) no se usan aquí.
 
@@ -91,8 +92,8 @@ function cifras(filas) {
 }
 
 /* ---------- Serie mensual ----------
-   Una línea por medida (sin nulos: el eje es de tiempo y une las mediciones).
-   Las bandas de fondo marcan los gobiernos o, con un gobierno elegido, los premieres. */
+   Solo la aprobación del premier (y, si se pide, la del presidente).
+   Sin nulos: el eje es de tiempo y une las mediciones. */
 function serie(filas) {
   const id = "g-serie";
   const g = Obs.grafico(id);
@@ -103,26 +104,13 @@ function serie(filas) {
   const t0 = conDatos[0].t, t1 = conDatos.at(-1).t;
 
   const def = [
-    { nombre: "Aprueba al premier", corto: "Aprueba", campo: "ap", color: C.premier },
-    { nombre: "Desaprueba al premier", corto: "Desaprueba", campo: "de", color: C.desaprueba },
+    { nombre: "Aprueba al premier", corto: "Premier", campo: "ap", color: C.premier },
   ];
   if (estado.presidente) def.push({ nombre: "Aprueba al presidente", corto: "Presidente", campo: "pres", color: C.presidente, punteada: true });
   const pares = (campo) => conDatos.filter((f) => f[campo] != null).map((f) => [f.t, f[campo]]);
   const pocos = medidas(filas).length <= 40;
   const rotulos = ancho >= 640;
   const der = rotulos ? 150 : 16;
-
-  // Bandas: gobiernos (vista general) o premieres (un gobierno)
-  const porBanda = estado.gobierno ? (f) => f.premier : (f) => f.gob;
-  const bandas = tramos(conDatos, porBanda);
-  const pxMes = (ancho - 56 - der) / Math.max(1, (t1 - t0) / 2.63e9 + 1);
-  const areas = bandas.map((b, i) => {
-    const ini = b.filas[0].t;
-    const fin = i < bandas.length - 1 ? bandas[i + 1].filas[0].t : t1;
-    const cabe = ((fin - ini) / 2.63e9) * pxMes > b.clave.length * 8 + 10;
-    return [{ xAxis: ini, name: b.clave, itemStyle: { color: i % 2 ? "rgba(4,35,85,0)" : "rgba(4,35,85,0.06)" },
-      label: { show: cabe, position: "insideTop", distance: 4, ...txt({ fontWeight: 600 }) } }, { xAxis: fin }];
-  });
 
   const valores = conDatos.flatMap((f) => def.map((d) => f[d.campo])).filter((v) => v != null);
   const tope = Math.min(1, Math.ceil((Math.max(...valores) + 0.08) * 10) / 10);
@@ -137,7 +125,7 @@ function serie(filas) {
         const fila = (d) => `<br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${d.color};margin-right:6px"></span>${d.nombre}: <strong>${pct(f[d.campo])}</strong>`;
         return `<strong>${MESES[f.mes].charAt(0).toUpperCase() + MESES[f.mes].slice(1)} de ${f.anio}</strong><br>Gobierno de ${Obs.escapar(f.gob)}<br>Premier: ${Obs.escapar(f.premier)}` +
           def.filter((d) => f[d.campo] != null).map(fila).join("") +
-          (f.ap == null ? "<br>Sin medición del premier este mes" : f.ns != null ? `<br>No sabe o no responde: ${pct(f.ns)}` : "");
+          (f.ap == null ? "<br>Sin medición del premier este mes" : "");
       },
     },
     grid: { left: 52, right: der, top: 30, bottom: 34 },
@@ -153,7 +141,6 @@ function serie(filas) {
       lineStyle: { width: 2, color: d.color, type: d.punteada ? [6, 4] : "solid" }, itemStyle: { color: d.color, borderColor: "#fff", borderWidth: 2 },
       emphasis: { focus: "none" },
       endLabel: rotulos ? { show: true, formatter: (p) => `${d.corto} ${pct(p.value[1])}`, ...txt({ color: C.texto, fontWeight: 700 }) } : undefined,
-      markArea: k === 0 ? { silent: true, data: areas } : undefined,
     })),
   }, true);
 
@@ -168,11 +155,11 @@ function serie(filas) {
     g.setOption({ series: def.map((_, k) => ({ endLabel: { offset: [0, off[k]] } })) });
   }
 
-  document.getElementById("ley-serie").innerHTML = def.map((d) =>
-    `<span><i class="l${d.punteada ? " punteada" : ""}" style="border-color:${d.color}"></i>${d.nombre}</span>`).join("") +
-    `<span><i class="banda"></i>${estado.gobierno ? "Cada premier" : "Cada gobierno"}</span>`;
+  // con una sola línea el título la nombra; la leyenda aparece al sumar la del presidente
+  document.getElementById("ley-serie").innerHTML = def.length < 2 ? "" : def.map((d) =>
+    `<span><i class="l${d.punteada ? " punteada" : ""}" style="border-color:${d.color}"></i>${d.nombre}</span>`).join("");
   document.getElementById("t-serie").textContent = estado.gobierno
-    ? `Aprobación y desaprobación del premier en el gobierno de ${estado.gobierno}` : "Aprobación y desaprobación del premier, mes a mes";
+    ? `Aprobación del premier en el gobierno de ${estado.gobierno}` : "Aprobación del premier, mes a mes";
   document.getElementById("d-serie").textContent = `Porcentaje de personas encuestadas, de ${mesLargo(conDatos[0])} a ${mesLargo(conDatos.at(-1))}.`;
   el.setAttribute("aria-label", `${document.getElementById("t-serie").textContent}. ${document.getElementById("resumen").textContent}`);
 }
@@ -281,13 +268,13 @@ Obs.iniciar(TABLERO, async () => {
   const datos = await Obs.cargarJSON("datos.json");
   const t = Obs.tema();
   const css = getComputedStyle(document.documentElement);
-  C = { ...t, premier: css.getPropertyValue("--c-premier").trim(), desaprueba: css.getPropertyValue("--c-desaprueba").trim(), presidente: css.getPropertyValue("--c-presidente").trim() };
+  C = { ...t, premier: css.getPropertyValue("--c-premier").trim(), presidente: css.getPropertyValue("--c-presidente").trim() };
 
   const limpio = (s) => (s == null ? "" : String(s).trim().replace(/\s+/g, " "));
   const todas = Obs.expandir(datos.tablas["Aprobación"]).filter((f) => f.Periodo).map((f) => {
     const [a, m] = String(f.Periodo).split("-").map(Number);
     return { anio: a, mes: m - 1, t: Date.UTC(a, m - 1, 1), gob: limpio(f.Gobierno), premier: limpio(f.Premier),
-      ap: f.Aprobacion_premier, de: f.Desaprobacion_premier, ns: f["No sabe_premier"], pres: f.Aprobacion_presidente };
+      ap: f.Aprobacion_premier, pres: f.Aprobacion_presidente };
   }).sort((x, y) => x.t - y.t);
   // la serie del premier va de su primera a su última medición
   const i0 = todas.findIndex((f) => f.ap != null);

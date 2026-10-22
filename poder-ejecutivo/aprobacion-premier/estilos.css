@@ -6,7 +6,6 @@
 :root {
   /* El color sigue a quien se mide en todos los gráficos (orden categórico de tema.css) */
   --c-premier: var(--serie-1);
-  --c-desaprueba: var(--serie-2);
   --c-presidente: var(--serie-3);
 }
 .cabecera-interior { padding-bottom: 12px; }
@@ -19,7 +18,6 @@
 .ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
 .ley i.l.punteada { border-top-style: dashed; }
 .ley i.p { border-radius: 50%; }
-.ley i.banda { width: 20px; background: rgba(4, 35, 85, 0.07); border: 1px solid var(--linea); }
 
 .filtros .segmentado button:hover:not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .tabla td.premier { font-weight: 700; color: var(--texto); }
