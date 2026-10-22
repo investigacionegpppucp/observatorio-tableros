@@ -120,8 +120,11 @@ function cifras(s, g) {
   if (!s.meses.length) { ["k-promedio", "k-maximo", "k-minimo"].forEach((id) => Obs.kpi(id, { etiqueta: "", valor: "—" })); return; }
   const max = s.meses.reduce((m, f) => (f.aprob > m.aprob ? f : m));
   const min = s.meses.reduce((m, f) => (f.aprob < m.aprob ? f : m));
-  const quien = (f) => (g ? mesLargo(f) : `${f.gobierno}, ${mesLargo(f)}`);
-  Obs.kpi("k-promedio", { etiqueta: g ? `Aprobación promedio de ${g.nombre}` : "Aprobación promedio", valor: pct(promedio(s.meses.map((f) => f.aprob))), pie: `${Obs.fmtN(s.meses.length)} ${s.meses.length === 1 ? "mes" : "meses"} con encuesta` });
+  // El contexto (quién y cuándo) va en dos líneas fuertes bajo la cifra, no en gris tenue
+  const contexto = (principal, secundario) => `<strong class="kpi-quien">${Obs.escapar(principal)}</strong>${secundario ? `<span class="kpi-cuando">${Obs.escapar(secundario)}</span>` : ""}`;
+  const quien = (f) => (g ? contexto(mesMayus(f), g.nombre) : contexto(f.gobierno, mesLargo(f)));
+  const periodo = estado.desde === estado.hasta ? `${estado.desde}` : `${estado.desde}-${estado.hasta}`;
+  Obs.kpi("k-promedio", { etiqueta: "Aprobación promedio", valor: pct(promedio(s.meses.map((f) => f.aprob))), pie: contexto(g ? g.nombre : periodo) });
   Obs.kpi("k-maximo", { etiqueta: "Aprobación más alta", valor: pct(max.aprob), pie: quien(max) });
   Obs.kpi("k-minimo", { etiqueta: "Aprobación más baja", valor: pct(min.aprob), pie: quien(min) });
 }

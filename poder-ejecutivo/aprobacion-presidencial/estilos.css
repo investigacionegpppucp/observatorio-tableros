@@ -57,3 +57,14 @@
   .reparto-fila { grid-template-columns: 96px minmax(0, 1fr) 58px; }
   .datos-mes { grid-template-columns: 1fr; }
 }
+
+/* Cifras clave: el contexto (quién y cuándo) va en una franja azul clara al pie de la tarjeta,
+   para que se lea junto con la cifra y no como nota al margen */
+.kpi { gap: 2px; overflow: hidden; }
+.kpi .kpi-etiqueta { font-weight: 700; color: var(--texto-suave); }
+.kpi .kpi-pie {
+  display: flex; flex-direction: column; flex: 1 1 auto; gap: 1px; margin: 12px -20px -18px; padding: 12px 20px 14px;
+  background: #e8eefb; border-top: 3px solid var(--azul-claro);
+}
+.kpi .kpi-quien { font-size: 20px; font-weight: 800; color: var(--azul); line-height: 1.25; }
+.kpi .kpi-cuando { font-size: 15px; font-weight: 600; color: var(--navy); }
