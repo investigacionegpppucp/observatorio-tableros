@@ -1,0 +1,35 @@
+/* =========================================================
+   Estilos propios del tablero de Aprobación del premier.
+   Lo compartido (franja, filtros, tarjetas, tablas) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* El color sigue a quien se mide en todos los gráficos (orden categórico de tema.css) */
+  --c-premier: var(--serie-1);
+  --c-desaprueba: var(--serie-2);
+  --c-presidente: var(--serie-3);
+}
+.cabecera-interior { padding-bottom: 12px; }
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Leyendas: línea (series de tiempo), punto y cuadro */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+.ley i.l.punteada { border-top-style: dashed; }
+.ley i.p { border-radius: 50%; }
+.ley i.banda { width: 20px; background: rgba(4, 35, 85, 0.07); border: 1px solid var(--linea); }
+
+.filtros .segmentado button:hover:not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.tabla td.premier { font-weight: 700; color: var(--texto); }
+.tabla .suave { color: var(--texto-suave); white-space: nowrap; }
+.tabla-caja { overflow-x: auto; }
+.tabla-caja .tabla { min-width: 720px; }
+
+@media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .kpis-4 { grid-template-columns: 1fr; }
+  .filtros .segmentado { width: 100%; }
+  .filtros .segmentado button { flex: 1; min-width: 0; }
+}
