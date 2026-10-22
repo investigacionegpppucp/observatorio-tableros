@@ -8,7 +8,7 @@
 .kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* Alturas de los gráficos */
-.grafico.serie { height: 470px; }
+.grafico.serie { height: 440px; }
 .tabla-caja.sin-tope { max-height: none; overflow-x: auto; overflow-y: visible; }
 
 /* Botón de la franja de filtros */
@@ -50,7 +50,7 @@
 
 @media (max-width: 900px) {
   .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grafico.serie { height: 420px; }
+  .grafico.serie { height: 400px; }
 }
 @media (max-width: 560px) {
   .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
