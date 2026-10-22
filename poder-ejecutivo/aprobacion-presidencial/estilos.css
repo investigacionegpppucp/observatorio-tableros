@@ -3,26 +3,26 @@
    Lo compartido (franja, filtros, tarjetas) está en
    comun/estilos.css; los colores, en comun/tema.css.
    ========================================================= */
+/* Más ancho que el resto: la serie mensual (41 años) y las barras necesitan aire */
+:root { --ancho: 1400px; }
 .cabecera-interior { padding-bottom: 12px; }
 
-/* Título de tarjeta con un control a la derecha */
-.cabeza-con-control { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 20px; flex-wrap: wrap; }
-.cabeza-con-control .segmentado button:hover:not([aria-pressed="true"]) { color: var(--navy); }
-
-/* Leyendas: línea (serie mensual) y cuadro (barras) */
+/* Leyendas: cuadro (barras) */
 .ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
 .ley:empty { display: none; }
 .ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
 
-#g-evol { height: 420px; }
+#g-evol { height: 440px; }
 
-/* Promedios por gobierno y ficha del mes */
-.grilla-gobiernos { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.grilla-gobiernos > .tarjeta { margin-bottom: 16px; }
-@media (min-width: 901px) { .ficha-mes { position: sticky; top: 104px; } }
+/* Ficha del mes: una franja horizontal entre los dos gráficos
+   título | reparto | datos | botones */
+.ficha-mes {
+  display: grid; align-items: center; gap: 16px 32px;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(260px, 1.4fr) minmax(0, 1.6fr) auto;
+}
+.ficha-mes header p { max-width: 260px; }
 
-.reparto { display: grid; gap: 10px; margin-top: 16px; }
+.reparto { display: grid; gap: 8px; }
 .reparto-fila { display: grid; grid-template-columns: 112px minmax(0, 1fr) 64px; align-items: center; gap: 10px; font-size: 15px; }
 .reparto-fila span:first-child { font-weight: 600; }
 .reparto-fila b { text-align: right; font-variant-numeric: tabular-nums; color: var(--navy); }
@@ -30,25 +30,30 @@
 .reparto-barra i { display: block; height: 100%; border-radius: 0 2px 2px 0; }
 .reparto .sin-dato { margin: 0; font-size: 14px; color: var(--texto-suave); }
 
-.datos-mes { margin: 18px 0 0; display: grid; gap: 10px; font-size: 15px; }
+.datos-mes { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; font-size: 15px; }
 .datos-mes div { display: grid; gap: 1px; }
 .datos-mes dt { font-size: 14px; color: var(--texto-suave); }
 .datos-mes dd { margin: 0; font-weight: 600; }
-.datos-mes a { color: var(--azul); font-weight: 700; }
-.datos-mes a:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
 
-.pasos-mes { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
-.boton-claro { background: var(--fondo); color: var(--navy); border: 1px solid var(--linea); flex: 1; justify-content: center; }
+.pasos-mes { display: flex; flex-direction: column; gap: 8px; }
+.boton-claro { background: var(--fondo); color: var(--navy); border: 1px solid var(--linea); justify-content: center; white-space: nowrap; }
 .boton-claro:hover:not(:disabled) { background: #e6eaf0; }
 .boton-claro:disabled { opacity: 0.45; cursor: not-allowed; }
 .boton-claro:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
 
+@media (max-width: 1100px) {
+  .ficha-mes { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+  .pasos-mes { flex-direction: row; grid-column: 1 / -1; }
+  .pasos-mes .boton { flex: 1; }
+}
 @media (max-width: 900px) {
-  .grilla-gobiernos { grid-template-columns: 1fr; }
   #g-evol { height: 340px; }
 }
+@media (max-width: 700px) {
+  .ficha-mes { grid-template-columns: 1fr; }
+  .ficha-mes header p { max-width: none; }
+}
 @media (max-width: 560px) {
-  .cabeza-con-control .segmentado { width: 100%; }
-  .cabeza-con-control .segmentado button { flex: 1; padding: 7px 8px; }
   .reparto-fila { grid-template-columns: 96px minmax(0, 1fr) 58px; }
+  .datos-mes { grid-template-columns: 1fr; }
 }

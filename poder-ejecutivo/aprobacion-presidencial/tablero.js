@@ -12,7 +12,7 @@
    sola función `render()`. Los controles solo cambian `estado`.
 
    Parámetros de URL:
-     ?gobierno=Toledo&desde=2001&hasta=2006&mes=2004-05&serie=ambas
+     ?gobierno=Toledo&desde=2001&hasta=2006&mes=2004-05
      &embed=1   oculta título y pie (para un iframe)
    ========================================================= */
 
@@ -22,7 +22,7 @@ const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const estado = { gobierno: null, desde: null, hasta: null, mes: null, serie: "aprobacion" };
+const estado = { gobierno: null, desde: null, hasta: null, mes: null };
 
 let FILAS = [], GOBIERNOS = [], ANIOS = [];
 let C; // colores, leídos de tema.css al arrancar
@@ -48,7 +48,7 @@ function preparar(tabla) {
     return {
       clave: f.Periodo.slice(0, 7), anio: a, mes: m - 1, gobierno: f.Gobierno,
       aprob: f.Aprobacion_presidente, desaprob: f.Desaprobacion_presidente, noPrecisa: r2(f["No sabe_presidente"]),
-      premier: (f.Premier || "").trim(), tipo: f["Tipo de encuesta"], fuente: typeof f.Fuente === "string" && /^https?:/.test(f.Fuente) ? f.Fuente : null,
+      premier: (f.Premier || "").trim(), tipo: f["Tipo de encuesta"],
     };
   }).sort((x, y) => x.clave.localeCompare(y.clave));
   FILAS.forEach((f, i) => (f.i = i));
@@ -98,7 +98,6 @@ function render() {
   Obs.escribirURL({
     gobierno: estado.gobierno, mes: estado.mes,
     desde: estado.desde === ANIOS[0] ? null : estado.desde, hasta: estado.hasta === ANIOS.at(-1) ? null : estado.hasta,
-    serie: estado.serie === "ambas" ? "ambas" : null,
   });
 }
 
@@ -127,57 +126,35 @@ function cifras(s, g) {
   Obs.kpi("k-minimo", { etiqueta: "Aprobación más baja", valor: pct(min.aprob), pie: quien(min) });
 }
 
-/* ---------- Serie mensual con franjas por gobierno ---------- */
-// Rótulos del eje: tantos como quepan. Con muchos años, enero de cada N años; con pocos, cada N meses.
+/* ---------- Serie mensual ---------- */
+// Rótulos del eje: cada 2 años contando desde el primer año del período (que siempre sale);
+// si no caben, cada 4, 5 o 10. Con pocos meses, cada N meses.
 function intervaloEje(meses, ancho) {
   const porMes = ancho / Math.max(meses.length, 1);
   if (meses.length > 36) {
-    const paso = [1, 2, 5, 10].find((p) => p * 12 * porMes >= 52) ?? 10;
-    return { etiqueta: (f) => String(f.anio), mostrar: (f) => f.mes === 0 && f.anio % paso === 0 };
+    const anio0 = meses[0].anio;
+    const paso = [2, 4, 5, 10].find((p) => p * 12 * porMes >= 44) ?? 10;
+    return {
+      etiqueta: (f) => String(f.anio),
+      // el primer mes rotula su año; luego, enero de cada `paso` años (sin pisar al primero)
+      mostrar: (f, i) => i === 0 || (f.mes === 0 && f.anio > anio0 && (f.anio - anio0) % paso === 0),
+    };
   }
   const paso = [1, 2, 3, 6, 12].find((p) => p * porMes >= 74) ?? 12;
   return { etiqueta: mesCorto, mostrar: (f, i) => i % paso === 0 };
 }
 
+// El rótulo del mes elegido no se sale por los bordes del gráfico
+const posicionRotulo = (k, v) => (k > 0.92 ? "left" : k < 0.05 ? "right" : v > 0.85 ? "bottom" : "top");
+
 function evolucion(s, g) {
   const id = "g-evol";
-  const ambas = estado.serie === "ambas";
-  document.getElementById("ley-evol").innerHTML = ambas
-    ? `<span><i class="l" style="border-color:${C.aprob}"></i>Aprobación</span><span><i class="l" style="border-color:${C.desaprob}"></i>Desaprobación</span>` : "";
   if (!s.meses.length) return Obs.vacio(id, "Sin mediciones en este período");
 
   const el = document.getElementById(id);
-  const angosto = el.clientWidth < 600;
-  const izq = 48, der = 16;
-  const anchoUtil = el.clientWidth - izq - der;
-  const eje = intervaloEje(s.meses, anchoUtil);
-  const claves = s.meses.map((f) => f.clave);
-
-  // Franjas: una por gobierno visible, alternando un fondo muy suave; el nombre arriba si cabe
-  const tramos = [];
-  for (const f of s.meses) {
-    const t = tramos.at(-1);
-    if (t && t.nombre === f.gobierno) { t.hasta = f.clave; t.n++; } else tramos.push({ nombre: f.gobierno, desde: f.clave, hasta: f.clave, n: 1 });
-  }
-  const franjas = tramos.map((t, k) => {
-    const ancho = (t.n / s.meses.length) * anchoUtil;
-    const cabe = !angosto && ancho >= t.nombre.length * 8 + 10;
-    return [{ xAxis: t.desde, name: t.nombre, itemStyle: { color: k % 2 ? "rgba(4,35,85,0)" : "rgba(4,35,85,0.045)" },
-      label: { show: cabe, position: "insideTop", distance: 6, ...txt({ color: C.texto, fontWeight: 700 }) } }, { xAxis: t.hasta }];
-  });
-
+  const izq = 48, der = 20;
+  const eje = intervaloEje(s.meses, el.clientWidth - izq - der);
   const elegido = s.mes;
-  const serieLinea = (nombre, campo, color, extra = {}) => ({
-    name: nombre, type: "line", data: s.meses.map((f) => f[campo]), connectNulls: true,
-    symbol: "circle", symbolSize: 7, showSymbol: s.meses.length <= 72,
-    lineStyle: { width: 2, color }, itemStyle: { color, borderColor: "#fff", borderWidth: 1.5 },
-    emphasis: { focus: "none", scale: 1.4 }, ...extra,
-  });
-  const marcaMes = elegido ? {
-    silent: true, symbol: "none", animation: false,
-    lineStyle: { color: C.navy, type: "solid", width: 1.5 },
-    label: { show: false }, data: [{ xAxis: elegido.clave }],
-  } : undefined;
 
   const gr = Obs.grafico(id);
   gr.setOption({
@@ -186,28 +163,30 @@ function evolucion(s, g) {
       ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "line", lineStyle: { color: C.navy, width: 1, type: "dashed" } },
       formatter: (ps) => {
         const f = s.meses[ps[0].dataIndex];
-        return `<strong>${mesMayus(f)}</strong><br>Gobierno: ${Obs.escapar(f.gobierno)}` +
-          `<br><span style="color:#b4c6fa">●</span> Aprobación: <strong>${pct(f.aprob)}</strong>` +
-          (ambas || f.desaprob != null ? `<br><span style="color:#f19bb0">●</span> Desaprobación: <strong>${pct(f.desaprob)}</strong>` : "");
+        return `<strong>${mesMayus(f)}</strong><br>Gobierno: ${Obs.escapar(f.gobierno)}<br>Aprobación: <strong>${pct(f.aprob)}</strong>`;
       },
     },
-    grid: { left: izq, right: der, top: 34, bottom: 34 },
+    grid: { left: izq, right: der, top: 30, bottom: 34 },
     xAxis: {
-      type: "category", data: claves, boundaryGap: false,
+      type: "category", data: s.meses.map((f) => f.clave), boundaryGap: false,
       axisLine: { lineStyle: { color: C.linea } }, axisTick: { show: false },
       axisLabel: txt({ interval: (i) => eje.mostrar(s.meses[i], i), formatter: (v, i) => eje.etiqueta(s.meses[i]), hideOverlap: false }),
     },
-    yAxis: { type: "value", min: 0, max: 1, interval: 0.2, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (v) => `${Math.round(v * 100)} %` }) },
-    series: [
-      serieLinea("Aprobación", "aprob", C.aprob, {
-        areaStyle: ambas ? undefined : { color: "rgba(58,95,205,0.10)" },
-        markArea: { silent: true, data: franjas },
-        markLine: marcaMes,
-        markPoint: elegido ? { silent: true, symbol: "circle", symbolSize: 12, animation: false, itemStyle: { color: C.aprob, borderColor: "#fff", borderWidth: 2.5 }, label: { show: false },
-          data: [{ coord: [elegido.clave, elegido.aprob] }] } : undefined,
-      }),
-      ...(ambas ? [serieLinea("Desaprobación", "desaprob", C.desaprob)] : []),
-    ],
+    yAxis: { type: "value", min: 0, max: 1, interval: 0.2, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (v) => `${Math.round(v * 100)}\u00a0%` }) },
+    series: [{
+      name: "Aprobación", type: "line", data: s.meses.map((f) => f.aprob), connectNulls: true,
+      symbol: "circle", symbolSize: 7, showSymbol: s.meses.length <= 72,
+      lineStyle: { width: 2, color: C.aprob }, itemStyle: { color: C.aprob, borderColor: "#fff", borderWidth: 1.5 },
+      emphasis: { focus: "none", scale: 1.4 },
+      // el mes elegido: línea vertical y punto con su valor rotulado
+      markLine: elegido ? { silent: true, symbol: "none", animation: false, lineStyle: { color: C.navy, type: "solid", width: 1.5 }, label: { show: false }, data: [{ xAxis: elegido.clave }] } : undefined,
+      markPoint: elegido ? {
+        silent: true, symbol: "circle", symbolSize: 12, animation: false, itemStyle: { color: C.aprob, borderColor: "#fff", borderWidth: 2.5 },
+        label: { show: true, position: posicionRotulo(s.meses.indexOf(elegido) / s.meses.length, elegido.aprob), distance: 8, formatter: () => pct(elegido.aprob), ...txt({ color: C.navy, fontWeight: 800 }),
+          backgroundColor: "rgba(255,255,255,.9)", padding: [2, 4], borderRadius: 2 },
+        data: [{ coord: [elegido.clave, elegido.aprob] }],
+      } : undefined,
+    }],
   }, true);
 
   // Un clic en cualquier parte del área del gráfico elige el mes más cercano
@@ -230,7 +209,7 @@ function gobiernos(s) {
   if (!datos.length) return Obs.vacio(id);
   const el = document.getElementById(id);
   const angosto = el.clientWidth < 480;
-  el.style.height = `${datos.length * 46 + 16}px`;
+  el.style.height = `${datos.length * 44 + 16}px`;
   const gr = Obs.grafico(id);
   gr.resize();
   const izq = angosto ? 104 : 128;
@@ -243,7 +222,7 @@ function gobiernos(s) {
     ...txt({ color: claro ? "#fff" : C.texto, fontWeight: 700 }),
   });
   const tramo = (nombre, campo, color, claro) => ({
-    name: nombre, type: "bar", stack: "total", barWidth: 22, cursor: "pointer",
+    name: nombre, type: "bar", stack: "total", barWidth: 24, cursor: "pointer",
     // los gobiernos atenuados van sin rótulo: el texto no se lee sobre el color pálido
     data: datos.map((g) => ({ value: g[campo], itemStyle: { color, opacity: opacidad(g) }, label: rotulo(opacidad(g) < 1 ? null : g[campo], claro) })),
   });
@@ -291,7 +270,7 @@ function ficha(s) {
     return;
   }
   $("t-mes").textContent = `Encuesta de ${mesLargo(f)}`;
-  $("d-mes").textContent = f === s.meses.at(-1) && !estado.mes ? "La más reciente del período. Elige otro mes en el gráfico." : "Mes elegido en el gráfico.";
+  $("d-mes").textContent = f === s.meses.at(-1) && !estado.mes ? "La más reciente del período. Elige otro mes en el gráfico de arriba." : "Mes elegido en el gráfico de arriba.";
   const fila = (nombre, v, color) => `<div class="reparto-fila"><span>${nombre}</span>
     <span class="reparto-barra"><i style="width:${(v ?? 0) * 100}%;background:${color}"></i></span><b>${pct(v)}</b></div>`;
   $("reparto").innerHTML = fila("Aprobación", f.aprob, C.aprob) +
@@ -305,8 +284,7 @@ function ficha(s) {
     dato("Gobierno", Obs.escapar(f.gobierno)) +
     (f.premier ? dato("Presidente del Consejo de Ministros", Obs.escapar(f.premier)) : "") +
     (cambio != null ? dato(`Frente a ${mesLargo(previo)}`, cambio === 0 ? "Sin cambio" : `${puntos(cambio)} puntos de aprobación`) : "") +
-    (f.tipo ? dato("Muestra", f.tipo === "Lima" ? "Lima Metropolitana" : "Nacional") : "") +
-    (f.fuente ? dato("Fuente", `<a href="${Obs.escapar(f.fuente)}" target="_blank" rel="noopener">Ver la encuesta</a>`) : "");
+    (f.tipo ? dato("Muestra", f.tipo === "Lima" ? "Lima Metropolitana" : "Nacional") : "");
 
   const k = s.meses.indexOf(f);
   $("mes-anterior").disabled = k <= 0;
@@ -320,7 +298,6 @@ function sincronizarControles() {
   document.getElementById("f-gobierno").value = estado.gobierno ?? "";
   document.getElementById("f-desde").value = estado.desde;
   document.getElementById("f-hasta").value = estado.hasta;
-  document.querySelectorAll("[data-serie]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.serie === estado.serie));
 }
 
 function actualizar(parche) {
@@ -344,7 +321,6 @@ function montarControles() {
   // si «desde» queda después de «hasta», se corre el otro extremo
   fd.onchange = (e) => { const d = +e.target.value; actualizar({ desde: d, hasta: Math.max(d, estado.hasta), mes: null }); };
   fh.onchange = (e) => { const h = +e.target.value; actualizar({ hasta: h, desde: Math.min(h, estado.desde), mes: null }); };
-  document.querySelectorAll("[data-serie]").forEach((b) => (b.onclick = () => actualizar({ serie: b.dataset.serie })));
 }
 
 function leerURL() {
@@ -355,7 +331,6 @@ function leerURL() {
   if (estado.desde > estado.hasta) [estado.desde, estado.hasta] = [estado.hasta, estado.desde];
   if (g) Object.assign(estado, { gobierno: g.nombre, desde: Math.min(estado.desde, g.desde.anio), hasta: Math.max(estado.hasta, g.hasta.anio) });
   if (FILAS.some((f) => f.clave === p.get("mes"))) estado.mes = p.get("mes");
-  if (p.get("serie") === "ambas") estado.serie = "ambas";
 }
 
 Obs.iniciar(TABLERO, async () => {
