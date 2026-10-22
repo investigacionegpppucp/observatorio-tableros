@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aprobación presidencial | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/tema.css?v=2f87b24">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=2f87b24">
+  <link rel="stylesheet" href="estilos.css?v=2f87b24">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Aprobación presidencial</h1>
+        <p class="subtitulo" id="subtitulo">Cuántos peruanos aprueban la gestión del presidente, mes a mes.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro">
+      <label for="f-gobierno">Gobierno</label>
+      <select id="f-gobierno"></select>
+    </div>
+    <div class="filtro">
+      <span class="etiqueta" id="lbl-periodo">Período</span>
+      <div class="rango" role="group" aria-labelledby="lbl-periodo">
+        <select id="f-desde" class="corto" aria-label="Desde"></select>
+        <span>a</span>
+        <select id="f-hasta" class="corto" aria-label="Hasta"></select>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
+
+    <div class="kpis">
+      <div class="kpi" id="k-promedio"></div>
+      <div class="kpi" id="k-maximo"></div>
+      <div class="kpi" id="k-minimo"></div>
+    </div>
+
+    <article class="tarjeta">
+      <header class="cabeza-con-control">
+        <div><h3>Aprobación mes a mes</h3><p id="d-evol"></p></div>
+        <div class="segmentado" role="group" aria-label="Series del gráfico">
+          <button type="button" data-serie="aprobacion">Aprobación</button>
+          <button type="button" data-serie="ambas">Aprobación y desaprobación</button>
+        </div>
+      </header>
+      <div class="ley" id="ley-evol"></div>
+      <div class="grafico" id="g-evol"></div>
+      <p class="pista">Las franjas marcan cada gobierno. Haz clic en el gráfico para ver la encuesta de ese mes.</p>
+    </article>
+
+    <div class="grilla-gobiernos">
+      <article class="tarjeta">
+        <header><h3>Promedio por gobierno</h3><p id="d-gobiernos"></p></header>
+        <div class="ley">
+          <span><i style="background:var(--serie-1)"></i>Aprobación</span>
+          <span><i style="background:var(--serie-2)"></i>Desaprobación</span>
+          <span><i style="background:var(--serie-otros)"></i>No precisa</span>
+        </div>
+        <div class="grafico" id="g-gobiernos"></div>
+        <p class="pista">Haz clic en un gobierno para ver solo sus meses. Otro clic vuelve a todos.</p>
+      </article>
+
+      <article class="tarjeta ficha-mes" id="ficha-mes" aria-live="polite">
+        <header><h3 id="t-mes"></h3><p id="d-mes"></p></header>
+        <div class="reparto" id="reparto"></div>
+        <dl class="datos-mes" id="datos-mes"></dl>
+        <div class="pasos-mes">
+          <button type="button" class="boton boton-claro" id="mes-anterior">Mes anterior</button>
+          <button type="button" class="boton boton-claro" id="mes-siguiente">Mes siguiente</button>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Opinión Data, de Apoyo, y encuestas de Ipsos Perú.</p>
+    <p><strong>Notas:</strong> No hay datos de desaprobación ni de «no precisa» para los gobiernos de García I y Fujimori I, II y III.
+      Los promedios por gobierno son el promedio simple de sus meses con encuesta dentro del período elegido.</p>
+    <p><strong>Cómo citar:</strong> Aragón, Jorge, Marylia Cruz, Karina Alcántara, Paolo Sánchez, Nicolás Gutiérrez y Ximena Pinillos (2026).
+      <em>Aprobación presidencial (1985-2026)</em>. Observatorio para la Democracia y Gobernabilidad, Escuela de Gobierno y Políticas Públicas, PUCP.
+      Actualizado el <span id="actualizado"></span>.</p>
+  </footer>
+
+  <!-- Sin mapa, pero Obs.iniciar revisa que Leaflet esté cargado (es local) -->
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=2f87b24"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=2f87b24"></script>
+  <script src="../../comun/config.js?v=2f87b24"></script>
+  <script src="../../comun/base.js?v=2f87b24"></script>
+  <script src="../../comun/graficos.js?v=2f87b24"></script>
+  <script src="../../comun/descarga.js?v=2f87b24"></script>
+  <script src="tablero.js?v=2f87b24"></script>
+</body>
+</html>
