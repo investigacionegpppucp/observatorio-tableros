@@ -1,0 +1,54 @@
+/* =========================================================
+   Estilos propios del tablero de Aprobación presidencial.
+   Lo compartido (franja, filtros, tarjetas) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+.cabecera-interior { padding-bottom: 12px; }
+
+/* Título de tarjeta con un control a la derecha */
+.cabeza-con-control { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 20px; flex-wrap: wrap; }
+.cabeza-con-control .segmentado button:hover:not([aria-pressed="true"]) { color: var(--navy); }
+
+/* Leyendas: línea (serie mensual) y cuadro (barras) */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+
+#g-evol { height: 420px; }
+
+/* Promedios por gobierno y ficha del mes */
+.grilla-gobiernos { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.grilla-gobiernos > .tarjeta { margin-bottom: 16px; }
+@media (min-width: 901px) { .ficha-mes { position: sticky; top: 104px; } }
+
+.reparto { display: grid; gap: 10px; margin-top: 16px; }
+.reparto-fila { display: grid; grid-template-columns: 112px minmax(0, 1fr) 64px; align-items: center; gap: 10px; font-size: 15px; }
+.reparto-fila span:first-child { font-weight: 600; }
+.reparto-fila b { text-align: right; font-variant-numeric: tabular-nums; color: var(--navy); }
+.reparto-barra { height: 14px; border-radius: 2px; background: var(--fondo); overflow: hidden; }
+.reparto-barra i { display: block; height: 100%; border-radius: 0 2px 2px 0; }
+.reparto .sin-dato { margin: 0; font-size: 14px; color: var(--texto-suave); }
+
+.datos-mes { margin: 18px 0 0; display: grid; gap: 10px; font-size: 15px; }
+.datos-mes div { display: grid; gap: 1px; }
+.datos-mes dt { font-size: 14px; color: var(--texto-suave); }
+.datos-mes dd { margin: 0; font-weight: 600; }
+.datos-mes a { color: var(--azul); font-weight: 700; }
+.datos-mes a:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+.pasos-mes { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+.boton-claro { background: var(--fondo); color: var(--navy); border: 1px solid var(--linea); flex: 1; justify-content: center; }
+.boton-claro:hover:not(:disabled) { background: #e6eaf0; }
+.boton-claro:disabled { opacity: 0.45; cursor: not-allowed; }
+.boton-claro:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+@media (max-width: 900px) {
+  .grilla-gobiernos { grid-template-columns: 1fr; }
+  #g-evol { height: 340px; }
+}
+@media (max-width: 560px) {
+  .cabeza-con-control .segmentado { width: 100%; }
+  .cabeza-con-control .segmentado button { flex: 1; padding: 7px 8px; }
+  .reparto-fila { grid-template-columns: 96px minmax(0, 1fr) 58px; }
+}
