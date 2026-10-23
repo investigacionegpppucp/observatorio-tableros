@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confianza institucional | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=e711949">
+  <link rel="stylesheet" href="../../comun/tema.css?v=e711949">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=e711949">
+  <link rel="stylesheet" href="estilos.css?v=e711949">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Confianza institucional</h1>
+        <p class="subtitulo">Cuánto confían los peruanos en las instituciones del Estado, la Iglesia, la prensa y los partidos, de 2013 a 2025, en el país y en cada región.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-institucion">Institución</label><select id="f-institucion"></select></div>
+    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+  </section>
+
+  <main>
+    <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
+    <div class="kpis">
+      <div class="kpi" id="k-confia"></div>
+      <div class="kpi" id="k-cambio"></div>
+      <div class="kpi" id="k-puesto"></div>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3 id="t-ranking">¿En qué instituciones se confía más?</h3><p id="d-ranking"></p></header>
+      <div class="grafico" id="g-ranking"></div>
+      <p class="pista">Haz clic en una institución para verla en todo el tablero.</p>
+    </article>
+
+    <div class="grilla">
+      <article class="tarjeta">
+        <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
+        <div class="ley" id="ley-evol"></div>
+        <div class="grafico" id="g-evol"></div>
+        <p class="pista">Haz clic en un año para elegirlo.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-resp"></h3><p>Respuestas a «¿Cuánto confía usted en…?», por año.</p></header>
+        <div class="ley" id="ley-resp"></div>
+        <div class="grafico" id="g-resp"></div>
+      </article>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3 id="t-mapa"></h3><p>Porcentaje que confía suficiente o bastante. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+        <div><div class="grafico" id="g-regiones"></div></div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Hogares (ENAHO), módulo de Gobernabilidad, Democracia y Transparencia.</p>
+    <p><strong>Notas:</strong> Población de 18 años y más. «Confía» suma a quienes confían suficiente o bastante en la institución. Los porcentajes se calculan con los factores de expansión de la encuesta.
+      La Comisión de Alto Nivel Anticorrupción, la Contraloría, la Fiscalía, la Procuraduría Anticorrupción y la Sunat se preguntan desde 2014. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Confianza institucional</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=e711949"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=e711949"></script>
+  <script src="../../comun/config.js?v=e711949"></script>
+  <script src="../../comun/base.js?v=e711949"></script>
+  <script src="../../comun/graficos.js?v=e711949"></script>
+  <script src="../../comun/mapa.js?v=e711949"></script>
+  <script src="../../comun/descarga.js?v=e711949"></script>
+  <script src="tablero.js?v=e711949"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+/* =========================================================
+   Estilos propios del tablero de Confianza institucional.
+   Lo compartido (franja, filtros, tarjetas, mapa) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* Respuestas: escala divergente, de la desconfianza (rojo) a la confianza (azul); «no sabe» en gris */
+  --r-nada: #a3123a;
+  --r-poca: #e0708f;
+  --r-suficiente: #7f9be8;
+  --r-bastante: #0f3d9e;
+  --r-nosabe: #b8c0cc;
+}
+.cabecera-interior { padding-bottom: 12px; }
+#f-institucion { min-width: 280px; }
+
+/* Leyendas: línea (serie) y cuadro (respuestas) */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+
+.mapa-y-tabla .grafico { margin-top: 0; }
+
+@media (max-width: 560px) {
+  #f-institucion { min-width: 0; width: 100%; }
+}
