@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vacancias presidenciales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/tema.css?v=3d754d6">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=3d754d6">
+  <link rel="stylesheet" href="estilos.css?v=3d754d6">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Vacancias presidenciales</h1>
+        <p class="subtitulo">Los pedidos del Congreso para declarar la vacancia del presidente de la República desde 2000: quién los presentó, hasta dónde llegaron y cómo terminaron.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-presidente">Presidente</label><select id="f-presidente"></select></div>
+    <div class="filtro"><label for="f-bancada">Bancada que lo firmó</label><select id="f-bancada"></select></div>
+  </section>
+
+  <main>
+    <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
+    <div class="kpis kpis-4">
+      <div class="kpi" id="k-pedidos"></div>
+      <div class="kpi" id="k-admitidos"></div>
+      <div class="kpi" id="k-aprobados"></div>
+      <div class="kpi" id="k-vacados"></div>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3>Cada pedido de vacancia en el tiempo</h3><p>Un punto por pedido, en la fecha en que se presentó. El color dice hasta dónde llegó.</p></header>
+      <div class="ley" id="ley-linea"></div>
+      <div class="grafico" id="g-linea"></div>
+    </article>
+
+    <div class="grilla">
+      <article class="tarjeta">
+        <header><h3>Pedidos contra cada presidente</h3><p id="d-presidentes"></p></header>
+        <div class="ley" id="ley-presidentes"></div>
+        <div class="grafico" id="g-presidentes"></div>
+        <p class="pista">Haz clic en un presidente para verlo en todo el tablero.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3>Bancadas que firmaron más pedidos</h3><p id="d-bancadas"></p></header>
+        <div class="grafico" id="g-bancadas"></div>
+        <p class="pista">Haz clic en una bancada para ver solo sus pedidos.</p>
+      </article>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3 id="t-tabla">Los pedidos, uno por uno</h3><p>Fechas de presentación, de la votación de admisión y de la votación de la vacancia.</p></header>
+      <div class="tabla-caja" id="t-pedidos"></div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Congreso de la República, mociones de orden del día y proyectos de resolución legislativa sobre vacancia presidencial. Elaboración del Observatorio.</p>
+    <p><strong>Notas:</strong> Un pedido de vacancia se presenta como moción, el Pleno vota si lo admite a debate y, si lo admite, vota la vacancia. Un pedido puede tener firmas de varias bancadas: cuenta para cada una.
+      En octubre de 2025 se votaron juntas cuatro mociones contra Dina Boluarte, y en diciembre de 2022 la vacancia de Pedro Castillo se aprobó con un proyecto de resolución legislativa de la Mesa Directiva. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Vacancias presidenciales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=3d754d6"></script>
+  <script src="../../comun/config.js?v=3d754d6"></script>
+  <script src="../../comun/base.js?v=3d754d6"></script>
+  <script src="../../comun/graficos.js?v=3d754d6"></script>
+  <script src="../../comun/descarga.js?v=3d754d6"></script>
+  <script src="tablero.js?v=3d754d6"></script>
+</body>
+</html>
