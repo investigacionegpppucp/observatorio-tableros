@@ -28,14 +28,13 @@ const FUENTE = "Opinión Data - Resumen de Encuestas a la opinión pública - Ip
 // Los cinco primeros son los de tema.css; el sexto se validó con dataviz/validate_palette.js junto a ellos.
 const COLORES_PARTIDO = ["#3a5fcd", "#c61c44", "#6f9800", "#067bc2", "#e06991", "#7e57c2"];
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
-const NBSP = " ";
-const TOPE_Y = 70;        // eje vertical de toda la serie (0 a 70 %); una selección lo ajusta a sus valores
+const TOPE_Y = 60;        // eje vertical de toda la serie (0 a 60%); una selección lo ajusta a sus valores
 const MESES_ESTRENO = 24; // meses que se siguen después de que empieza un Congreso
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const MES_MS = 30.4375 * 864e5;
 
-const pct0 = (v) => (v == null ? "—" : Obs.fmtN(v) + NBSP + "%");
-const pct1 = (v) => (v == null ? "—" : Obs.fmtN(v, 1) + NBSP + "%");
+const pct0 = (v) => (v == null ? "—" : Obs.fmtN(v) + "%");
+const pct1 = (v) => (v == null ? "—" : Obs.fmtN(v, 1) + "%");
 const fecha = (r) => `${r.mesNombre} de ${r.anio}`;
 const fechaCorta = (r) => `${MESES_CORTOS[r.mes - 1]} ${r.anio}`;
 const media = (rs) => rs.reduce((s, r) => s + r.valor, 0) / rs.length;
@@ -49,10 +48,9 @@ const describir = (id, texto) => {
 };
 
 const estado = { gobierno: null, congreso: null, desde: null, hasta: null };
-let T, FILAS, ANIOS, POR_MES, PROM_TOTAL, GOBIERNOS, CONGRESOS, TRAMOS, PARTIDOS, ESTRENOS, ctxMedir;
+let T, FILAS, ANIOS, POR_MES, PROM_TOTAL, GOBIERNOS, CONGRESOS, PARTIDOS, ESTRENOS, INICIOS_CONGRESO;
 
 const colorPartido = (m) => COLORES_PARTIDO[PARTIDOS.indexOf(m)] ?? T.otros;
-const medir = (texto, peso = 700) => { ctxMedir.font = `${peso} 14px ${T.fuente}`; return ctxMedir.measureText(texto).width; };
 const periodoCompleto = () => estado.desde === ANIOS[0] && estado.hasta === ANIOS.at(-1);
 const hayFiltro = () => !!(estado.gobierno || estado.congreso || !periodoCompleto());
 const enSub = (r) => estado.gobierno ? r.orden === estado.gobierno
@@ -85,7 +83,7 @@ function resumen(S) {
     frase = `Entre ${fecha(primera)} y ${fecha(ultima)}, en promedio <strong>${pct1(prom)}</strong> de las personas encuestadas aprobó el trabajo del Congreso.`;
   }
   document.getElementById("resumen").innerHTML = frase +
-    (baja ? (n === 1 ? ` Ese mes la aprobación estuvo por debajo de 10${NBSP}%.` : ` En ${baja} de ${n} meses la aprobación estuvo por debajo de 10${NBSP}%.`) : "");
+    (baja ? (n === 1 ? ` Ese mes la aprobación estuvo por debajo de 10%.` : ` En ${baja} de ${n} meses la aprobación estuvo por debajo de 10%.`) : "");
 
   const mayor = S.reduce((a, r) => (r.valor > a.valor ? r : a)), menor = S.reduce((a, r) => (r.valor < a.valor ? r : a));
   Obs.kpi("k-ultimo", { etiqueta: "Último dato", valor: pct0(ultima.valor), pie: fecha(ultima) });
@@ -94,7 +92,7 @@ function resumen(S) {
   Obs.kpi("k-min", { etiqueta: "Mínimo", valor: pct0(menor.valor), pie: fecha(menor) });
 }
 
-/* ---------- Serie mensual: línea, con los períodos del Congreso rotulados arriba ---------- */
+/* ---------- Serie mensual: una línea, con el máximo, el mínimo y el último dato rotulados, y una línea punteada donde empieza cada Congreso ---------- */
 function serie(S) {
   const el = document.getElementById("g-serie");
   const g = Obs.grafico("g-serie");
@@ -103,13 +101,7 @@ function serie(S) {
   const izq = cel ? 48 : 58, der = cel ? 30 : 22, H0 = el.clientHeight - 36;
   const t0 = S[0].t, t1 = S.at(-1).t;
   const pad = t1 - t0 < 24 * MES_MS ? 3 * MES_MS : 0; // vistas cortas: aire a los lados
-  const a0 = t0 - pad, a1 = t1 + pad, ancho = Math.max(el.clientWidth - izq - der, 1);
-  const px = (ms) => (ms / (a1 - a0)) * ancho;
-
-  // Períodos del Congreso visibles, de borde a borde (cada uno termina donde empieza el siguiente)
-  const v = TRAMOS.filter((x) => x.t1 >= t0 && x.t0 <= t1);
-  const congresos = v.map((x, k) => ({ nombre: x.r0.congreso, ini: k === 0 ? a0 : x.t0, fin: v[k + 1] ? v[k + 1].t0 : a1 }));
-  const rotulosCongreso = congresos.filter((c) => px(c.fin - c.ini) >= medir(c.nombre) + 14);
+  const a0 = t0 - pad, a1 = t1 + pad;
 
   const clavePuntos = new Set();
   const mayor = S.reduce((a, r) => (r.valor > a.valor ? r : a)), menor = S.reduce((a, r) => (r.valor < a.valor ? r : a));
@@ -132,28 +124,19 @@ function serie(S) {
       axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, hideOverlap: true,
         formatter: (x) => { const d = new Date(x); return sobreAnios ? String(d.getUTCFullYear()) : `${MESES_CORTOS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; } } }),
     yAxis: eje({ type: "value", min: 0, max: tope, interval: 10, axisLine: { show: false }, splitLine: { lineStyle: { color: T.linea } },
-      axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, formatter: (x) => `${x}${NBSP}%` } }),
+      axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, formatter: (x) => `${x}%` } }),
     series: [
       {
         type: "line", z: 3, name: "Aprobación",
         data: S.map((r) => ({ value: [r.t, r.valor], r })),
         showSymbol: S.length <= 60, symbol: "circle", symbolSize: 7, lineStyle: { width: 2, color: T.unica }, itemStyle: { color: T.unica, borderColor: "#fff", borderWidth: 1.5 },
-        // línea fina donde empieza cada Congreso, para que los rótulos de arriba se lean como períodos
+        // línea fina donde empieza cada Congreso
         markLine: { silent: true, symbol: "none", label: { show: false }, lineStyle: { type: "dashed", color: "#9aa5b5", width: 1 },
-          data: rotulosCongreso.length ? congresos.slice(1).map((c) => ({ xAxis: c.ini })) : [] },
+          data: INICIOS_CONGRESO.filter((t) => t > t0 && t <= t1).map((t) => ({ xAxis: t })) },
         markPoint: {
           silent: true, symbol: "circle", symbolSize: 10, itemStyle: { color: T.unica, borderColor: "#fff", borderWidth: 2 },
           label: { show: true, formatter: (p) => pct0(p.value), color: T.texto, fontFamily: T.fuente, fontSize: 14, fontWeight: 700, textBorderColor: "#fff", textBorderWidth: 3 },
           data: puntos.map(([r, position]) => ({ coord: [r.t, r.valor], value: r.valor, label: { position } })),
-        },
-      },
-      {
-        // rótulos de Congreso, arriba del gráfico
-        type: "custom", silent: true, z: 2, tooltip: { show: false },
-        data: rotulosCongreso.map((c) => [c.ini, c.fin]),
-        renderItem: (params, api) => {
-          const c = rotulosCongreso[params.dataIndex], x0 = api.coord([c.ini, 0])[0], x1 = api.coord([c.fin, 0])[0];
-          return { type: "text", style: { text: c.nombre, x: (x0 + x1) / 2, y: params.coordSys.y + 14, textAlign: "center", textVerticalAlign: "middle", fill: T.textoSuave, font: `700 14px ${T.fuente}` } };
         },
       },
     ],
@@ -167,13 +150,13 @@ function serie(S) {
     : "";
   document.getElementById("d-serie").textContent = hayFiltro() && S.length < FILAS.length
     ? `Porcentaje de personas que aprueba el trabajo del Congreso, de ${fecha(S[0])} a ${fecha(S.at(-1))}. El eje vertical se ajusta a esta selección.`
-    : "Porcentaje de personas que aprueba el trabajo del Congreso, cada mes. Arriba se rotula el período de cada Congreso.";
+    : "Porcentaje de personas que aprueba el trabajo del Congreso, cada mes.";
   describir("g-serie", `Línea mensual de aprobación, de ${fecha(S[0])} a ${fecha(S.at(-1))}. Máximo ${pct0(mayor.valor)} en ${fecha(mayor)}; mínimo ${pct0(menor.valor)} en ${fecha(menor)}; último dato ${pct0(S.at(-1).valor)}.`);
 }
 
 /* ---------- Gobiernos: tabla que también filtra ---------- */
 function tablaGobiernos() {
-  const tope = 30; // la barra de la media llena su columna con 30 %
+  const tope = 30; // la barra de la media llena su columna con 30%
   document.getElementById("t-gobierno").innerHTML = `<table class="tabla"><thead><tr>
       <th>Gobierno</th><th>Mayoría en el Congreso</th><th class="num">Aprobación media</th></tr></thead><tbody>${
     GOBIERNOS.map((g) => {
@@ -228,7 +211,7 @@ function estreno() {
     xAxis: { type: "category", data: ks, name: "Meses desde que empezó el Congreso", nameLocation: "middle", nameGap: 34, nameTextStyle: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14 },
       axisTick: { show: false }, axisLine: { lineStyle: { color: T.linea } }, axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, interval: (i) => i % 3 === 0 } },
     yAxis: { type: "value", min: 0, max: 60, interval: 10, splitLine: { lineStyle: { color: T.linea } },
-      axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, formatter: (v) => `${v}${NBSP}%` } },
+      axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, formatter: (v) => `${v}%` } },
     series: ESTRENOS.map((e) => {
       const color = colorPartido(e.mayoria), apagado = elegido && e.congreso !== elegido;
       return { name: e.nombre, type: "line", data: e.valores, connectNulls: true, symbol: "circle", symbolSize: 6, showSymbol: false,
@@ -257,7 +240,7 @@ function calor() {
   const cel = movil();
   const sub = estado.gobierno || estado.congreso;
   const anios = ANIOS.filter((a) => sub || (a >= estado.desde && a <= estado.hasta));
-  const CLASES = [{ lt: 10, t: `Menos de 10${NBSP}%` }, { gte: 10, lt: 15, t: `10 a 14${NBSP}%` }, { gte: 15, lt: 20, t: `15 a 19${NBSP}%` }, { gte: 20, lt: 30, t: `20 a 29${NBSP}%` }, { gte: 30, t: `30${NBSP}% o más` }];
+  const CLASES = [{ lt: 10, t: `Menos de 10%` }, { gte: 10, lt: 15, t: `10 a 14%` }, { gte: 15, lt: 20, t: `15 a 19%` }, { gte: 20, lt: 30, t: `20 a 29%` }, { gte: 30, t: `30% o más` }];
   const celdas = [], vacias = [];
   anios.forEach((a, ia) => {
     for (let m = 1; m <= 12; m++) {
@@ -296,7 +279,7 @@ function calor() {
     ? "Un cuadro por mes, según el porcentaje que aprueba. Se ven más claros los meses fuera de la selección."
     : "Un cuadro por mes, según el porcentaje que aprueba.";
   const meses = celdas.filter((c) => !c.itemStyle);
-  describir("g-calor", `Mapa de calor con ${meses.length} meses con dato, de ${anios[0]} a ${anios.at(-1)}. ${meses.filter((c) => c.value[2] < 10).length} meses con menos de 10 % de aprobación.`);
+  describir("g-calor", `Mapa de calor con ${meses.length} meses con dato, de ${anios[0]} a ${anios.at(-1)}. ${meses.filter((c) => c.value[2] < 10).length} meses con menos de 10% de aprobación.`);
 }
 
 /* ---------- Estado, controles y arranque ---------- */
@@ -336,7 +319,6 @@ function sincronizar() {
 Obs.iniciar(TABLERO, async () => {
   const D = await Obs.cargarJSON("datos.json");
   T = Obs.tema();
-  ctxMedir = document.createElement("canvas").getContext("2d");
 
   FILAS = Obs.expandir(D.tablas.Limpio).map((f) => {
     const [a, m] = f["Mes-Año"].split("-").map(Number);
@@ -351,7 +333,7 @@ Obs.iniciar(TABLERO, async () => {
 
   GOBIERNOS = tramos(FILAS, (r) => r.orden).map((t) => ({ orden: t.k, nombre: t.r0.presidente, slug: sinTildes(apellido(t.r0.presidente)), desde: t.filas[0], hasta: t.filas.at(-1),
     media: media(t.filas), mayorias: unicos(t.filas.map((r) => r.mayoria)) }));
-  TRAMOS = tramos(FILAS, (r) => r.congreso);
+  INICIOS_CONGRESO = FILAS.filter((r, i) => i && r.congreso !== FILAS[i - 1].congreso).map((r) => r.t);
   CONGRESOS = unicos(FILAS.map((r) => r.congreso)).map((nombre) => { const rs = FILAS.filter((r) => r.congreso === nombre); return { nombre, media: media(rs), n: rs.length }; });
 
   // Cada vez que cambia el Congreso: aprobación del mes anterior, mejor mes de los tres primeros y doce meses después
