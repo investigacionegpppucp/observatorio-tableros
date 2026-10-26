@@ -1,0 +1,36 @@
+/* =========================================================
+   Estilos propios del tablero de Interpelaciones ministeriales.
+   Lo compartido (franja, filtros, tarjetas, tablas) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* Cómo terminó la moción: los mismos colores que el tablero de Mociones de interpelación */
+  --e-archivada: #9db1ec;
+  --e-rechazada: #4f6fd4;
+  --e-realizada: #0f2257;
+  --e-proceso: #b8c0cc;
+}
+.cabecera-interior { padding-bottom: 12px; }
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Título de tarjeta con un control a la derecha */
+.cabeza-con-control { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 20px; flex-wrap: wrap; }
+.segmentado.claro { display: inline-flex; border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
+.segmentado.claro button { border: 0; background: var(--superficie); color: var(--texto-suave); font: 600 14px var(--fuente); padding: 8px 14px; cursor: pointer; }
+.segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.segmentado.claro button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.p { border-radius: 50%; }
+
+.tabla-caja { overflow-x: auto; }
+.tabla-caja .tabla { min-width: 920px; }
+.tabla td { vertical-align: top; }
+.tabla .fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabla .ministro { font-weight: 700; min-width: 190px; }
+.tabla .ministro small, .tabla td small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 14px; }
+
+@media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis-4 { grid-template-columns: 1fr; } }
