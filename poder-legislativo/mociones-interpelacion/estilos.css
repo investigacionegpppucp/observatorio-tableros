@@ -1,0 +1,37 @@
+/* =========================================================
+   Estilos propios del tablero de Mociones de interpelación.
+   Lo compartido (franja, filtros, tarjetas, tablas) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* Cómo terminó el pedido: un solo tono, de claro a oscuro según hasta dónde llegó
+     (validado con dataviz/validate_palette.js --ordinal); «en proceso» en gris */
+  --e-archivada: #9db1ec;
+  --e-rechazada: #4f6fd4;
+  --e-realizada: #0f2257;
+  --e-proceso: #b8c0cc;
+}
+.cabecera-interior { padding-bottom: 12px; }
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.tabla-caja { overflow-x: auto; }
+.tabla-caja .tabla { min-width: 1080px; }
+.tabla td { vertical-align: top; }
+.tabla .fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabla .doc { font-weight: 700; white-space: nowrap; }
+.tabla .doc a { color: var(--azul); }
+.tabla .doc a:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.tabla .ministro { font-weight: 700; min-width: 170px; }
+.tabla .ministro small, .tabla .sumilla { display: block; font-weight: 400; color: var(--texto-suave); font-size: 14px; }
+/* La sumilla se corta en tres líneas; completa en el atributo title */
+.tabla .sumilla { min-width: 280px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.estado { display: inline-flex; align-items: flex-start; gap: 6px; font-weight: 700; }
+.estado i { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 6px; }
+.estado small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 14px; }
+
+@media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis-4 { grid-template-columns: 1fr; } }
