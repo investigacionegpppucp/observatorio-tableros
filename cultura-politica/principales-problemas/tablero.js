@@ -332,7 +332,7 @@ function render() {
    Inicio
    --------------------------------------------------------- */
 Obs.iniciar(TABLERO, async () => {
-  const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo("../mapas/peru_regiones.geojson")]);
+  const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo("../../mapas/peru_regiones.geojson")]);
   GEO = geo;
   C = { ...Obs.tema() };
 

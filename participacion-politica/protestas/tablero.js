@@ -386,7 +386,7 @@ function render() {
    Inicio
    --------------------------------------------------------- */
 Obs.iniciar("protestas", async () => {
-  const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo()]);
+  const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo("../../mapas/peru_regiones.geojson")]);
   D = datos;
   Obs._geoDatos = geo;
   for (const [nombre, tabla] of Object.entries(D.tablas)) T[nombre] = Obs.expandir(tabla);

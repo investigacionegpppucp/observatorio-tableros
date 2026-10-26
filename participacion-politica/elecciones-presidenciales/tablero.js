@@ -390,7 +390,7 @@ function evolucion(s) {
    --------------------------------------------------------- */
 let GEO = null;
 Obs.iniciar("elecciones-presidenciales", async () => {
-  const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo()]);
+  const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo("../../mapas/peru_regiones.geojson")]);
   GEO = geo;
   const t = Obs.tema();
   Object.assign(C, { navy: t.navy, lima: t.lima, c1: t.categorias[0], c2: t.categorias[1], c3: t.categorias[2], linea: t.linea, texto: t.texto, suave: t.textoSuave, fuente: t.fuente });
