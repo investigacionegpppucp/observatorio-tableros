@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Principales problemas del país | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../comun/lib/leaflet-1.9.4.css?v=55c0aec">
+  <link rel="stylesheet" href="../comun/tema.css?v=55c0aec">
+  <link rel="stylesheet" href="../comun/estilos.css?v=55c0aec">
+  <link rel="stylesheet" href="estilos.css?v=55c0aec">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Principales problemas del país</h1>
+        <p class="subtitulo">Qué problemas mencionan los peruanos como los más importantes del país, de 2013 a 2025, en el país y en cada región.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-problema">Problema</label><select id="f-problema"></select></div>
+    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+  </section>
+
+  <main>
+    <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
+    <div class="kpis">
+      <div class="kpi" id="k-primero"></div>
+      <div class="kpi" id="k-segundo"></div>
+      <div class="kpi" id="k-elegido"></div>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3 id="t-ranking">Principales problemas del país</h3><p id="d-ranking"></p></header>
+      <div class="grafico" id="g-ranking"></div>
+      <p class="pista">Haz clic en un problema para verlo en todo el tablero.</p>
+    </article>
+
+    <div class="grilla">
+      <article class="tarjeta">
+        <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
+        <div class="ley" id="ley-evol"></div>
+        <div class="grafico" id="g-evol"></div>
+        <p class="pista">Haz clic en un año para elegirlo.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-top"></h3><p id="d-top"></p></header>
+        <div class="ley" id="ley-top"></div>
+        <div class="grafico" id="g-top"></div>
+      </article>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3 id="t-mapa"></h3><p>Porcentaje de personas que mencionan el problema. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+        <div><div class="grafico" id="g-regiones"></div></div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Hogares (ENAHO), 2013-2025.</p>
+    <p><strong>Notas:</strong> Cada persona puede mencionar más de un problema, por eso los porcentajes de un año suman más de 100%. Los porcentajes se calculan con los factores de expansión de la encuesta.
+      Los valores del Perú son los del total nacional, ponderados por población, no un promedio de las regiones. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Principales problemas del país</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../comun/lib/echarts-5.6.0.min.js?v=55c0aec"></script>
+  <script src="../comun/lib/leaflet-1.9.4.js?v=55c0aec"></script>
+  <script src="../comun/config.js?v=55c0aec"></script>
+  <script src="../comun/base.js?v=55c0aec"></script>
+  <script src="../comun/graficos.js?v=55c0aec"></script>
+  <script src="../comun/mapa.js?v=55c0aec"></script>
+  <script src="../comun/descarga.js?v=55c0aec"></script>
+  <script src="tablero.js?v=55c0aec"></script>
+</body>
+</html>

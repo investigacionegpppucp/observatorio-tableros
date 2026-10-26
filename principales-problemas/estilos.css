@@ -1,0 +1,21 @@
+/* =========================================================
+   Estilos propios del tablero de Principales problemas del país.
+   Lo compartido (franja, filtros, tarjetas, mapa) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+.cabecera-interior { padding-bottom: 12px; }
+#f-problema { min-width: 300px; }
+
+/* Leyendas: línea (series) */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+
+.mapa-y-tabla .grafico { margin-top: 0; }
+/* Los nombres de los problemas son largos: la tarjeta de cifras los deja en una línea cuando caben */
+.kpi-valor.texto { font-size: 20px; }
+
+@media (max-width: 560px) {
+  #f-problema { min-width: 0; width: 100%; }
+}
