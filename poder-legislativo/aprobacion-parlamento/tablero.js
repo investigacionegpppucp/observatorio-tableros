@@ -29,7 +29,7 @@ const FUENTE = "Opinión Data - Resumen de Encuestas a la opinión pública - Ip
 const COLORES_PARTIDO = ["#3a5fcd", "#c61c44", "#6f9800", "#067bc2", "#e06991", "#7e57c2"];
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 const TOPE_Y = 60;        // eje vertical de toda la serie (0 a 60%); una selección lo ajusta a sus valores
-const MESES_ESTRENO = 24; // meses que se siguen después de que empieza un Congreso
+const MESES_ESTRENO = 12; // meses (el primer año) que se siguen después de que empieza un Congreso
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const MES_MS = 30.4375 * 864e5;
 
@@ -190,13 +190,13 @@ function barrasGobiernos() {
   describir("g-gobiernos", `Barras con la aprobación media de cada gobierno. Mayor: ${orden[0].nombre}, ${pct1(orden[0].media)}. Menor: ${orden.at(-1).nombre}, ${pct1(orden.at(-1).media)}.`);
 }
 
-/* ---------- Cómo empieza cada Congreso ---------- */
+/* ---------- Evolución durante el primer año de cada Congreso ---------- */
 function estreno() {
   const cel = movil();
   const g = Obs.grafico("g-estreno");
   document.getElementById("g-estreno").style.height = cel ? "500px" : "400px";
   g.resize();
-  const ks = Array.from({ length: MESES_ESTRENO + 1 }, (_, k) => k);
+  const ks = Array.from({ length: MESES_ESTRENO }, (_, k) => k);
   const elegido = estado.congreso;
   g.setOption({
     animation: ANIM, textStyle: { fontFamily: T.fuente },
@@ -220,18 +220,13 @@ function estreno() {
   g.off("click");
   g.on("click", (p) => { const c = ESTRENOS[p.seriesIndex]?.congreso; if (c) actualizar({ congreso: c === estado.congreso ? null : c }); });
 
-  document.getElementById("t-estreno").innerHTML = `<table class="tabla"><thead><tr>
-      <th>Congreso</th><th class="num">Mes anterior</th><th class="num">Mejor de los 3 primeros meses</th><th class="num">A los 12 meses</th></tr></thead><tbody>${
-    ESTRENOS.map((e) => `<tr><td><span class="partido"><i style="background:${colorPartido(e.mayoria)}"></i><strong class="sin-corte">${e.congreso}</strong></span><small>${Obs.escapar(e.mayoria)}</small></td>
-      <td class="num">${pct0(e.previo)}</td><td class="num">${pct0(e.pico)}</td><td class="num">${pct0(e.a12)}</td></tr>`).join("")}</tbody></table>`;
-
   const subieron = ESTRENOS.filter((e) => e.pico - e.previo >= 10);
-  const cayeron = subieron.filter((e) => e.a12 != null && e.pico - e.a12 >= 10);
+  const cayeron = subieron.filter((e) => e.alFinal != null && e.pico - e.alFinal >= 10);
   document.getElementById("n-estreno").textContent =
-    `En ${subieron.length} de ${ESTRENOS.length} Congresos la aprobación subió 10 puntos o más en los tres primeros meses; doce meses después, en ${cayeron.length} de ellos había bajado 10 puntos o más desde ese máximo. ` +
+    `En ${subieron.length} de ${ESTRENOS.length} Congresos la aprobación subió 10 puntos o más en los tres primeros meses respecto del mes anterior; hacia el final del primer año (mes ${MESES_ESTRENO - 1}), en ${cayeron.length === subieron.length ? "todos" : `${cayeron.length} de ellos`} había${cayeron.length === subieron.length && subieron.length > 1 ? "n" : ""} bajado 10 puntos o más desde ese máximo. ` +
     ESTRENOS.filter((e) => e.pico - e.previo < 10).map((e) => { const m = Math.max(...e.valores.filter((v) => v != null)); return `En el Congreso ${e.congreso} la subida llegó después: ${pct0(m)} en el mes ${e.valores.indexOf(m)}. `; }).join("") +
     `El Congreso ${CONGRESOS[0].nombre} no aparece porque la serie empieza en ${fecha(FILAS[0])}. El mes 0 es el primer mes de la base con el nuevo Congreso.`;
-  describir("g-estreno", `Líneas de aprobación en los primeros ${MESES_ESTRENO} meses de cada Congreso. ` + ESTRENOS.map((e) => `${e.congreso}: ${pct0(e.previo)} el mes anterior, ${pct0(e.pico)} como mejor mes de los tres primeros`).join("; ") + ".");
+  describir("g-estreno", `Líneas de aprobación mes a mes durante el primer año de cada Congreso. ` + ESTRENOS.map((e) => `${e.congreso}: ${pct0(e.previo)} el mes anterior, ${pct0(e.pico)} como mejor mes de los tres primeros`).join("; ") + ".");
 }
 
 /* ---------- Estado, controles y arranque ---------- */
@@ -291,8 +286,8 @@ Obs.iniciar(TABLERO, async () => {
   ESTRENOS = [];
   FILAS.forEach((r, i) => {
     if (!i || r.congreso === FILAS[i - 1].congreso) return;
-    const valores = Array.from({ length: MESES_ESTRENO + 1 }, (_, k) => { const x = POR_MES.get(r.m + k); return x && x.congreso === r.congreso ? x.valor : null; });
-    ESTRENOS.push({ congreso: r.congreso, mayoria: r.mayoria, nombre: `${r.congreso} (${r.mayoria})`, valores, previo: FILAS[i - 1].valor, pico: Math.max(...valores.slice(0, 3).filter((v) => v != null)), a12: valores[12] });
+    const valores = Array.from({ length: MESES_ESTRENO }, (_, k) => { const x = POR_MES.get(r.m + k); return x && x.congreso === r.congreso ? x.valor : null; });
+    ESTRENOS.push({ congreso: r.congreso, mayoria: r.mayoria, nombre: `${r.congreso} (${r.mayoria})`, valores, previo: FILAS[i - 1].valor, pico: Math.max(...valores.slice(0, 3).filter((v) => v != null)), alFinal: valores[MESES_ESTRENO - 1] });
   });
 
   document.getElementById("fuente").textContent = D.fuente ?? FUENTE;
