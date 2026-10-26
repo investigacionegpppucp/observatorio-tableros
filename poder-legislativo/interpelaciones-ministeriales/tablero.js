@@ -3,7 +3,7 @@
    Democracia y Gobernabilidad (EGPP-PUCP)
 
    Datos: datos.json con la forma que arma el Apps Script
-   (Tableros > Publicar tableros) desde tres pestañas del Sheet
+   (Tableros > Publicar tableros) desde cuatro pestañas del Sheet
    «6. Mociones de Interpelación»:
      - «General»: una fila por moción y ministro (fechas de
        presentación, admisión y concurrencia, votación de admisión,
@@ -12,6 +12,8 @@
        mociones (_moc) y ministros (_pro) según cómo terminaron.
      - «Mociones por gobierno»: pedidos por gobierno según cómo
        terminaron, Días de gobierno y Ratio (días por pedido).
+     - «Mociones por ministerio»: pedidos por gobierno y sector según
+       cómo terminaron.
 
    Patrón: un objeto `estado`, una función pura `filtrar()` y una
    sola función `render()`.
@@ -37,7 +39,7 @@ const DIA = 86400000;
 
 const estado = { periodo: "", unidad: "moc" };
 
-let FILAS = [], LEGIS = [], POR_GOB = [], PERIODOS = [], GOBIERNOS = [], C;
+let FILAS = [], LEGIS = [], POR_GOB = [], POR_MIN = [], PERIODOS = [], GOBIERNOS = [], C;
 
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
 const n = (k, uno, varios) => `${Obs.fmtN(k)} ${k === 1 ? uno : varios}`;
@@ -161,6 +163,54 @@ function porGobierno(s) {
   });
 }
 
+/* ---------- Ministerios por gobierno (mapa de calor) ----------
+   Filas: sectores, de más a menos pedidos. Columnas: gobiernos, en orden.
+   Celda: pedidos de interpelación; tono de un solo color, de claro a oscuro. */
+const SECTOR_CORTO = { "Presidencia del Consejo de Ministros": "Presidencia del Consejo", "Vivienda, Construcción y Saneamiento": "Vivienda",
+  "Trabajo y Promoción del Empleo": "Trabajo", "Mujer y Poblaciones Vulnerables": "Mujer", "Comercio Exterior y Turismo": "Comercio Exterior",
+  "Justicia y Derechos Humanos": "Justicia", "Transportes y Comunicaciones": "Transportes", "Desarrollo e Inclusión Social": "Inclusión Social",
+  "Desarrollo Agrario y Riego": "Desarrollo Agrario" };
+function porMinisterio(s) {
+  const id = "g-mapa";
+  const gobs = GOBIERNOS.filter((g) => POR_MIN.some((x) => x.gobierno === g));
+  const totalSector = new Map();
+  POR_MIN.forEach((x) => totalSector.set(x.sector, (totalSector.get(x.sector) ?? 0) + x.total));
+  const sectores = [...totalSector].sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  const enSel = new Set(s.filas.map((f) => f.gobierno));
+  const tenue = (g) => estado.periodo && !enSel.has(g);
+  // tramos: 1, 2, 3-4, 5-9, 10 o más
+  const TRAMOS = [[1, 1, "1"], [2, 2, "2"], [3, 4, "3 a 4"], [5, 9, "5 a 9"], [10, Infinity, "10 o más"]];
+  const color = (v) => C.escala[TRAMOS.findIndex(([a, b]) => v >= a && v <= b)];
+  document.getElementById("ley-mapa").innerHTML = TRAMOS.map(([, , e], i) => `<span><i style="background:${C.escala[i]}"></i>${e}</span>`).join("");
+  document.getElementById("d-mapa").textContent = "Pedidos de interpelación por ministerio y gobierno. Los ministerios, de más a menos pedidos" +
+    (estado.periodo ? `; resaltados, los gobiernos del período ${estado.periodo}.` : ".");
+  const el = document.getElementById(id);
+  const angosto = el.clientWidth < 700;
+  el.style.height = `${sectores.length * 30 + (angosto ? 90 : 60)}px`;
+  const g = Obs.grafico(id);
+  g.resize();
+  const datos = POR_MIN.filter((x) => x.total > 0).map((x) => ({ value: [gobs.indexOf(x.gobierno), sectores.indexOf(x.sector), x.total], x,
+    itemStyle: { color: color(x.total), opacity: tenue(x.gobierno) ? 0.25 : 1, borderColor: "#fff", borderWidth: 2 } }));
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM,
+    tooltip: { ...Obs.tooltipBase(), formatter: (q) => { const x = q.data.x;
+      return `<strong>${Obs.escapar(x.sector)}</strong><br>Gobierno de ${Obs.escapar(x.gobierno)}<br>Pedidos: <strong>${x.total}</strong>` +
+        ESTADOS.filter((e) => x[e.clave]).map((e) => `<br>${e.nombre}: ${x[e.clave]}`).join(""); } },
+    grid: { left: angosto ? 158 : 190, right: 8, top: angosto ? 70 : 40, bottom: 4 },
+    xAxis: { type: "category", position: "top", data: gobs.map((x) => (x === "Keiko Fujimori" ? "K. Fujimori" : x === "Pedro Pablo Kuczynski" ? "Kuczynski" : x.split(" ").at(-1))), // apellido
+      axisTick: { show: false }, axisLine: { show: false }, splitArea: { show: false },
+      axisLabel: txt({ color: C.texto, interval: 0, rotate: angosto ? 45 : 0, fontSize: angosto ? 12 : 14 }) },
+    yAxis: { type: "category", inverse: true, data: sectores.map((k) => `${SECTOR_CORTO[k] ?? k} (${totalSector.get(k)})`), axisTick: { show: false }, axisLine: { show: false },
+      axisLabel: txt({ color: C.texto, fontSize: angosto ? 12 : 14 }) },
+    series: [{ type: "heatmap", data: datos,
+      label: { show: true, formatter: (q) => String(q.value[2]), fontFamily: C.fuente, fontSize: 12, fontWeight: 700, color: C.texto },
+      emphasis: { itemStyle: { borderColor: C.navy, borderWidth: 2 } } }],
+  }, true);
+  // número en blanco sobre los tonos oscuros
+  g.setOption({ series: [{ data: datos.map((d) => ({ ...d, label: { color: d.value[2] >= 5 ? "#fff" : C.texto } })) }] });
+  el.setAttribute("aria-label", "Pedidos de interpelación por ministerio: " + sectores.map((k) => `${k}, ${totalSector.get(k)}`).join("; ") + ".");
+}
+
 /* ---------- Votos de admisión ---------- */
 function votos(s) {
   const id = "g-votos";
@@ -223,6 +273,7 @@ function render() {
   cifras(s);
   porLegislatura(s);
   porGobierno(s);
+  porMinisterio(s);
   votos(s);
   dias(s);
   tabla(s);
@@ -271,6 +322,11 @@ Obs.iniciar(TABLERO, async () => {
     archivada: numero(x.Archivada) ?? 0, proceso: numero(x["En proceso"]) ?? 0, total: numero(x.Total) ?? 0,
     dias: numero(x["Días"]), ratio: numero(x.Ratio),
   })).sort((a, b) => orden(a.gobierno) - orden(b.gobierno));
+
+  POR_MIN = Obs.expandir(datos.tablas["Mociones por ministerio"]).filter((x) => x.Gobierno && x.Sector).map((x) => ({
+    gobierno: limpio(x.Gobierno), sector: limpio(x.Sector), realizada: numero(x.Aprobada) ?? 0, rechazada: numero(x["Admisión rechazada"]) ?? 0,
+    archivada: numero(x.Archivada) ?? 0, proceso: numero(x["En proceso"]) ?? 0, total: numero(x.Total) ?? 0,
+  }));
 
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
   document.getElementById("actualizado").textContent = aa ? `${dd} de ${MESES[mm - 1]} de ${aa}` : "—";
