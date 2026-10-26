@@ -3,13 +3,15 @@
    Democracia y Gobernabilidad (EGPP-PUCP)
 
    Datos: datos.json con la forma que arma el Apps Script
-   (Tableros > Publicar tableros) desde dos pestañas del Sheet
+   (Tableros > Publicar tableros) desde tres pestañas del Sheet
    «6. Mociones de Interpelación»:
      - «General»: una fila por moción y ministro (fechas de
        presentación, admisión y concurrencia, votación de admisión,
        Cantidad_preguntas, Conclusión, Observación…).
      - «Mociones por legislatura»: por período anual de sesiones,
        mociones (_moc) y ministros (_pro) según cómo terminaron.
+     - «Mociones por gobierno»: pedidos por gobierno según cómo
+       terminaron, Días de gobierno y Ratio (días por pedido).
 
    Patrón: un objeto `estado`, una función pura `filtrar()` y una
    sola función `render()`.
@@ -35,7 +37,7 @@ const DIA = 86400000;
 
 const estado = { periodo: "", unidad: "moc" };
 
-let FILAS = [], LEGIS = [], PERIODOS = [], GOBIERNOS = [], C;
+let FILAS = [], LEGIS = [], POR_GOB = [], PERIODOS = [], GOBIERNOS = [], C;
 
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
 const n = (k, uno, varios) => `${Obs.fmtN(k)} ${k === 1 ? uno : varios}`;
@@ -122,6 +124,43 @@ function porLegislatura(s) {
   }, true);
 }
 
+/* ---------- Por gobierno ----------
+   Pedidos según cómo terminaron y cada cuántos días hubo uno. Con un
+   período elegido se resaltan los gobiernos que caen en él. */
+function porGobierno(s) {
+  const gobs = POR_GOB;
+  const enSel = new Set(s.filas.map((f) => f.gobierno));
+  const tenue = (g) => estado.periodo && !enSel.has(g.gobierno);
+  document.getElementById("ley-gob").innerHTML = ESTADOS.map((e) => `<span><i style="background:${C.estado[e.clave]}"></i>${e.nombre}</span>`).join("");
+  const el = document.getElementById("g-gob");
+  el.style.height = `${gobs.length * 36 + 40}px`;
+  const g = Obs.grafico("g-gob");
+  g.resize();
+  const angosto = el.clientWidth < 420;
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
+      formatter: (ps) => { const x = gobs[ps[0].dataIndex]; return `<strong>${Obs.escapar(x.gobierno)}</strong>` +
+        ps.filter((q) => q.value && q.seriesName !== "total").map((q) => `<br>${q.marker}${q.seriesName}: <strong>${q.value}</strong>`).join("") + `<br>Total: <strong>${x.total}</strong>`; } },
+    grid: { left: angosto ? 84 : 150, right: 40, top: 4, bottom: 28 },
+    xAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
+    yAxis: { type: "category", inverse: true, data: gobs.map((x) => (angosto ? x.gobierno.split(" ").at(-1) : x.gobierno)), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ color: C.texto }) },
+    series: [
+      ...ESTADOS.map((e) => ({ name: e.nombre, type: "bar", stack: "t", barWidth: 16,
+        itemStyle: { color: C.estado[e.clave], borderColor: "#fff", borderWidth: 1 },
+        data: gobs.map((x) => ({ value: x[e.clave] || null, itemStyle: { opacity: tenue(x) ? 0.25 : 1 } })) })),
+      // barra vacía al final de la pila: solo lleva el total como rótulo
+      { name: "total", type: "bar", stack: "t", silent: true, itemStyle: { color: "transparent" }, data: gobs.map(() => 0),
+        label: { show: true, position: "right", formatter: (q) => String(gobs[q.dataIndex].total), ...txt({ color: C.texto, fontWeight: 700 }) } },
+    ],
+  }, true);
+
+  Obs.barras("g-ritmo", gobs.filter((x) => x.ratio != null).map((x) => ({ clave: x.gobierno, etiqueta: x.gobierno, valor: x.ratio })), {
+    formato: (v) => `1 cada ${Obs.fmtN(v)} días`, nombre: "", ordenar: false,
+    seleccion: estado.periodo ? new Set(gobs.filter((x) => !tenue(x)).map((x) => x.gobierno)) : null,
+  });
+}
+
 /* ---------- Votos de admisión ---------- */
 function votos(s) {
   const id = "g-votos";
@@ -183,6 +222,7 @@ function render() {
   const s = filtrar(estado);
   cifras(s);
   porLegislatura(s);
+  porGobierno(s);
   votos(s);
   dias(s);
   tabla(s);
@@ -223,6 +263,14 @@ Obs.iniciar(TABLERO, async () => {
     }
     return fila;
   }).sort((a, b) => a.legis.localeCompare(b.legis));
+
+  // en el orden en que gobernaron (el de la pestaña General)
+  const orden = (g) => { const i = GOBIERNOS.indexOf(g); return i < 0 ? 99 : i; };
+  POR_GOB = Obs.expandir(datos.tablas["Mociones por gobierno"]).filter((x) => x.Gobierno).map((x) => ({
+    gobierno: limpio(x.Gobierno), realizada: numero(x.Aprobada) ?? 0, rechazada: numero(x["Admisión rechazada"]) ?? 0,
+    archivada: numero(x.Archivada) ?? 0, proceso: numero(x["En proceso"]) ?? 0, total: numero(x.Total) ?? 0,
+    dias: numero(x["Días"]), ratio: numero(x.Ratio),
+  })).sort((a, b) => orden(a.gobierno) - orden(b.gobierno));
 
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
   document.getElementById("actualizado").textContent = aa ? `${dd} de ${MESES[mm - 1]} de ${aa}` : "—";

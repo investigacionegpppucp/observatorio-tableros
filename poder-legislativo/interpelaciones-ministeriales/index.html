@@ -8,16 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/tema.css?v=6a900ef">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=6a900ef">
-  <link rel="stylesheet" href="estilos.css?v=6a900ef">
+  <link rel="stylesheet" href="../../comun/tema.css?v=6490e41">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=6490e41">
+  <link rel="stylesheet" href="estilos.css?v=6490e41">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Interpelaciones ministeriales</h1>
-        <p class="subtitulo">Las veces que un ministro tuvo que responder ante el Pleno del Congreso, desde 2001: en qué legislatura, con cuántos votos se admitió y cuánto tardó.</p>
+        <p class="subtitulo">Las veces que un ministro tuvo que responder ante el Pleno del Congreso, desde 2001: en qué legislatura y gobierno, con cuántos votos se admitió y cuánto tardó.</p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -52,6 +52,18 @@
 
     <div class="grilla">
       <article class="tarjeta">
+        <header><h3>Pedidos en cada gobierno</h3><p>Pedidos de interpelación a ministros, según cómo terminaron.</p></header>
+        <div class="ley" id="ley-gob"></div>
+        <div class="grafico" id="g-gob"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Cada cuántos días hubo un pedido?</h3><p>Días de gobierno divididos entre los pedidos de interpelación. Menos días, pedidos más seguidos.</p></header>
+        <div class="grafico" id="g-ritmo"></div>
+      </article>
+    </div>
+
+    <div class="grilla">
+      <article class="tarjeta">
         <header><h3>¿Con cuántos votos se admitieron?</h3><p>Votos a favor en la votación de admisión de cada moción. La línea punteada es la mediana de las admitidas.</p></header>
         <div class="ley" id="ley-votos"></div>
         <div class="grafico" id="g-votos"></div>
@@ -72,15 +84,15 @@
     <p><strong>Fuente:</strong> Congreso de la República, mociones de interpelación y diario de debates. Elaboración del Observatorio.</p>
     <p><strong>Notas:</strong> Una interpelación se realiza cuando el Pleno admite la moción (se necesita el voto de al menos un tercio de los congresistas hábiles) y el ministro acude a responder el pliego de preguntas.
       «Mociones» cuenta cada moción una vez; «Ministros» cuenta una vez por cada ministro de la moción (en 2008-2009 una sola moción pidió interpelar a 17 ministros).
-      La legislatura o período anual de sesiones va de julio a julio. Los días se cuentan desde la presentación de la moción; se omite un caso con fechas inconsistentes. Datos actualizados al <span id="actualizado"></span>.</p>
+      La legislatura o período anual de sesiones va de julio a julio. Los días de cada gobierno van de su inicio a su fin, o hasta hoy si sigue en curso. Los días se cuentan desde la presentación de la moción; se omite un caso con fechas inconsistentes. Datos actualizados al <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Interpelaciones ministeriales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=6a900ef"></script>
-  <script src="../../comun/config.js?v=6a900ef"></script>
-  <script src="../../comun/base.js?v=6a900ef"></script>
-  <script src="../../comun/graficos.js?v=6a900ef"></script>
-  <script src="../../comun/descarga.js?v=6a900ef"></script>
-  <script src="tablero.js?v=6a900ef"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=6490e41"></script>
+  <script src="../../comun/config.js?v=6490e41"></script>
+  <script src="../../comun/base.js?v=6490e41"></script>
+  <script src="../../comun/graficos.js?v=6490e41"></script>
+  <script src="../../comun/descarga.js?v=6490e41"></script>
+  <script src="tablero.js?v=6490e41"></script>
 </body>
 </html>
