@@ -24,9 +24,12 @@ const TABLERO = "aprobacion-parlamento";
 const ARCHIVOS = [{ clave: "aprobacion_parlamento_serie", etiqueta: "Aprobación del Congreso, serie mensual" }];
 const FUENTE = "Opinión Data - Resumen de Encuestas a la opinión pública - Ipsos Perú";
 
-// Color por mayoría parlamentaria, en el orden en que aparece en la serie (el color sigue al partido).
-// Los cinco primeros son los de tema.css; el sexto se validó con dataviz/validate_palette.js junto a ellos.
-const COLORES_PARTIDO = ["#3a5fcd", "#c61c44", "#6f9800", "#067bc2", "#e06991", "#7e57c2"];
+// Color por mayoría parlamentaria, en el orden en que aparece en la serie (el color sigue al partido):
+// Perú Posible, Unión por el Perú, Gana Perú, Fuerza Popular, Acción Popular y Perú Libre.
+// Fuerza Popular va en naranja y Perú Libre en rojo, como se identifican; el resto no sigue su identidad.
+// Con dataviz/validate_palette.js, el naranja junto al verde de Gana Perú y al rosado de Acción Popular
+// queda corto en separación para daltonismo (en el gráfico de líneas, la leyenda y el globo dan los nombres).
+const COLORES_PARTIDO = ["#3a5fcd", "#7e57c2", "#6f9800", "#e8710a", "#e06991", "#c61c44"];
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 const TOPE_Y = 60;        // eje vertical de toda la serie (0 a 60%); una selección lo ajusta a sus valores
 const MESES_ESTRENO = 12; // meses (el primer año) que se siguen después de que empieza un Congreso
