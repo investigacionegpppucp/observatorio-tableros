@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cambios ministeriales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/tema.css?v=de27ced">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=de27ced">
+  <link rel="stylesheet" href="estilos.css?v=de27ced">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Cambios ministeriales</h1>
+        <p class="subtitulo" id="subtitulo">Quiénes dirigieron los ministerios del Perú y cada cuánto cambiaron, de 2001 a hoy.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro" id="f-sexo">
+      <span class="etiqueta" id="lbl-sexo">Sexo</span>
+      <div class="segmentado" role="group" aria-labelledby="lbl-sexo">
+        <button type="button" data-sexo="todos">Todos</button>
+        <button type="button" data-sexo="Mujer">Mujeres</button>
+        <button type="button" data-sexo="Hombre">Hombres</button>
+      </div>
+      <span class="nota-filtro" hidden>No se aplica en esta pestaña</span>
+    </div>
+  </section>
+
+  <nav class="modulos" role="tablist" aria-label="Pestañas del tablero">
+    <button type="button" role="tab" id="tab-ministros" aria-controls="m-ministros" data-modulo="ministros">¿Cuántos ministros hubo?</button>
+    <button type="button" role="tab" id="tab-rotacion" aria-controls="m-rotacion" data-modulo="rotacion">¿Cada cuánto cambian?</button>
+    <button type="button" role="tab" id="tab-personas" aria-controls="m-personas" data-modulo="personas">¿Quiénes fueron ministros?</button>
+  </nav>
+
+  <main>
+    <!-- Filtros aplicados: cada uno se quita con un clic -->
+    <div class="aplicados" id="aplicados" hidden>
+      <span class="aplicados-titulo">Filtros aplicados</span>
+      <div class="aplicados-lista" id="aplicados-lista"></div>
+      <button type="button" class="quitar-todo" id="quitar-todo">Quitar todos</button>
+    </div>
+
+    <!-- ================= ¿CUÁNTOS MINISTROS HUBO? ================= -->
+    <section class="modulo" id="m-ministros" role="tabpanel" aria-labelledby="tab-ministros">
+      <p class="resumen" id="r-ministros" aria-live="polite">Cargando datos…</p>
+      <div class="kpis">
+        <div class="kpi" id="k-nombrados"></div>
+        <div class="kpi" id="k-personas"></div>
+        <div class="kpi" id="k-mujeres"></div>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>Ministros por gobierno y ministerio</h3>
+          <p>Cuántas personas pasaron por cada ministerio en cada gobierno. Haz clic en una celda, un gobierno o un ministerio para filtrar el tablero.</p></header>
+        <div class="escala-ley" id="ley-matriz"></div>
+        <p class="pista solo-angosto">Desliza la matriz hacia el costado para ver todos los gobiernos.</p>
+        <div class="matriz-caja"><div class="grafico" id="g-matriz"></div></div>
+      </article>
+
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>Ministros por ministerio</h3><p>Mujeres y hombres nombrados. Haz clic para elegir uno o más ministerios.</p></header>
+          <div class="ley ley-sexo"></div>
+          <div class="grafico par-alto" id="g-por-ministerio"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Ministros por gobierno</h3><p>Mujeres y hombres nombrados. Haz clic para elegir uno o más gobiernos.</p></header>
+          <div class="ley ley-sexo"></div>
+          <div class="grafico par-alto" id="g-por-gobierno"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>Nombramientos por año</h3><p>Cada ministro se cuenta en el año en que juró el cargo.</p></header>
+        <div class="ley ley-sexo"></div>
+        <div class="grafico bajo" id="g-por-anio"></div>
+      </article>
+    </section>
+
+    <!-- ================= ¿CADA CUÁNTO CAMBIAN? ================= -->
+    <section class="modulo" id="m-rotacion" role="tabpanel" aria-labelledby="tab-rotacion" hidden>
+      <p class="resumen" id="r-rotacion" aria-live="polite"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-promedio"></div>
+        <div class="kpi" id="k-mas-rotacion"></div>
+        <div class="kpi" id="k-mas-estable"></div>
+      </div>
+
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>Días por cambio, por gobierno</h3><p>Menos días, más rotación. Haz clic para elegir uno o más gobiernos.</p></header>
+          <div class="grafico par-medio" id="g-dias-gobierno"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Días por cambio, por quinquenio</h3><p>Períodos de cinco años entre elecciones; incluye a todos sus gobiernos.</p></header>
+          <div class="grafico par-medio" id="g-dias-quinquenio"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>Rotación de cada gobierno</h3><p>Ordena por cualquier columna con un clic en su título. Haz clic en una fila para elegir ese gobierno.</p></header>
+        <div class="tabla-caja" id="t-gobiernos"></div>
+      </article>
+    </section>
+
+    <!-- ================= ¿QUIÉNES FUERON MINISTROS? ================= -->
+    <section class="modulo" id="m-personas" role="tabpanel" aria-labelledby="tab-personas" hidden>
+      <p class="resumen" id="r-personas" aria-live="polite"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-gente"></div>
+        <div class="kpi" id="k-repitieron"></div>
+        <div class="kpi" id="k-permanencia"></div>
+      </div>
+
+      <div class="buscador">
+        <label for="f-persona">Buscar una persona</label>
+        <input id="f-persona" type="search" list="l-personas" placeholder="Escribe un nombre o apellido" autocomplete="off">
+        <datalist id="l-personas"></datalist>
+      </div>
+
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>Más tiempo en un ministerio</h3><p>Días en el cargo en cada gestión. Ordena por columna; haz clic en una fila para ver la ficha.</p></header>
+          <div class="tabla-caja par-tabla" id="t-permanencia"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>Más gestiones</h3><p>Una gestión es un ministerio en un gobierno. Ordena por columna; haz clic en una fila para ver la ficha.</p></header>
+          <div class="tabla-caja par-tabla" id="t-gestiones"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta ficha" id="ficha" aria-live="polite">
+        <header><h3 id="t-ficha">Ficha de la persona</h3><p id="d-ficha"></p></header>
+        <div class="grafico" id="g-ficha"></div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Diario Oficial «El Peruano».</p>
+    <p><strong>Notas:</strong> Los ministerios llevan su nombre actual, aunque algunos cambiaron de nombre con los años. Un ministro es una persona
+      en un ministerio durante un gobierno: quien vuelve al mismo ministerio con otro presidente cuenta otra vez. Los cambios ministeriales son
+      los ministros nombrados menos los ministerios con que empezó el gobierno; los días por cambio, los días de gobierno entre esos cambios.
+      El gobierno en curso cuenta sus días hasta hoy.</p>
+    <p><strong>Cómo citar:</strong> Aragón, Jorge, Marylia Cruz, Karina Alcántara, Paolo Sánchez, Nicolás Gutiérrez y Ximena Pinillos (2026).
+      <em>Cambios ministeriales (2001-2026)</em>. Observatorio para la Democracia y Gobernabilidad, Escuela de Gobierno y Políticas Públicas, PUCP.
+      Datos actualizados el <span id="actualizado"></span>.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=de27ced"></script>
+  <script src="../../comun/config.js?v=de27ced"></script>
+  <script src="../../comun/base.js?v=de27ced"></script>
+  <script src="../../comun/graficos.js?v=de27ced"></script>
+  <script src="../../comun/filtros.js?v=de27ced"></script>
+  <script src="../../comun/descarga.js?v=de27ced"></script>
+  <script src="tablero.js?v=de27ced"></script>
+</body>
+</html>

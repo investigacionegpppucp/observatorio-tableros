@@ -1,0 +1,95 @@
+/* =========================================================
+   Estilos propios del tablero de Cambios ministeriales.
+   Lo compartido (franja, filtros, pestañas, tarjetas, tablas) está en
+   comun/estilos.css; los colores, en comun/tema.css.
+   ========================================================= */
+:root { --ancho: 1400px; }
+.cabecera-interior { padding-bottom: 12px; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Sexo: el botón se apaga en la pestaña de rotación */
+.filtro.no-aplica .segmentado { opacity: 0.55; }
+.filtros .segmentado button:disabled { cursor: not-allowed; }
+.filtros .segmentado button:hover:not(:disabled):not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.14); color: #fff; }
+
+/* Filtros aplicados: cada uno es un botón que lo quita */
+.aplicados { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 20px; padding: 10px 14px;
+  background: #e8eefb; border: 1px solid #c9d6f5; border-radius: var(--radio); }
+.aplicados-titulo { font-size: 14px; font-weight: 700; color: var(--navy); }
+.aplicados-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px 4px 12px; border: 1px solid #b4c6fa;
+  border-radius: var(--radio); background: #fff; color: var(--navy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.chip span { font-size: 18px; line-height: 1; color: var(--azul); }
+.chip:hover { border-color: var(--azul); }
+.quitar-todo { margin-left: auto; min-height: 36px; border: 0; background: none; color: var(--azul); font: inherit; font-size: 14px; font-weight: 700;
+  text-decoration: underline; cursor: pointer; }
+.chip:focus-visible, .quitar-todo:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+/* Cifras clave: contexto en franja azul clara al pie (como en Aprobación presidencial) */
+.kpi { gap: 2px; overflow: hidden; }
+.kpi .kpi-etiqueta { font-weight: 700; color: var(--texto-suave); }
+.kpi .kpi-pie { display: flex; flex-direction: column; flex: 1 1 auto; gap: 1px; margin: 12px -20px -18px; padding: 12px 20px 14px;
+  background: #e8eefb; border-top: 3px solid var(--azul-claro); }
+.kpi .kpi-quien { font-size: 19px; font-weight: 800; color: var(--azul); line-height: 1.25; }
+.kpi .kpi-cuando { font-size: 15px; font-weight: 600; color: var(--navy); }
+
+/* Leyendas */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.escala-ley { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.escala-ley i { display: inline-block; width: 140px; height: 12px; border-radius: 2px; }
+
+/* Matriz: en pantallas angostas se desplaza dentro de la tarjeta (12 gobiernos no caben en 360 px) */
+.matriz-caja { overflow-x: auto; }
+#g-matriz { min-width: 860px; }
+
+/* Pares de tarjetas: mismo ancho y mismo alto, siempre */
+.par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.par > .tarjeta { margin-bottom: 0; display: flex; flex-direction: column; }
+.par > .tarjeta > header { min-height: 72px; }
+.grafico.par-alto { height: 640px; }
+.grafico.par-medio { height: 480px; }
+.tabla-caja.par-tabla { height: 520px; max-height: none; }
+
+/* Tablas ordenables */
+.tabla-caja { max-height: 640px; overflow: auto; margin-top: 12px; border: 1px solid var(--linea); border-radius: var(--radio); }
+.tabla.ordenable th { padding: 0; white-space: nowrap; }
+.tabla.ordenable th button { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; background: none;
+  color: #fff; font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
+.tabla.ordenable th.num button { justify-content: flex-end; }
+.tabla.ordenable th button:hover { background: rgba(255, 255, 255, 0.1); }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.6; }
+.tabla.ordenable th[aria-sort="ascending"] .flecha, .tabla.ordenable th[aria-sort="descending"] .flecha { opacity: 1; color: var(--lima); }
+.tabla.ordenable tbody tr { cursor: pointer; }
+.tabla.ordenable tbody tr:hover td { background: var(--fondo); }
+.tabla.ordenable tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.celda-barra { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; min-width: 120px; }
+.celda-barra i { display: block; height: 10px; max-width: 80px; flex: 0 1 80px; background: var(--azul-claro); border-radius: 2px; }
+.celda-barra b { min-width: 32px; }
+.sin-cambios, .en-curso { font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.tabla-vacia { margin: 0; padding: 24px 16px; color: var(--texto-suave); }
+
+/* Buscador de personas */
+.buscador { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 16px; }
+.buscador label { font-weight: 700; color: var(--navy); }
+.buscador input { flex: 1 1 320px; max-width: 520px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio);
+  font: inherit; font-size: 16px; color: var(--texto); background: #fff; }
+.buscador input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+
+@media (max-width: 900px) {
+  .par { grid-template-columns: 1fr; }
+  .par > .tarjeta > header { min-height: 0; }
+  .grafico.par-alto { height: 600px; }
+}
+@media (max-width: 560px) {
+  .quitar-todo { margin-left: 0; }
+  .filtros .segmentado { width: 100%; }
+  .filtros .segmentado button { flex: 1; min-width: 0; }
+}
+.solo-angosto { display: none; }
+@media (max-width: 700px) {
+  #g-matriz { min-width: 1000px; }
+  .solo-angosto { display: block; }
+}
