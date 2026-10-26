@@ -10,8 +10,13 @@
 .leyenda i.l.gris { border-top-style: dashed; }
 
 .mapa-y-tabla .grafico { margin-top: 0; }
-/* Los nombres de los problemas son largos: la cifra de texto es algo menor */
-.kpi-valor.texto { font-size: 20px; }
+/* Tarjetas de cifras: el texto o la cifra a la izquierda y el porcentaje (o el dato) al costado, más pequeño.
+   Los nombres de los problemas son largos y se parten en líneas si no caben. */
+.kpi { display: grid; grid-template-columns: minmax(0, max-content) auto 1fr; align-content: center; column-gap: 14px; row-gap: 6px; min-height: 124px; }
+.kpi-etiqueta { grid-column: 1 / -1; } /* ocupa todo el ancho; la tercera columna, flexible, absorbe lo que le sobre */
+.kpi-valor, .kpi-pie { align-self: center; }
+.kpi-valor.texto { font-size: 24px; line-height: 1.2; }
+.kpi-pie { font-size: 18px; font-weight: 600; line-height: 1.25; }
 #f-problema { min-width: 280px; }
 
 @media (max-width: 560px) {

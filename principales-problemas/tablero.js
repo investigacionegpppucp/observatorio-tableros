@@ -59,7 +59,6 @@ const mapas = {};
    --------------------------------------------------------- */
 const pct = (v) => (v == null ? "—" : `${Obs.fmtN(v * 100, 1)}%`);
 const signo = (d) => `${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)}`;
-const pts = (v) => `${Obs.fmtN(Math.abs(v * 100), 1)} ${Math.abs(Math.round(v * 1000)) === 10 ? "punto" : "puntos"}`;
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
 // Códigos del mapa: mayúsculas y sin tildes
 const codigo = (nombre) => nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
@@ -153,13 +152,8 @@ function moduloGeneral() {
     ["k-general-1", "k-general-2", "k-general-3"].forEach((id) => Obs.kpi(id, { etiqueta: "", valor: "—" }));
     return;
   }
-  Obs.kpi("k-general-1", { etiqueta: "Problema principal", texto: uno.problema, pie: `${pct(uno.v)}${enPromedio()}` });
-  Obs.kpi("k-general-2", { etiqueta: "Segundo problema", texto: dos.problema, pie: `${pct(dos.v)}${enPromedio()}` });
-  if (unAnio()) Obs.kpi("k-general-3", { etiqueta: "Diferencia entre los dos primeros", valor: pts(uno.v - dos.v), pie: `${uno.problema} y ${dos.problema}` });
-  else {
-    const final = mayor(PROBLEMAS.map((p) => ({ problema: p, v: valor(p, estado.region, estado.hasta) })).filter((x) => x.v != null));
-    Obs.kpi("k-general-3", { etiqueta: `Problema principal en ${estado.hasta}`, texto: final?.problema ?? "—", pie: final ? pct(final.v) : "" });
-  }
+  const tres = [["Problema principal", uno], ["Segundo problema", dos], ["Tercer problema", rk[2]]];
+  tres.forEach(([etiqueta, x], i) => Obs.kpi(`k-general-${i + 1}`, { etiqueta, texto: x?.problema ?? "—", pie: x ? pct(x.v) : "" }));
   el.innerHTML = `${enAmbito(estado.region)}, ${textoPeriodo()}, el problema más mencionado fue <strong>${Obs.escapar(uno.problema)}</strong>, con el ${pct(uno.v)} de las personas${enPromedio()}` +
     (dos ? `, seguido de <strong>${Obs.escapar(dos.problema)}</strong> (${pct(dos.v)}).` : ".");
 
@@ -208,11 +202,11 @@ function moduloEvolucion() {
   // Cifras: mayor aumento, mayor caída y mención más alta
   const sube = conCambio ? mayor(cambios, "d") : null, baja = conCambio ? menor(cambios, "d") : null;
   Obs.kpi("k-evolucion-1", sube && sube.d > 0
-    ? { etiqueta: "Mayor aumento", texto: sube.problema, pie: `${signo(sube.d)} puntos, ${estado.desde} a ${estado.hasta}` }
-    : { etiqueta: "Mayor aumento", texto: "—", pie: unAnio() ? "Elige un período de dos o más años" : "Ninguno aumentó" });
+    ? { etiqueta: "Mayor aumento", texto: sube.problema, pie: `${signo(sube.d)} puntos` }
+    : { etiqueta: "Mayor aumento", texto: "—", pie: unAnio() ? "Elige dos o más años" : "Ninguno aumentó" });
   Obs.kpi("k-evolucion-2", baja && baja.d < 0
-    ? { etiqueta: "Mayor caída", texto: baja.problema, pie: `${signo(baja.d)} puntos, ${estado.desde} a ${estado.hasta}` }
-    : { etiqueta: "Mayor caída", texto: "—", pie: unAnio() ? "Elige un período de dos o más años" : "Ninguno bajó" });
+    ? { etiqueta: "Mayor caída", texto: baja.problema, pie: `${signo(baja.d)} puntos` }
+    : { etiqueta: "Mayor caída", texto: "—", pie: unAnio() ? "Elige dos o más años" : "Ninguno bajó" });
   let pico = null;
   for (const p of sel) for (const a of anios) { const v = valor(p, estado.region, a); if (v != null && (!pico || v > pico.v)) pico = { problema: p, anio: a, v }; }
   Obs.kpi("k-evolucion-3", { etiqueta: "Mención más alta", texto: pico ? `${pico.problema}, ${pico.anio}` : "—", pie: pico ? pct(pico.v) : "" });
@@ -259,9 +253,9 @@ function moduloTerritorio() {
   const nacional = promedio(p, NACIONAL);
   const el = document.getElementById("r-territorio");
   const alta = filas[0], baja = filas.at(-1);
-  Obs.kpi("k-territorio-1", { etiqueta: "Región donde más se menciona", texto: alta ? nombreRegion(alta.region) : "—", pie: alta ? `${pct(alta.v)}${enPromedio()}` : "" });
-  Obs.kpi("k-territorio-2", { etiqueta: "Región donde menos se menciona", texto: baja ? nombreRegion(baja.region) : "—", pie: baja ? `${pct(baja.v)}${enPromedio()}` : "" });
-  Obs.kpi("k-territorio-3", { etiqueta: "Perú", valor: pct(nacional), pie: `Total nacional${enPromedio()}` });
+  Obs.kpi("k-territorio-1", { etiqueta: "Región donde más se menciona", texto: alta ? nombreRegion(alta.region) : "—", pie: alta ? pct(alta.v) : "" });
+  Obs.kpi("k-territorio-2", { etiqueta: "Región donde menos se menciona", texto: baja ? nombreRegion(baja.region) : "—", pie: baja ? pct(baja.v) : "" });
+  Obs.kpi("k-territorio-3", { etiqueta: "Perú", valor: pct(nacional), pie: "Total nacional" });
   el.innerHTML = alta
     ? `${textoPeriodo().replace(/^en /, "En ").replace(/^entre /, "Entre ")}, <strong>«${Obs.escapar(p)}»</strong> fue mencionado por el <strong>${pct(nacional)}</strong> de las personas en el Perú${enPromedio()}. ` +
       `Se mencionó más en <strong>${Obs.escapar(nombreRegion(alta.region))}</strong> (${pct(alta.v)}) y menos en <strong>${Obs.escapar(nombreRegion(baja.region))}</strong> (${pct(baja.v)}).`
