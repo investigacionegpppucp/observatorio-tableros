@@ -15,8 +15,8 @@
 .kpi { display: grid; grid-template-columns: minmax(0, max-content) auto 1fr; grid-template-rows: auto minmax(52px, auto); align-content: center; column-gap: 14px; row-gap: 6px; min-height: 132px; }
 .kpi-etiqueta { grid-column: 1 / -1; } /* ocupa todo el ancho; la tercera columna, flexible, absorbe lo que le sobre */
 .kpi-valor, .kpi-pie { align-self: center; }
-.kpi-valor, .kpi-valor.texto { font-size: 38px; line-height: 1.15; padding-top: 0; }
-.kpi-pie { font-size: 18px; font-weight: 600; line-height: 1.25; }
+.kpi-valor, .kpi-valor.texto { font-size: 32px; line-height: 1.15; padding-top: 0; }
+.kpi-pie { font-size: 21px; font-weight: 600; line-height: 1.25; }
 #f-problema { min-width: 280px; }
 
 @media (max-width: 560px) {
