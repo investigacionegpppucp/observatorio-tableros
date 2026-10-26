@@ -203,6 +203,42 @@ function columnasNoValido(id, filas) {
   }, true);
 }
 
+/* Voto no válido por región en columnas apiladas (en blanco + nulos), de mayor a menor, con el
+   total encima y el porcentaje de cada tramo dentro (en vertical) si cabe. Si las columnas no
+   caben (celular), pasa a barras horizontales. filas: las de barrasNoValido */
+function columnasNoValidoRegion(id, filas) {
+  const el = document.getElementById(id);
+  // a la izquierda, espacio para el nombre girado de la primera región
+  const izq = 64, der = 8, espacio = (el.clientWidth - izq - der) / filas.length, anchoCol = espacio * 0.62;
+  if (espacio < 30) return barrasNoValido(id, filas);
+  const angostas = espacio < 46; // el total no cabe en horizontal sobre la columna: va en vertical
+  el.style.height = "480px";
+  const gr = graf(id); gr.resize();
+  const max = Math.max(...filas.map((f) => f.blanco + f.nulo)) * 1.1;
+  const atenuar = filas.some((f) => f.resaltar);
+  const tenue = (f) => atenuar && !f.resaltar;
+  // alto en píxeles de un tramo, para saber si su rótulo cabe
+  const alto = (v) => (v / max) * (480 - 40 - 110);
+  const dentro = (f, v) => ({ show: alto(v) >= 46, position: "inside", rotate: 90, fontFamily: C.fuente, fontSize: 12, fontWeight: 600,
+    color: tenue(f) ? C.navy : "#fff", formatter: () => pct(v) });
+  gr.setOption({ ...BASE(),
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
+      formatter: (ps) => { const f = filas[ps[0].dataIndex]; return `<strong>${f.tip}</strong><br>En blanco: ${pct(f.blanco)}<br>Nulos: ${pct(f.nulo)}<br>Total no válido: <strong>${pct(f.blanco + f.nulo)}</strong>`; } },
+    grid: { left: izq, right: der, top: angostas ? 56 : 40, bottom: 110 },
+    xAxis: { type: "category", data: filas.map((f) => f.eje), ...eje({ splitLine: { show: false } }),
+      axisLabel: txt({ color: C.texto, fontWeight: 700, interval: 0, rotate: 45, margin: 10 }) },
+    yAxis: { type: "value", max, show: false },
+    series: [
+      { type: "bar", stack: "t", barWidth: Math.min(40, anchoCol), data: filas.map((f) => ({ value: f.blanco, itemStyle: { color: tenue(f) ? "#c9d3f3" : C.bl1 }, label: dentro(f, f.blanco) })) },
+      { type: "bar", stack: "t", data: filas.map((f) => ({ value: f.nulo, itemStyle: { color: tenue(f) ? "#d6e2b5" : C.nu1, borderRadius: [3, 3, 0, 0] }, label: dentro(f, f.nulo) })) },
+      // total encima de cada columna (12 px: es un ranking regional)
+      { type: "bar", stack: "t", silent: true, itemStyle: { color: "transparent" }, data: filas.map(() => 0.0001),
+        label: { show: true, position: "top", distance: 4, rotate: angostas ? 90 : 0, align: angostas ? "left" : "center", verticalAlign: "middle",
+          ...txt({ color: C.texto, fontWeight: 800, fontSize: angostas ? 12 : 14 }), formatter: (p) => pct(filas[p.dataIndex].blanco + filas[p.dataIndex].nulo) } },
+    ],
+  }, true);
+}
+
 /* Barras horizontales apiladas (en blanco + nulos), una fila por región o vuelta.
    filas: [{ clave, eje, sub, blanco, nulo, tip, resaltar }] */
 function barrasNoValido(id, filas) {
@@ -318,7 +354,7 @@ function render() {
   const conNv = s.regiones.filter((x) => nv(x) != null).sort((a, b) => nv(b) - nv(a));
   document.getElementById("t-nv-reg").textContent = `Voto no válido por región (${estado.e}, ${vuelta})`;
   if (conNv.length) {
-    barrasNoValido("g-nv-reg", conNv.map((x) => ({ clave: x.d, eje: nombre(x.d), sub: false, blanco: x.blanco, nulo: x.nulo, tip: nombre(x.d), resaltar: x.d === estado.region })));
+    columnasNoValidoRegion("g-nv-reg", conNv.map((x) => ({ clave: x.d, eje: nombre(x.d), sub: false, blanco: x.blanco, nulo: x.nulo, tip: nombre(x.d), resaltar: x.d === estado.region })));
     describir("g-nv-reg", `Voto no válido por región en ${estado.e}, ${vuelta}. Más alto: ${nombre(conNv[0].d)}, ${pct(nv(conNv[0]))}; más bajo: ${nombre(conNv.at(-1).d)}, ${pct(nv(conNv.at(-1)))}.`);
   } else { document.getElementById("g-nv-reg").style.height = "60px"; graf("g-nv-reg").resize(); graf("g-nv-reg").clear(); graf("g-nv-reg").setOption({ graphic: { type: "text", left: 0, top: "middle", style: { text: `Sin datos de voto en blanco y nulo en ${estado.e}.`, fill: C.suave, font: `600 15px ${C.fuente}` } } }); }
   evolucion(s);

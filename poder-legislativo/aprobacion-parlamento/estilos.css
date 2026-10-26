@@ -59,3 +59,9 @@
   .tabla .media { white-space: nowrap; }
   .tabla td, .tabla th { padding: 8px 8px; }
 }
+
+/* Diputados y Senado: leyenda de líneas (continua y punteada) */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley i.l { display: inline-block; width: 22px; height: 0; border-top: 3px solid; margin-right: 6px; vertical-align: 4px; }
+.ley i.l.punteada { border-top-style: dashed; }
+.grafico.bicameral { height: 360px; }

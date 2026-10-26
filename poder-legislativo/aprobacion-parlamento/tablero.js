@@ -6,8 +6,13 @@
    el Sheet de «Bases tableros». Una sola tabla, `Limpio`, con una fila
    por mes (enero de 2002 en adelante): Mes, Mes_2, Año, Mes-Año,
    Aprueba (% que aprueba al Congreso, de 0 a 100), Mayoría en el
-   Congreso, Congreso, Presidente y Orden (a, b, c... según el gobierno).
+   Congreso, Congreso, Presidente, Orden (a, b, c... según el gobierno),
+   Camara (Única, Diputados o Senado) y Presidente de la Cámara.
    Fuente: Opinión Data, Ipsos Perú.
+
+   Desde setiembre de 2026 el Congreso tiene dos cámaras y cada mes trae
+   una fila por cámara. La serie general (desde 2002) sigue con la Cámara
+   de Diputados; «Aprobación del Parlamento en <año>» abre la línea en las dos.
 
    Se elige por gobierno, por Congreso o por período; al cambiar uno, los
    otros vuelven a «todos». Patrón: un objeto `estado`, el subconjunto
@@ -51,6 +56,14 @@ const describir = (id, texto) => {
 
 const estado = { gobierno: null, congreso: null, desde: null, hasta: null };
 let T, FILAS, ANIOS, POR_MES, PROM_TOTAL, GOBIERNOS, CONGRESOS, PARTIDOS, ESTRENOS, INICIOS_CONGRESO;
+let CAMARAS, INICIO_BICAMERAL; // filas de Diputados y Senado; mes en que empieza el Congreso bicameral
+
+// Cámaras del Congreso bicameral: se distinguen por color, por trazo y por el rótulo al final de cada línea
+const CAMARA = {
+  Diputados: { color: "#c61c44", trazo: "solid", nombre: "Cámara de Diputados" },
+  Senado: { color: "#7e57c2", trazo: "dashed", nombre: "Senado" },
+};
+const UNICAMERAL = { color: "#4f5a6b", nombre: "Congreso" }; // la línea de una sola cámara, de la que salen las dos
 
 const colorPartido = (m) => COLORES_PARTIDO[PARTIDOS.indexOf(m)] ?? T.otros;
 const periodoCompleto = () => estado.desde === ANIOS[0] && estado.hasta === ANIOS.at(-1);
@@ -88,7 +101,7 @@ function resumen(S) {
     (baja ? (n === 1 ? ` Ese mes la aprobación estuvo por debajo de 10%.` : ` En ${baja} de ${n} meses la aprobación estuvo por debajo de 10%.`) : "");
 
   const mayor = S.reduce((a, r) => (r.valor > a.valor ? r : a)), menor = S.reduce((a, r) => (r.valor < a.valor ? r : a));
-  Obs.kpi("k-ultimo", { etiqueta: "Dato más reciente", valor: pct0(ultima.valor), pie: fecha(ultima) });
+  Obs.kpi("k-ultimo", { etiqueta: "Dato más reciente", valor: pct0(ultima.valor), pie: ultima.camara === "Diputados" ? `${fecha(ultima)}, Diputados` : fecha(ultima) });
   Obs.kpi("k-min", { etiqueta: "Mínimo", valor: pct0(menor.valor), pie: fecha(menor) });
   Obs.kpi("k-max", { etiqueta: "Máximo", valor: pct0(mayor.valor), pie: fecha(mayor) });
   Obs.kpi("k-prom", { etiqueta: "Promedio", valor: pct1(prom), pie: `desde ${S[0].anio}` });
@@ -100,7 +113,7 @@ function serie(S) {
   const g = Obs.grafico("g-serie");
   g.resize();
   const cel = movil();
-  const izq = cel ? 48 : 58, der = cel ? 30 : 22, H0 = el.clientHeight - 36;
+  const izq = cel ? 48 : 58, der = cel ? 30 : 22, H0 = el.clientHeight - 60; // arriba, aire para el rótulo «Desde aquí, Diputados»
   const t0 = S[0].t, t1 = S.at(-1).t;
   const pad = t1 - t0 < 24 * MES_MS ? 3 * MES_MS : 0; // vistas cortas: aire a los lados
   const a0 = t0 - pad, a1 = t1 + pad;
@@ -118,10 +131,10 @@ function serie(S) {
       ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "line", snap: true, lineStyle: { color: T.navy, opacity: 0.35 } },
       formatter: (ps) => {
         const r = ps.find((p) => p.seriesType === "line")?.data?.r;
-        return r ? `<strong>${r.mesNombre} de ${r.anio}</strong><br>Aprobación: <strong>${pct0(r.valor)}</strong><br>Gobierno: ${Obs.escapar(r.presidente)}<br>Congreso ${r.congreso}, mayoría ${Obs.escapar(r.mayoria)}` : "";
+        return r ? `<strong>${r.mesNombre} de ${r.anio}</strong><br>Aprobación${r.camara === "Diputados" ? " de la Cámara de Diputados" : ""}: <strong>${pct0(r.valor)}</strong><br>Gobierno: ${Obs.escapar(r.presidente)}<br>Congreso ${r.congreso}, mayoría ${Obs.escapar(r.mayoria)}` : "";
       },
     },
-    grid: { left: izq, right: der, top: 6, height: H0 },
+    grid: { left: izq, right: der, top: 30, height: H0 },
     xAxis: eje({ type: "time", min: a0, max: a1, splitNumber: cel ? 4 : 10,
       axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, hideOverlap: true,
         formatter: (x) => { const d = new Date(x); return sobreAnios ? String(d.getUTCFullYear()) : `${MESES_CORTOS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; } } }),
@@ -134,7 +147,9 @@ function serie(S) {
         showSymbol: S.length <= 60, symbol: "circle", symbolSize: 7, lineStyle: { width: 2, color: T.unica }, itemStyle: { color: T.unica, borderColor: "#fff", borderWidth: 1.5 },
         // línea fina donde empieza cada Congreso
         markLine: { silent: true, symbol: "none", label: { show: false }, lineStyle: { type: "dashed", color: "#9aa5b5", width: 1 },
-          data: INICIOS_CONGRESO.filter((t) => t > t0 && t <= t1).map((t) => ({ xAxis: t })) },
+          data: INICIOS_CONGRESO.filter((t) => t > t0 && t <= t1).map((t) => (t === INICIO_BICAMERAL
+            ? { xAxis: t, label: { show: true, position: "end", distance: 6, align: "right", formatter: "Cámara de Diputados", color: T.texto, fontFamily: T.fuente, fontSize: 14, fontWeight: 700, textBorderColor: "#fff", textBorderWidth: 3 } }
+            : { xAxis: t })) },
         markPoint: {
           silent: true, symbol: "circle", symbolSize: 10, itemStyle: { color: T.unica, borderColor: "#fff", borderWidth: 2 },
           label: { show: true, formatter: (p) => pct0(p.value), color: T.texto, fontFamily: T.fuente, fontSize: 14, fontWeight: 700, textBorderColor: "#fff", textBorderWidth: 3 },
@@ -147,9 +162,10 @@ function serie(S) {
   // Meses sin encuesta dentro del rango
   const faltan = [];
   for (let m = S[0].m; m <= S.at(-1).m; m++) if (!POR_MES.has(m)) faltan.push(m);
-  document.getElementById("n-serie").textContent = faltan.length
-    ? `${faltan.length === 1 ? "Un mes de este rango no tiene" : `${faltan.length} meses de este rango no tienen`} dato de encuesta; la línea une el mes anterior con el siguiente.`
-    : "";
+  document.getElementById("n-serie").textContent = (faltan.length
+    ? `${faltan.length === 1 ? "Un mes de este rango no tiene" : `${faltan.length} meses de este rango no tienen`} dato de encuesta; la línea une el mes anterior con el siguiente. `
+    : "") + (INICIO_BICAMERAL && t1 >= INICIO_BICAMERAL
+    ? "Desde que el Congreso tiene dos cámaras, la serie sigue con la Cámara de Diputados; el gráfico de abajo muestra las dos cámaras." : "");
   document.getElementById("d-serie").textContent = hayFiltro() && S.length < FILAS.length
     ? `Porcentaje de personas que aprueba el trabajo del Congreso, de ${fecha(S[0])} a ${fecha(S.at(-1))}. El eje vertical se ajusta a esta selección.`
     : "Porcentaje de personas que aprueba el trabajo del Congreso, cada mes.";
@@ -164,7 +180,7 @@ function tablaCongresos() {
     [...CONGRESOS].reverse().map((c) => { // del más reciente al más antiguo
       const elegido = estado.congreso === c.nombre;
       return `<tr data-congreso="${Obs.escapar(c.nombre)}"${elegido ? ' class="elegida"' : ""}>
-        <td><button type="button" class="fila-boton" aria-pressed="${elegido}">${Obs.escapar(c.nombre)}</button></td>
+        <td><button type="button" class="fila-boton" aria-pressed="${elegido}">${Obs.escapar(c.nombre)}</button>${c.bicameral ? "<small>Cámara de Diputados</small>" : ""}</td>
         <td>${c.mayorias.map((m) => `<span class="partido"><i style="background:${colorPartido(m)}"></i>${Obs.escapar(m)}</span>`).join("")}</td>
         <td class="num media"><span class="barrita" style="width:${Math.round((c.media / tope) * 70)}px"></span>${pct1(c.media)}</td></tr>`;
     }).join("")}</tbody></table>`;
@@ -233,6 +249,78 @@ function estreno() {
   describir("g-estreno", `Líneas de aprobación mes a mes durante el primer año de cada Congreso. ` + ESTRENOS.map((e) => `${e.congreso}: ${pct0(e.previo)} el mes anterior, ${pct0(e.pico)} como mejor mes de los tres primeros`).join("; ") + ".");
 }
 
+/* ---------- Aprobación en el año en que el Congreso pasó a tener dos cámaras: una sola línea hasta el último
+   mes unicameral, que desde ahí se abre en Diputados y Senado. El eje solo tiene los meses con encuesta (sin
+   agosto de 2026), así las líneas no se cortan. No responde a los filtros. ---------- */
+function bicameral() {
+  const caja = document.getElementById("bicameral");
+  caja.hidden = !CAMARAS.length;
+  if (!CAMARAS.length) return;
+  const g = Obs.grafico("g-bicameral");
+  g.resize();
+  const cel = movil();
+  const anio = new Date(INICIO_BICAMERAL).getUTCFullYear();
+  const antes = FILAS.filter((r) => r.camara === "Única" && r.anio === anio);
+  const meses = unicos([...antes, ...CAMARAS].map((r) => r.m)).sort((x, y) => x - y);
+  const etiqueta = (m) => MESES_CORTOS[m % 12];
+  const enMes = (filas) => meses.map((m) => filas.find((r) => r.m === m) ?? null);
+  const ultimoAntes = antes.at(-1);
+  // cada cámara arranca en el último mes unicameral: las tres líneas quedan unidas
+  const rama = (c) => enMes(CAMARAS.filter((r) => r.camara === c)).map((r, i) => r ?? (ultimoAntes && meses[i] === ultimoAntes.m ? ultimoAntes : null));
+  const porCamara = Object.keys(CAMARA).filter((c) => CAMARAS.some((r) => r.camara === c));
+  const tope = Math.max(20, Math.ceil((Math.max(...CAMARAS.map((r) => r.valor), ...antes.map((r) => r.valor)) + 10) / 10) * 10);
+  const linea = (nombre, datos, color, trazo, extra = {}) => ({
+    // solo los meses con dato, con su posición en el eje: con nulos al inicio, endLabel da NaN
+    // en las cámaras, el punto de partida (el último mes unicameral) no se dibuja: queda el gris del Congreso
+    type: "line", name: nombre, data: datos.map((r, i) => (r ? { value: [i, r.valor], r, ...(r.camara === "Única" && nombre !== UNICAMERAL.nombre ? { symbol: "none" } : {}) } : null)).filter(Boolean),
+    symbol: "circle", symbolSize: 8, showSymbol: true, lineStyle: { width: 2.5, color, type: trazo }, itemStyle: { color, borderColor: "#fff", borderWidth: 1.5 }, ...extra,
+  });
+  const iInicio = meses.indexOf(CAMARAS.find((r) => r.t === INICIO_BICAMERAL).m);
+  g.setOption({
+    animation: ANIM, textStyle: { fontFamily: T.fuente },
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "line", lineStyle: { color: T.navy, opacity: 0.35 } },
+      formatter: (ps) => {
+        const m = meses[ps[0].dataIndex], d = `<strong>${FILAS.concat(CAMARAS).find((r) => r.m === m).mesNombre} de ${Math.floor(m / 12)}</strong>`;
+        const deCamaras = CAMARAS.filter((r) => r.m === m);
+        if (!deCamaras.length) { const r = antes.find((x) => x.m === m); return `${d}<br>Congreso de una sola cámara: <strong>${pct0(r.valor)}</strong>`; }
+        return d + deCamaras.map((x) => `<br>${CAMARA[x.camara].nombre}: <strong>${pct0(x.valor)}</strong>` +
+          (x.presidenteCamara ? `<br>&nbsp;&nbsp;La preside ${Obs.escapar(x.presidenteCamara)}` : "")).join("");
+      } },
+    grid: { left: cel ? 48 : 58, right: cel ? 116 : 140, top: 40, bottom: 34 },
+    xAxis: { type: "category", data: meses.map(etiqueta), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: T.linea } },
+      axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, interval: 0 } },
+    yAxis: { type: "value", min: 0, max: tope, interval: 10, splitLine: { lineStyle: { color: T.linea } },
+      axisLabel: { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14, formatter: (x) => `${x}%` } },
+    series: [
+      linea(UNICAMERAL.nombre, enMes(antes), UNICAMERAL.color, "solid", {
+        markLine: { silent: true, symbol: "none", lineStyle: { type: "dashed", color: "#9aa5b5", width: 1 },
+          label: { show: true, position: "end", distance: 6, formatter: "Congreso bicameral", color: T.texto, fontFamily: T.fuente, fontSize: 14, fontWeight: 700 },
+          data: [{ xAxis: iInicio }] } }),
+      ...porCamara.map((c) => {
+        const datos = rama(c), ultimo = [...datos].reverse().find(Boolean);
+        return linea(CAMARA[c].nombre, datos, CAMARA[c].color, CAMARA[c].trazo, {
+          // rótulo al final con el nombre y el último valor: las cámaras se distinguen sin depender del color
+          endLabel: { show: true, formatter: `${c} ${pct0(ultimo.valor)}`, color: CAMARA[c].color, fontFamily: T.fuente, fontSize: 14, fontWeight: 700, offset: [8, c === "Diputados" ? 10 : -10] } });
+      }),
+    ],
+  }, true);
+
+  document.getElementById("t-bicameral").textContent = `Aprobación del Parlamento en ${anio}`;
+  document.getElementById("d-bicameral").textContent =
+    `Hasta ${ultimoAntes ? `${ultimoAntes.mesNombre}` : "su instalación"}, el Congreso de una sola cámara; desde ${CAMARAS.find((r) => r.t === INICIO_BICAMERAL).mesNombre}, cada cámara por separado.`;
+  document.getElementById("ley-bicameral").innerHTML = `<span><i class="l" style="border-color:${UNICAMERAL.color}"></i>Congreso de una sola cámara</span>` +
+    porCamara.map((c) => `<span><i class="l${CAMARA[c].trazo === "dashed" ? " punteada" : ""}" style="border-color:${CAMARA[c].color}"></i>${CAMARA[c].nombre}</span>`).join("");
+  // meses sin encuesta entre el último unicameral y el primero bicameral (agosto de 2026): no están en el eje
+  const NOMBRES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
+  const sinDato = [];
+  for (let m = (ultimoAntes?.m ?? meses[iInicio]) + 1; m < meses[iInicio]; m++) sinDato.push(NOMBRES[m % 12]);
+  document.getElementById("n-bicameral").textContent = (sinDato.length
+    ? `${sinDato.join(" y ").replace(/^./, (x) => x.toUpperCase())}, cuando se instaló el Congreso bicameral, no tuvo encuesta: el gráfico pasa de ${NOMBRES[ultimoAntes.m % 12]} a ${NOMBRES[meses[iInicio] % 12]}. ` : "") +
+    "Este gráfico no cambia con los filtros.";
+  describir("g-bicameral", `Línea de aprobación del Congreso en ${anio}, que se abre en la Cámara de Diputados y el Senado. ` +
+    porCamara.map((c) => { const r = CAMARAS.filter((x) => x.camara === c).at(-1); return `${CAMARA[c].nombre}: ${pct0(r.valor)} en ${fecha(r)}`; }).join("; ") + ".");
+}
+
 /* ---------- Estado, controles y arranque ---------- */
 function render() {
   sincronizar();
@@ -243,6 +331,7 @@ function render() {
   extremos(S);
   barrasGobiernos();
   estreno();
+  bicameral();
   Obs.escribirURL({
     gobierno: estado.gobierno ? GOBIERNOS.find((g) => g.orden === estado.gobierno).slug : null, congreso: estado.congreso,
     desde: periodoCompleto() || estado.gobierno || estado.congreso ? null : estado.desde,
@@ -270,11 +359,16 @@ Obs.iniciar(TABLERO, async () => {
   const D = await Obs.cargarJSON("datos.json");
   T = Obs.tema();
 
-  FILAS = Obs.expandir(D.tablas.Limpio).map((f) => {
+  const todas = Obs.expandir(D.tablas.Limpio).map((f) => {
     const [a, m] = f["Mes-Año"].split("-").map(Number);
     return { t: Date.UTC(a, m - 1, 1), anio: a, mes: m, m: a * 12 + m - 1, mesNombre: f.Mes.toLowerCase(), valor: f.Aprueba,
-      mayoria: f["Mayoría en el Congreso"], congreso: f.Congreso, presidente: f.Presidente, orden: f.Orden };
+      mayoria: f["Mayoría en el Congreso"], congreso: f.Congreso, presidente: f.Presidente, orden: f.Orden,
+      camara: f.Camara ?? "Única", presidenteCamara: f["Presidente de la Cámara"] ?? null };
   }).filter((r) => r.valor != null).sort((a, b) => a.t - b.t);
+  // Serie general: Congreso unicameral y, desde 2026, Cámara de Diputados (una fila por mes)
+  FILAS = todas.filter((r) => r.camara !== "Senado");
+  CAMARAS = todas.filter((r) => r.camara === "Diputados" || r.camara === "Senado");
+  INICIO_BICAMERAL = CAMARAS.length ? Math.min(...CAMARAS.map((r) => r.t)) : null;
   FILAS.forEach((r, i) => (r.i = i));
   POR_MES = new Map(FILAS.map((r) => [r.m, r]));
   ANIOS = Array.from({ length: FILAS.at(-1).anio - FILAS[0].anio + 1 }, (_, i) => FILAS[0].anio + i);
@@ -284,7 +378,7 @@ Obs.iniciar(TABLERO, async () => {
   GOBIERNOS = tramos(FILAS, (r) => r.orden).map((t) => ({ orden: t.k, nombre: t.r0.presidente, slug: sinTildes(apellido(t.r0.presidente)), desde: t.filas[0], hasta: t.filas.at(-1),
     media: media(t.filas), mayorias: unicos(t.filas.map((r) => r.mayoria)) }));
   INICIOS_CONGRESO = FILAS.filter((r, i) => i && r.congreso !== FILAS[i - 1].congreso).map((r) => r.t);
-  CONGRESOS = unicos(FILAS.map((r) => r.congreso)).map((nombre) => { const rs = FILAS.filter((r) => r.congreso === nombre); return { nombre, media: media(rs), n: rs.length, mayorias: unicos(rs.map((r) => r.mayoria)) }; });
+  CONGRESOS = unicos(FILAS.map((r) => r.congreso)).map((nombre) => { const rs = FILAS.filter((r) => r.congreso === nombre); return { nombre, media: media(rs), n: rs.length, mayorias: unicos(rs.map((r) => r.mayoria)), bicameral: rs.some((r) => r.camara === "Diputados") }; });
 
   // Cada vez que cambia el Congreso: aprobación del mes anterior, mejor mes de los tres primeros y doce meses después
   ESTRENOS = [];
