@@ -158,7 +158,7 @@ function tablaCongresos() {
   const tope = 30; // la barra de la media llena su columna con 30%
   document.getElementById("t-congresos").innerHTML = `<table class="tabla"><thead><tr>
       <th>Período</th><th>Mayoría en el Congreso</th><th class="num">Aprobación media</th></tr></thead><tbody>${
-    CONGRESOS.map((c) => {
+    [...CONGRESOS].reverse().map((c) => { // del más reciente al más antiguo
       const elegido = estado.congreso === c.nombre;
       return `<tr data-congreso="${Obs.escapar(c.nombre)}"${elegido ? ' class="elegida"' : ""}>
         <td><button type="button" class="fila-boton" aria-pressed="${elegido}">${Obs.escapar(c.nombre)}</button></td>
@@ -182,7 +182,8 @@ function extremos(S) {
 
 /* ---------- Aprobación media por gobierno ---------- */
 function barrasGobiernos() {
-  Obs.barras("g-gobiernos", GOBIERNOS.map((g) => ({ clave: g.orden, etiqueta: g.nombre, valor: g.media })), {
+  Obs.barras("g-gobiernos", [...GOBIERNOS].reverse().map((g) => ({ clave: g.orden, etiqueta: g.nombre, valor: g.media })), {
+    ordenar: false, // del más reciente al más antiguo
     formato: pct1, nombre: "Aprobación media", seleccion: estado.gobierno ? new Set([estado.gobierno]) : null,
     alClic: (o) => actualizar({ gobierno: o === estado.gobierno ? null : o }),
   });
