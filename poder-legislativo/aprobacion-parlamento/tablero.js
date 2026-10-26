@@ -61,7 +61,7 @@ let CAMARAS, INICIO_BICAMERAL; // filas de Diputados y Senado; mes en que empiez
 // Cámaras del Congreso bicameral: se distinguen por color, por trazo y por el rótulo al final de cada línea
 const CAMARA = {
   Diputados: { color: "#c61c44", trazo: "solid", nombre: "Cámara de Diputados" },
-  Senado: { color: "#7e57c2", trazo: "dashed", nombre: "Senado" },
+  Senado: { color: "#003fa3", trazo: "dashed", nombre: "Senado" },
 };
 const UNICAMERAL = { color: "#4f5a6b", nombre: "Congreso" }; // la línea de una sola cámara, de la que salen las dos
 
