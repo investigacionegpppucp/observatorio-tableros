@@ -3,8 +3,6 @@
    Lo compartido (franja, filtros, tarjetas) está en
    comun/estilos.css; los colores, en comun/tema.css.
    ========================================================= */
-/* Más ancho que el resto: la serie mensual (41 años) y las barras necesitan aire */
-:root { --ancho: 1400px; }
 .cabecera-interior { padding-bottom: 12px; }
 
 /* Leyendas: cuadro (barras) */

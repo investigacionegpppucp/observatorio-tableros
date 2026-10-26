@@ -3,7 +3,6 @@
    Lo compartido (franja, filtros, pestañas, tarjetas, tablas) está en
    comun/estilos.css; los colores, en comun/tema.css.
    ========================================================= */
-:root { --ancho: 1400px; }
 .cabecera-interior { padding-bottom: 12px; }
 .solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

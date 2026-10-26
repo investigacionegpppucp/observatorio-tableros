@@ -42,6 +42,6 @@
 
   --fuente: "Avenir Next", "Avenir", "Nunito Sans", "Segoe UI", system-ui, sans-serif;
   --radio: 4px;
-  --ancho: 1200px;
+  --ancho: 1400px; /* ancho del contenido; dentro del iframe de Webflow ocupa todo el recuadro */
   color-scheme: light;
 }
