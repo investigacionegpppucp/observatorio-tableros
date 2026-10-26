@@ -61,7 +61,7 @@ let CAMARAS, INICIO_BICAMERAL; // filas de Diputados y Senado; mes en que empiez
 // Cámaras del Congreso bicameral: se distinguen por color, por trazo y por el rótulo al final de cada línea
 const CAMARA = {
   Diputados: { color: "#c61c44", trazo: "solid", nombre: "Cámara de Diputados" },
-  Senado: { color: "#003fa3", trazo: "dashed", nombre: "Senado" },
+  Senado: { color: null, trazo: "dashed", nombre: "Senado" }, // el azul de la serie general (--serie-unica), al arrancar
 };
 const UNICAMERAL = { color: "#4f5a6b", nombre: "Congreso" }; // la línea de una sola cámara, de la que salen las dos
 
@@ -358,6 +358,7 @@ function sincronizar() {
 Obs.iniciar(TABLERO, async () => {
   const D = await Obs.cargarJSON("datos.json");
   T = Obs.tema();
+  CAMARA.Senado.color = T.unica;
 
   const todas = Obs.expandir(D.tablas.Limpio).map((f) => {
     const [a, m] = f["Mes-Año"].split("-").map(Number);
