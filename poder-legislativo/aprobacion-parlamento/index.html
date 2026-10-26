@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/tema.css?v=df69f00">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=df69f00">
-  <link rel="stylesheet" href="estilos.css?v=df69f00">
+  <link rel="stylesheet" href="../../comun/tema.css?v=0fed1b7">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=0fed1b7">
+  <link rel="stylesheet" href="estilos.css?v=0fed1b7">
 </head>
 <body>
   <header class="cabecera">
@@ -71,28 +71,27 @@
     <div class="grilla">
       <article class="tarjeta">
         <header>
-          <h3>Gobiernos y mayorías en el Congreso</h3>
-          <p>Aprobación media durante cada gobierno. Haz clic en una fila para verla en todo el tablero.</p>
+          <h3>Períodos del Congreso y mayorías</h3>
+          <p>Aprobación media durante cada Congreso. Haz clic en una fila para verla en todo el tablero.</p>
         </header>
-        <div class="tabla-caja sin-tope" id="t-gobierno"></div>
+        <div class="tabla-caja sin-tope" id="t-congresos"></div>
       </article>
-      <div class="columna">
-        <article class="tarjeta">
-          <header>
-            <h3>Según el período del Congreso</h3>
-            <p>Aprobación media de cada Congreso. Haz clic en una barra para elegirlo.</p>
-          </header>
-          <div class="grafico" id="g-congresos"></div>
-        </article>
-        <article class="tarjeta">
-          <header>
-            <h3>Meses de mayor y menor aprobación</h3>
-            <p id="d-extremos">Los cinco meses más altos y los cinco más bajos.</p>
-          </header>
-          <div class="tabla-caja sin-tope" id="t-extremos"></div>
-        </article>
-      </div>
+      <article class="tarjeta">
+        <header>
+          <h3>Según el gobierno</h3>
+          <p>Aprobación media de cada gobierno. Haz clic en una barra para elegirlo.</p>
+        </header>
+        <div class="grafico" id="g-gobiernos"></div>
+      </article>
     </div>
+
+    <article class="tarjeta">
+      <header>
+        <h3>Meses de mayor y menor aprobación</h3>
+        <p id="d-extremos">Los cinco meses más altos y los cinco más bajos.</p>
+      </header>
+      <div class="tabla-caja sin-tope" id="t-extremos"></div>
+    </article>
 
     <article class="tarjeta">
       <header>
@@ -103,21 +102,6 @@
       <div class="tabla-caja sin-tope" id="t-estreno"></div>
       <p class="pista" id="n-estreno"></p>
     </article>
-
-    <article class="tarjeta">
-      <header>
-        <h3>Cada mes desde 2002</h3>
-        <p id="d-calor">Un cuadro por mes, según el porcentaje que aprueba.</p>
-      </header>
-      <div class="ley" id="ley-calor"></div>
-      <div class="grafico" id="g-calor"></div>
-    </article>
-
-    <article class="tarjeta texto-largo">
-      <header><h3>Por qué observar la aprobación del Congreso</h3></header>
-      <p>Observar la aprobación del Congreso de la República es esencial para evaluar la calidad de la democracia en un país. Como una de las ramas del poder público, el Congreso tiene la tarea fundamental de representar los intereses de la ciudadanía y garantizar una toma de decisiones justa y equitativa. La aprobación del Congreso es un indicador clave de la confianza y legitimidad de las instituciones políticas en una sociedad. Si el Congreso es percibido como ineficiente, corrupto o poco representativo, se debilita la confianza de la ciudadanía en el sistema político y puede generar una apatía o incluso una oposición activa hacia las instituciones democráticas.</p>
-      <p>La relevancia de observar la aprobación al Congreso de la República radica en identificar las fortalezas y debilidades de la representatividad política y la eficacia del trabajo legislativo. Además, conocer la opinión de la ciudadanía sobre el desempeño del Congreso permite a los representantes evaluar su propio trabajo y ajustar sus estrategias para mejorar la toma de decisiones y garantizar una representación más efectiva.</p>
-    </article>
   </main>
 
   <footer class="pie">
@@ -126,11 +110,11 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Aprobación del Congreso</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=df69f00"></script>
-  <script src="../../comun/config.js?v=df69f00"></script>
-  <script src="../../comun/base.js?v=df69f00"></script>
-  <script src="../../comun/graficos.js?v=df69f00"></script>
-  <script src="../../comun/descarga.js?v=df69f00"></script>
-  <script src="tablero.js?v=df69f00"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=0fed1b7"></script>
+  <script src="../../comun/config.js?v=0fed1b7"></script>
+  <script src="../../comun/base.js?v=0fed1b7"></script>
+  <script src="../../comun/graficos.js?v=0fed1b7"></script>
+  <script src="../../comun/descarga.js?v=0fed1b7"></script>
+  <script src="tablero.js?v=0fed1b7"></script>
 </body>
 </html>

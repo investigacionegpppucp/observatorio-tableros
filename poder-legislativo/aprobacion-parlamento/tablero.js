@@ -36,7 +36,6 @@ const MES_MS = 30.4375 * 864e5;
 const pct0 = (v) => (v == null ? "—" : Obs.fmtN(v) + "%");
 const pct1 = (v) => (v == null ? "—" : Obs.fmtN(v, 1) + "%");
 const fecha = (r) => `${r.mesNombre} de ${r.anio}`;
-const fechaCorta = (r) => `${MESES_CORTOS[r.mes - 1]} ${r.anio}`;
 const media = (rs) => rs.reduce((s, r) => s + r.valor, 0) / rs.length;
 const unicos = (xs) => [...new Set(xs)];
 const sinTildes = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -146,7 +145,7 @@ function serie(S) {
   const faltan = [];
   for (let m = S[0].m; m <= S.at(-1).m; m++) if (!POR_MES.has(m)) faltan.push(m);
   document.getElementById("n-serie").textContent = faltan.length
-    ? `${faltan.length === 1 ? "Un mes de este rango no tiene" : `${faltan.length} meses de este rango no tienen`} dato de encuesta; la línea une el mes anterior con el siguiente. En el mapa de calor se ven como cuadros vacíos.`
+    ? `${faltan.length === 1 ? "Un mes de este rango no tiene" : `${faltan.length} meses de este rango no tienen`} dato de encuesta; la línea une el mes anterior con el siguiente.`
     : "";
   document.getElementById("d-serie").textContent = hayFiltro() && S.length < FILAS.length
     ? `Porcentaje de personas que aprueba el trabajo del Congreso, de ${fecha(S[0])} a ${fecha(S.at(-1))}. El eje vertical se ajusta a esta selección.`
@@ -154,17 +153,17 @@ function serie(S) {
   describir("g-serie", `Línea mensual de aprobación, de ${fecha(S[0])} a ${fecha(S.at(-1))}. Máximo ${pct0(mayor.valor)} en ${fecha(mayor)}; mínimo ${pct0(menor.valor)} en ${fecha(menor)}; último dato ${pct0(S.at(-1).valor)}.`);
 }
 
-/* ---------- Gobiernos: tabla que también filtra ---------- */
-function tablaGobiernos() {
+/* ---------- Períodos del Congreso: tabla que también filtra ---------- */
+function tablaCongresos() {
   const tope = 30; // la barra de la media llena su columna con 30%
-  document.getElementById("t-gobierno").innerHTML = `<table class="tabla"><thead><tr>
-      <th>Gobierno</th><th>Mayoría en el Congreso</th><th class="num">Aprobación media</th></tr></thead><tbody>${
-    GOBIERNOS.map((g) => {
-      const elegido = estado.gobierno === g.orden;
-      return `<tr data-gobierno="${g.orden}"${elegido ? ' class="elegida"' : ""}>
-        <td><button type="button" class="fila-boton" aria-pressed="${elegido}">${Obs.escapar(g.nombre)}</button><small>${fechaCorta(g.desde)} a ${fechaCorta(g.hasta)}</small></td>
-        <td>${g.mayorias.map((m) => `<span class="partido"><i style="background:${colorPartido(m)}"></i>${Obs.escapar(m)}</span>`).join("")}</td>
-        <td class="num media"><span class="barrita" style="width:${Math.round((g.media / tope) * 70)}px"></span>${pct1(g.media)}</td></tr>`;
+  document.getElementById("t-congresos").innerHTML = `<table class="tabla"><thead><tr>
+      <th>Período</th><th>Mayoría en el Congreso</th><th class="num">Aprobación media</th></tr></thead><tbody>${
+    CONGRESOS.map((c) => {
+      const elegido = estado.congreso === c.nombre;
+      return `<tr data-congreso="${Obs.escapar(c.nombre)}"${elegido ? ' class="elegida"' : ""}>
+        <td><button type="button" class="fila-boton" aria-pressed="${elegido}">${Obs.escapar(c.nombre)}</button></td>
+        <td>${c.mayorias.map((m) => `<span class="partido"><i style="background:${colorPartido(m)}"></i>${Obs.escapar(m)}</span>`).join("")}</td>
+        <td class="num media"><span class="barrita" style="width:${Math.round((c.media / tope) * 70)}px"></span>${pct1(c.media)}</td></tr>`;
     }).join("")}</tbody></table>`;
 }
 
@@ -176,19 +175,19 @@ function extremos(S) {
     filas.map((r) => `<tr><td>${r.mesNombre} de ${r.anio}</td><td class="num"><strong>${pct0(r.valor)}</strong></td><td>${Obs.escapar(r.presidente)}</td></tr>`).join("")}</tbody></table>`;
   const altos = orden.slice(0, k), bajos = orden.slice(-k).reverse();
   document.getElementById("t-extremos").innerHTML = k < 1 ? "" :
-    `<p class="subtabla">Mayor aprobación</p>${tabla(altos)}<p class="subtabla">Menor aprobación</p>${tabla(bajos)}`;
+    `<div class="extremos-dos"><div><p class="subtabla">Mayor aprobación</p>${tabla(altos)}</div><div><p class="subtabla">Menor aprobación</p>${tabla(bajos)}</div></div>`;
   document.getElementById("d-extremos").textContent = S.length < FILAS.length
     ? `Dentro de la selección: de ${fecha(S[0])} a ${fecha(S.at(-1))}.` : "En toda la serie: los cinco meses más altos y los cinco más bajos.";
 }
 
-/* ---------- Aprobación media por Congreso ---------- */
-function barrasCongresos() {
-  Obs.barras("g-congresos", CONGRESOS.map((c) => ({ clave: c.nombre, etiqueta: c.nombre, valor: c.media })), {
-    formato: pct1, nombre: "Aprobación media", seleccion: estado.congreso ? new Set([estado.congreso]) : null,
-    alClic: (c) => actualizar({ congreso: c === estado.congreso ? null : c }),
+/* ---------- Aprobación media por gobierno ---------- */
+function barrasGobiernos() {
+  Obs.barras("g-gobiernos", GOBIERNOS.map((g) => ({ clave: g.orden, etiqueta: g.nombre, valor: g.media })), {
+    formato: pct1, nombre: "Aprobación media", seleccion: estado.gobierno ? new Set([estado.gobierno]) : null,
+    alClic: (o) => actualizar({ gobierno: o === estado.gobierno ? null : o }),
   });
-  const orden = [...CONGRESOS].sort((a, b) => b.media - a.media);
-  describir("g-congresos", `Barras con la aprobación media de cada Congreso. Mayor: ${orden[0].nombre}, ${pct1(orden[0].media)}. Menor: ${orden.at(-1).nombre}, ${pct1(orden.at(-1).media)}.`);
+  const orden = [...GOBIERNOS].sort((a, b) => b.media - a.media);
+  describir("g-gobiernos", `Barras con la aprobación media de cada gobierno. Mayor: ${orden[0].nombre}, ${pct1(orden[0].media)}. Menor: ${orden.at(-1).nombre}, ${pct1(orden.at(-1).media)}.`);
 }
 
 /* ---------- Cómo empieza cada Congreso ---------- */
@@ -235,64 +234,16 @@ function estreno() {
   describir("g-estreno", `Líneas de aprobación en los primeros ${MESES_ESTRENO} meses de cada Congreso. ` + ESTRENOS.map((e) => `${e.congreso}: ${pct0(e.previo)} el mes anterior, ${pct0(e.pico)} como mejor mes de los tres primeros`).join("; ") + ".");
 }
 
-/* ---------- Mapa de calor: un cuadro por mes ---------- */
-function calor() {
-  const cel = movil();
-  const sub = estado.gobierno || estado.congreso;
-  const anios = ANIOS.filter((a) => sub || (a >= estado.desde && a <= estado.hasta));
-  const CLASES = [{ lt: 10, t: `Menos de 10%` }, { gte: 10, lt: 15, t: `10 a 14%` }, { gte: 15, lt: 20, t: `15 a 19%` }, { gte: 20, lt: 30, t: `20 a 29%` }, { gte: 30, t: `30% o más` }];
-  const celdas = [], vacias = [];
-  anios.forEach((a, ia) => {
-    for (let m = 1; m <= 12; m++) {
-      const clave = a * 12 + m - 1, r = POR_MES.get(clave), pos = cel ? [m - 1, ia] : [ia, m - 1];
-      if (r) celdas.push({ value: [...pos, r.valor], r, itemStyle: enSub(r) ? undefined : { opacity: 0.2 } });
-      else if (clave > FILAS[0].m && clave < FILAS.at(-1).m) vacias.push(pos);
-    }
-  });
-  const el = document.getElementById("g-calor");
-  const celdaAlto = cel ? 24 : 30;
-  el.style.height = `${(cel ? anios.length : 12) * celdaAlto + (cel ? 56 : 48)}px`;
-  const g = Obs.grafico("g-calor");
-  g.resize();
-  const izq = cel ? 50 : 56, der = 8;
-  const paso = Math.max(1, Math.ceil((anios.length * 46) / Math.max(el.clientWidth - izq - der, 1)));
-  const txt = { color: T.textoSuave, fontFamily: T.fuente, fontSize: 14 };
-  const ejeAnios = { type: "category", data: anios, axisTick: { show: false }, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { ...txt, interval: cel ? 0 : (i) => (anios.length - 1 - i) % paso === 0 }, ...(cel ? { inverse: true } : {}) };
-  const ejeMeses = { type: "category", data: MESES_CORTOS.map((m) => (cel ? m.charAt(0) : m).replace(/^./, (c) => c.toUpperCase())), axisTick: { show: false }, axisLine: { show: false }, splitLine: { show: false }, axisLabel: { ...txt, interval: 0 }, ...(cel ? {} : { inverse: true }) };
-  g.setOption({
-    animation: false, textStyle: { fontFamily: T.fuente },
-    tooltip: { ...Obs.tooltipBase(), formatter: (p) => p.data?.r ? `<strong>${p.data.r.mesNombre} de ${p.data.r.anio}</strong><br>Aprobación: <strong>${pct0(p.data.r.valor)}</strong><br>Gobierno: ${Obs.escapar(p.data.r.presidente)}` : "" },
-    grid: { left: izq, right: der, top: 8, bottom: cel ? 28 : 30 },
-    xAxis: cel ? ejeMeses : ejeAnios, yAxis: cel ? ejeAnios : ejeMeses,
-    visualMap: { show: false, type: "piecewise", dimension: 2, seriesIndex: 0, pieces: CLASES.map(({ t, ...r }, i) => ({ ...r, color: T.escala[i] })) },
-    series: [
-      { type: "heatmap", data: celdas, itemStyle: { borderColor: "#fff", borderWidth: 2, borderRadius: 2 }, emphasis: { itemStyle: { borderColor: T.navy, borderWidth: 2 } } },
-      { type: "custom", data: vacias, silent: true, tooltip: { show: false }, renderItem: (params, api) => {
-        const [x, y] = api.coord([api.value(0), api.value(1)]), [w, h] = api.size([1, 1]);
-        return { type: "rect", shape: { x: x - w / 2 + 3, y: y - h / 2 + 3, width: w - 6, height: h - 6, r: 2 }, style: { fill: "#fff", stroke: "#b5bfcc", lineWidth: 1, lineDash: [4, 3] } };
-      } },
-    ],
-  }, true);
-  document.getElementById("ley-calor").innerHTML = CLASES.map((k, i) => `<span><i style="background:${T.escala[i]}"></i>${k.t}</span>`).join("") +
-    (vacias.length ? `<span><i class="s"></i>Sin encuesta</span>` : "");
-  document.getElementById("d-calor").textContent = sub
-    ? "Un cuadro por mes, según el porcentaje que aprueba. Se ven más claros los meses fuera de la selección."
-    : "Un cuadro por mes, según el porcentaje que aprueba.";
-  const meses = celdas.filter((c) => !c.itemStyle);
-  describir("g-calor", `Mapa de calor con ${meses.length} meses con dato, de ${anios[0]} a ${anios.at(-1)}. ${meses.filter((c) => c.value[2] < 10).length} meses con menos de 10% de aprobación.`);
-}
-
 /* ---------- Estado, controles y arranque ---------- */
 function render() {
   sincronizar();
   const S = FILAS.filter(enSub);
   resumen(S);
   serie(S);
-  tablaGobiernos();
+  tablaCongresos();
   extremos(S);
-  barrasCongresos();
+  barrasGobiernos();
   estreno();
-  calor();
   Obs.escribirURL({
     gobierno: estado.gobierno ? GOBIERNOS.find((g) => g.orden === estado.gobierno).slug : null, congreso: estado.congreso,
     desde: periodoCompleto() || estado.gobierno || estado.congreso ? null : estado.desde,
@@ -334,7 +285,7 @@ Obs.iniciar(TABLERO, async () => {
   GOBIERNOS = tramos(FILAS, (r) => r.orden).map((t) => ({ orden: t.k, nombre: t.r0.presidente, slug: sinTildes(apellido(t.r0.presidente)), desde: t.filas[0], hasta: t.filas.at(-1),
     media: media(t.filas), mayorias: unicos(t.filas.map((r) => r.mayoria)) }));
   INICIOS_CONGRESO = FILAS.filter((r, i) => i && r.congreso !== FILAS[i - 1].congreso).map((r) => r.t);
-  CONGRESOS = unicos(FILAS.map((r) => r.congreso)).map((nombre) => { const rs = FILAS.filter((r) => r.congreso === nombre); return { nombre, media: media(rs), n: rs.length }; });
+  CONGRESOS = unicos(FILAS.map((r) => r.congreso)).map((nombre) => { const rs = FILAS.filter((r) => r.congreso === nombre); return { nombre, media: media(rs), n: rs.length, mayorias: unicos(rs.map((r) => r.mayoria)) }; });
 
   // Cada vez que cambia el Congreso: aprobación del mes anterior, mejor mes de los tres primeros y doce meses después
   ESTRENOS = [];
@@ -358,9 +309,9 @@ Obs.iniciar(TABLERO, async () => {
   $("f-desde").onchange = (e) => { const d = +e.target.value; actualizar({ desde: d, hasta: Math.max(d, estado.hasta) }); };
   $("f-hasta").onchange = (e) => { const h = +e.target.value; actualizar({ hasta: h, desde: Math.min(h, estado.desde) }); };
   $("f-limpiar").onclick = () => actualizar({ gobierno: null });
-  $("t-gobierno").onclick = (e) => {
-    const orden = e.target.closest("tr[data-gobierno]")?.dataset.gobierno;
-    if (orden) actualizar({ gobierno: orden === estado.gobierno ? null : orden });
+  $("t-congresos").onclick = (e) => {
+    const nombre = e.target.closest("tr[data-congreso]")?.dataset.congreso;
+    if (nombre) actualizar({ congreso: nombre === estado.congreso ? null : nombre });
   };
 
   Object.assign(estado, { desde: ANIOS[0], hasta: ANIOS.at(-1) });
