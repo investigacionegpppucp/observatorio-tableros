@@ -8,17 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../comun/lib/leaflet-1.9.4.css?v=55c0aec">
-  <link rel="stylesheet" href="../comun/tema.css?v=55c0aec">
-  <link rel="stylesheet" href="../comun/estilos.css?v=55c0aec">
-  <link rel="stylesheet" href="estilos.css?v=55c0aec">
+  <link rel="stylesheet" href="../comun/lib/leaflet-1.9.4.css?v=749723d">
+  <link rel="stylesheet" href="../comun/tema.css?v=749723d">
+  <link rel="stylesheet" href="../comun/estilos.css?v=749723d">
+  <link rel="stylesheet" href="estilos.css?v=749723d">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Principales problemas del país</h1>
-        <p class="subtitulo">Qué problemas mencionan los peruanos como los más importantes del país, de 2013 a 2025, en el país y en cada región.</p>
+        <p class="subtitulo" id="subtitulo"></p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -27,63 +27,103 @@
     </div>
   </header>
 
-  <section class="filtros" id="filtros" aria-label="Filtros">
-    <div class="filtro"><label for="f-problema">Problema</label><select id="f-problema"></select></div>
-    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
-    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
-  </section>
+  <!-- Filtros: los controles comunes y los de cada módulo se agregan desde tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-general" aria-controls="m-general" data-modulo="general">General</button>
+    <button role="tab" id="tab-evolucion" aria-controls="m-evolucion" data-modulo="evolucion">¿Cómo han cambiado?</button>
+    <button role="tab" id="tab-territorio" aria-controls="m-territorio" data-modulo="territorio">¿Dónde se mencionan más?</button>
+  </nav>
 
   <main>
-    <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
-    <div class="kpis">
-      <div class="kpi" id="k-primero"></div>
-      <div class="kpi" id="k-segundo"></div>
-      <div class="kpi" id="k-elegido"></div>
-    </div>
-
-    <article class="tarjeta">
-      <header><h3 id="t-ranking">Principales problemas del país</h3><p id="d-ranking"></p></header>
-      <div class="grafico" id="g-ranking"></div>
-      <p class="pista">Haz clic en un problema para verlo en todo el tablero.</p>
-    </article>
-
-    <div class="grilla">
-      <article class="tarjeta">
-        <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
-        <div class="ley" id="ley-evol"></div>
-        <div class="grafico" id="g-evol"></div>
-        <p class="pista">Haz clic en un año para elegirlo.</p>
-      </article>
-      <article class="tarjeta">
-        <header><h3 id="t-top"></h3><p id="d-top"></p></header>
-        <div class="ley" id="ley-top"></div>
-        <div class="grafico" id="g-top"></div>
-      </article>
-    </div>
-
-    <article class="tarjeta">
-      <header><h3 id="t-mapa"></h3><p>Porcentaje de personas que mencionan el problema. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
-      <div class="mapa-y-tabla">
-        <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
-        <div><div class="grafico" id="g-regiones"></div></div>
+    <!-- ================= GENERAL ================= -->
+    <section class="modulo" id="m-general" role="tabpanel" aria-labelledby="tab-general">
+      <p class="resumen" id="r-general" aria-live="polite">Cargando datos…</p>
+      <div class="kpis">
+        <div class="kpi" id="k-general-1"></div>
+        <div class="kpi" id="k-general-2"></div>
+        <div class="kpi" id="k-general-3"></div>
       </div>
-    </article>
+      <article class="tarjeta">
+        <header><h3>Problemas más mencionados</h3><p id="d-general-ranking"></p></header>
+        <div class="grafico" id="g-general-ranking"></div>
+        <p class="pista">Haz clic en un problema para ver cómo ha cambiado.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3>Evolución de los cinco problemas principales</h3><p id="d-general-evol"></p></header>
+        <div class="leyenda" id="ley-general-evol"></div>
+        <div class="grafico" id="g-general-evol"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>Problema principal en cada región</h3>
+          <p>El problema más mencionado de cada región en el período. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-general"></div><div class="leyenda-mapa" id="ley-general"></div></div>
+          <div class="tabla-caja" id="t-general-regiones"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= EVOLUCIÓN ================= -->
+    <section class="modulo" id="m-evolucion" role="tabpanel" aria-labelledby="tab-evolucion" hidden>
+      <p class="resumen" id="r-evolucion"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-evolucion-1"></div>
+        <div class="kpi" id="k-evolucion-2"></div>
+        <div class="kpi" id="k-evolucion-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3>Evolución de los problemas elegidos</h3><p id="d-evolucion-evol"></p></header>
+        <div class="leyenda" id="ley-evolucion-evol"></div>
+        <div class="grafico" id="g-evolucion-evol"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-evolucion-detalle-titulo">Cambio en el período</h3><p id="d-evolucion-detalle"></p></header>
+        <div class="tabla-caja" id="t-evolucion-detalle"></div>
+      </article>
+    </section>
+
+    <!-- ================= TERRITORIO ================= -->
+    <section class="modulo" id="m-territorio" role="tabpanel" aria-labelledby="tab-territorio" hidden>
+      <p class="resumen" id="r-territorio"></p>
+      <div class="kpis">
+        <div class="kpi" id="k-territorio-1"></div>
+        <div class="kpi" id="k-territorio-2"></div>
+        <div class="kpi" id="k-territorio-3"></div>
+      </div>
+      <article class="tarjeta">
+        <header><h3 id="t-territorio-evol"></h3><p id="d-territorio-evol"></p></header>
+        <div class="leyenda" id="ley-territorio-evol"></div>
+        <div class="grafico" id="g-territorio-evol"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-territorio-mapa"></h3>
+          <p>Porcentaje de personas que mencionan el problema, en promedio en el período. Haz clic en una región para elegirla en todo el tablero.</p></header>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-territorio"></div><div class="leyenda-mapa" id="ley-territorio"></div></div>
+          <div class="tabla-caja" id="t-territorio-regiones"></div>
+        </div>
+      </article>
+    </section>
   </main>
 
   <footer class="pie">
     <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Hogares (ENAHO), 2013-2025.</p>
     <p><strong>Notas:</strong> Cada persona puede mencionar más de un problema, por eso los porcentajes de un año suman más de 100%. Los porcentajes se calculan con los factores de expansión de la encuesta.
-      Los valores del Perú son los del total nacional, ponderados por población, no un promedio de las regiones. Datos actualizados al <span id="actualizado"></span>.</p>
+      Los valores del Perú son los del total nacional, ponderados por población, no un promedio de las regiones. Cuando el período abarca varios años, se promedian los porcentajes de cada año.
+      Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Principales problemas del país</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../comun/lib/echarts-5.6.0.min.js?v=55c0aec"></script>
-  <script src="../comun/lib/leaflet-1.9.4.js?v=55c0aec"></script>
-  <script src="../comun/config.js?v=55c0aec"></script>
-  <script src="../comun/base.js?v=55c0aec"></script>
-  <script src="../comun/graficos.js?v=55c0aec"></script>
-  <script src="../comun/mapa.js?v=55c0aec"></script>
-  <script src="../comun/descarga.js?v=55c0aec"></script>
-  <script src="tablero.js?v=55c0aec"></script>
+  <script src="../comun/lib/echarts-5.6.0.min.js?v=749723d"></script>
+  <script src="../comun/lib/leaflet-1.9.4.js?v=749723d"></script>
+  <script src="../comun/config.js?v=749723d"></script>
+  <script src="../comun/base.js?v=749723d"></script>
+  <script src="../comun/graficos.js?v=749723d"></script>
+  <script src="../comun/mapa.js?v=749723d"></script>
+  <script src="../comun/filtros.js?v=749723d"></script>
+  <script src="../comun/descarga.js?v=749723d"></script>
+  <script src="tablero.js?v=749723d"></script>
 </body>
 </html>

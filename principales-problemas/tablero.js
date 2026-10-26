@@ -11,263 +11,406 @@
 
    Los valores del Perú son los de la fila Nacional (ponderados por
    población); el informe de Looker mostraba el promedio simple de las
-   regiones, que da cifras distintas.
+   regiones, que da cifras distintas. Cuando el período abarca varios
+   años, se promedian los porcentajes de cada año.
 
    La región se identifica por su nombre (sin tildes, en mayúsculas),
    como en publica/mapas/peru_regiones.geojson. No se usa
    region_ubicacion: en 2024 San Martín viene con otro código.
 
-   Patrón: un objeto `estado`, una función pura `filtrar()` y una sola
-   función `render()`.
+   Tres módulos (pestañas): General, ¿Cómo han cambiado? y ¿Dónde se
+   mencionan más?. Patrón: un objeto `estado`, una función pura
+   `filtrar()` y una sola función `render()`.
 
    Parámetros de URL:
-     ?problema=Corrupción&region=CUSCO&anio=2024
-     &embed=1   oculta título y pie (para un iframe)
+     ?modulo=general|evolucion|territorio
+     &region=CUSCO            región elegida (código en mayúsculas)
+     &desde=2018&hasta=2025   período
+     &problemas=Corrupción|Delincuencia   problemas del módulo de evolución
+     &problema=Pobreza        problema del módulo de territorio
+     &embed=1                 oculta título y pie (para un iframe)
    ========================================================= */
 
 const TABLERO = "principales-problemas";
+const MODULOS = ["general", "evolucion", "territorio"];
 const ARCHIVOS = [{ clave: "principales_problemas_base", etiqueta: "Principales problemas del país por región y año (2013-2025)" }];
 const NACIONAL = "NACIONAL";
 const PROBLEMA_INICIAL = "Corrupción";
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const estado = { problema: PROBLEMA_INICIAL, region: NACIONAL, anio: null };
+const estado = {
+  modulo: "general",
+  ambito: "nacional",     // "nacional" o "regional" (muestra la lista de regiones)
+  region: NACIONAL,
+  desde: null,
+  hasta: null,
+  problemas: new Set(),   // módulo de evolución
+  problema: PROBLEMA_INICIAL, // módulo de territorio
+};
 
-let FILAS = [], PROBLEMAS = [], REGIONES = [], ANIOS = [], C;
+let FILAS = [], PROBLEMAS = [], REGIONES = [], ANIOS = [], C, controles, multi, multiGeneral, GEO;
 const NOMBRE_REGION = new Map([[NACIONAL, "Perú"]]);
-const INDICE = new Map(); // "problema|región|año" -> fila
-const COLOR_PROBLEMA = new Map(); // los cinco problemas más mencionados en el Perú; el resto va en gris
+const INDICE = new Map();   // "problema|región|año" -> proporción
+const FIJO = new Map();     // los cinco problemas más mencionados en el Perú -> posición en la paleta
+const mapas = {};
 
+/* ---------------------------------------------------------
+   Utilidades
+   --------------------------------------------------------- */
 const pct = (v) => (v == null ? "—" : `${Obs.fmtN(v * 100, 1)}%`);
+const signo = (d) => `${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)}`;
 const pts = (v) => `${Obs.fmtN(Math.abs(v * 100), 1)} ${Math.abs(Math.round(v * 1000)) === 10 ? "punto" : "puntos"}`;
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
-const fila = (p, reg, anio) => INDICE.get(`${p}|${reg}|${anio}`) ?? null;
-const enAmbito = (reg) => (reg === NACIONAL ? "en el Perú" : `en ${NOMBRE_REGION.get(reg)}`);
 // Códigos del mapa: mayúsculas y sin tildes
 const codigo = (nombre) => nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
-const colorProblema = (p) => COLOR_PROBLEMA.get(p) ?? C.gris;
-// Los problemas sin color fijo van en gris; si hay más de uno, se distinguen por el trazo (guiones, puntos...)
-const TRAZOS = ["dashed", "dotted", "dashed"];
-const trazoDe = (nombres) => new Map(nombres.filter((p) => !COLOR_PROBLEMA.has(p)).map((p, i) => [p, TRAZOS[i % TRAZOS.length]]));
+const nombreRegion = (cod) => NOMBRE_REGION.get(cod) ?? cod;
+const enAmbito = (cod) => (cod === NACIONAL ? "A nivel nacional" : `En ${nombreRegion(cod)}`);
+const enLugar = (cod) => (cod === NACIONAL ? "en el Perú" : `en ${nombreRegion(cod)}`);
+const unAnio = () => estado.desde === estado.hasta;
+const textoPeriodo = () => (unAnio() ? `en ${estado.desde}` : `entre ${estado.desde} y ${estado.hasta}`);
+const enPromedio = () => (unAnio() ? "" : " en promedio");
+const aniosPeriodo = () => ANIOS.filter((a) => a >= estado.desde && a <= estado.hasta);
+const valor = (p, reg, a) => INDICE.get(`${p}|${reg}|${a}`) ?? null;
+// Promedio de los años del período (con el dato de cada año)
+const promedio = (p, reg) => {
+  const v = aniosPeriodo().map((a) => valor(p, reg, a)).filter((x) => x != null);
+  return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
+};
+// Problemas ordenados del más al menos mencionado en el ámbito y período
+const ranking = (reg, lista = PROBLEMAS) => lista.map((p) => ({ problema: p, v: promedio(p, reg) })).filter((x) => x.v != null).sort((a, b) => b.v - a.v);
+const mayor = (filas, campo = "v") => filas.reduce((a, f) => (a == null || f[campo] > a[campo] ? f : a), null);
+const menor = (filas, campo = "v") => filas.reduce((a, f) => (a == null || f[campo] < a[campo] ? f : a), null);
 
-/* Cada gráfico usa el subconjunto que ignora su propio filtro */
-function filtrar(filas, e) {
-  const ranking = filas.filter((f) => f.region === e.region && f.anio === e.anio).sort((a, b) => b.si - a.si);
-  return {
-    ranking, // todos los problemas, del más al menos mencionado
-    serie: filas.filter((f) => f.problema === e.problema && f.region === e.region), // todos los años
-    nacional: filas.filter((f) => f.problema === e.problema && f.region === NACIONAL),
-    regiones: filas.filter((f) => f.problema === e.problema && f.anio === e.anio && f.region !== NACIONAL), // todas las regiones
-  };
+/* Colores fijos: los cinco problemas más mencionados en el Perú tienen color propio; si se muestran
+   otros, toman los colores libres en orden. Así el color sigue al problema en lo posible. */
+function coloresProblemas(lista) {
+  const paleta = C.categorias;
+  const usados = new Set(lista.filter((p) => FIJO.has(p)).map((p) => FIJO.get(p)));
+  const libres = paleta.map((_, i) => i).filter((i) => !usados.has(i));
+  const m = new Map();
+  for (const p of lista) m.set(p, FIJO.has(p) ? paleta[FIJO.get(p)] : libres.length ? paleta[libres.shift()] : C.otros);
+  return m;
 }
 
-/* ---------- Resumen y cifras clave ---------- */
-function cifras(s) {
-  const f = fila(estado.problema, estado.region, estado.anio);
-  const el = document.getElementById("resumen");
-  const [uno, dos] = s.ranking;
-  const ambito = `${NOMBRE_REGION.get(estado.region)}, ${estado.anio}`;
-  if (uno) Obs.kpi("k-primero", { etiqueta: "Problema principal", texto: uno.problema, pie: `${pct(uno.si)}, ${Obs.escapar(ambito)}` });
-  else Obs.kpi("k-primero", { etiqueta: "Problema principal", valor: "—" });
-  if (dos) Obs.kpi("k-segundo", { etiqueta: "Segundo problema", texto: dos.problema, pie: `${pct(dos.si)}, ${Obs.escapar(ambito)}` });
-  else Obs.kpi("k-segundo", { etiqueta: "Segundo problema", valor: "—" });
-  if (!f) {
-    el.textContent = `No hay datos de «${estado.problema}» ${enAmbito(estado.region)} en ${estado.anio}. Elige otro año.`;
-    Obs.kpi("k-elegido", { etiqueta: estado.problema, valor: "—" });
-    return;
-  }
-  const primero = s.serie[0];
-  el.innerHTML = `En ${estado.anio}, el <strong>${pct(f.si)}</strong> de las personas ${Obs.escapar(enAmbito(estado.region))} señaló ` +
-    `<strong>«${Obs.escapar(estado.problema)}»</strong> entre los principales problemas del país` +
-    (primero && primero.anio !== estado.anio ? `; en ${primero.anio} era ${pct(primero.si)}.` : ".");
-  const puesto = s.ranking.findIndex((x) => x.problema === estado.problema) + 1;
-  const d = primero && primero.anio !== estado.anio ? f.si - primero.si : null;
-  Obs.kpi("k-elegido", { etiqueta: estado.problema, valor: pct(f.si),
-    pie: `${puesto}.º de ${s.ranking.length} problemas` + (d == null ? "" : `. ${Math.abs(d) < 0.0005 ? "Sin cambio" : `${pts(d)} ${d > 0 ? "más" : "menos"}`} que en ${primero.anio}`) });
-}
+/* ---------------------------------------------------------
+   Piezas compartidas
+   --------------------------------------------------------- */
+const leyendaLineas = (id, series) => {
+  document.getElementById(id).innerHTML = series.map((s) =>
+    `<span><i class="l${s.referencia ? " gris" : ""}" style="border-color:${s.color}"></i>${Obs.escapar(s.nombre)}</span>`).join("");
+};
 
-/* ---------- Ranking de problemas ---------- */
-function ranking(s) {
-  Obs.barras("g-ranking", s.ranking.map((f) => ({ clave: f.problema, etiqueta: f.problema, valor: f.si })), {
-    formato: pct, nombre: NOMBRE_REGION.get(estado.region), seleccion: new Set([estado.problema]), alClic: (p) => actualizar({ problema: p }),
-  });
-  // en pantallas angostas los nombres largos ocupan hasta cuatro líneas: más alto por fila
-  const caja = document.getElementById("g-ranking");
-  if (caja.clientWidth < 480) { caja.style.height = `${s.ranking.length * 56 + 16}px`; Obs.grafico("g-ranking").resize(); }
-  document.getElementById("d-ranking").textContent =
-    `Porcentaje de personas que mencionan cada problema ${enAmbito(estado.region)}, ${estado.anio}. Cada persona puede mencionar más de uno.`;
-  const u = s.ranking[0], d = s.ranking[1];
-  document.getElementById("g-ranking").setAttribute("aria-label", u && d ? `Principales problemas ${enAmbito(estado.region)} en ${estado.anio}. El primero es ${u.problema}, con ${pct(u.si)}; el segundo, ${d.problema}, con ${pct(d.si)}.` : "Principales problemas");
-}
-
-/* Línea de años de un tablero con el eje de porcentajes */
-function ejes(anios, tope) {
-  const ancho = document.getElementById("g-evol").clientWidth;
-  return {
+// Líneas por año con eje de porcentajes. series: [{ nombre, color, valores (por año del período), grueso, referencia }]
+function lineas(id, anios, series, aria) {
+  const todos = series.flatMap((s) => s.valores).filter((v) => v != null);
+  if (anios.length < 2) return Obs.vacio(id, "Elige un período de dos o más años para ver la evolución");
+  if (!todos.length) return Obs.vacio(id);
+  const tope = Math.min(1, Math.ceil((Math.max(...todos) + 0.05) * 10) / 10);
+  const ancho = document.getElementById(id).clientWidth;
+  const pares = (vals) => vals.map((v, i) => [String(anios[i]), v]).filter((p) => p[1] != null); // sin nulos iniciales
+  const g = Obs.grafico(id);
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis",
+      formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + [...ps].sort((a, b) => b.value[1] - a.value[1])
+        .map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${pct(p.value[1])}</strong>`).join("") },
     grid: { left: 52, right: 24, top: 30, bottom: 30 },
     xAxis: { type: "category", data: anios.map(String), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: (i) => (anios.length - 1 - i) % (ancho < 420 ? 3 : 2) === 0 }) },
     yAxis: { type: "value", min: 0, max: tope, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (v) => `${Math.round(v * 100)}%` }) },
-  };
-}
-const redondeoTope = (vals) => Math.min(1, Math.ceil((Math.max(...vals.filter((v) => v != null)) + 0.05) * 10) / 10);
-// los nulos iniciales se quitan: si no, el rótulo final de ECharts arranca en NaN
-const pares = (vals, anios) => vals.map((v, i) => [String(anios[i]), v]).filter((p) => p[1] != null);
-const clicEnAnio = (g, anios) => {
-  g.off("click");
-  g.getZr().off("click");
-  g.getZr().on("click", (e) => { // clic en cualquier punto de la columna de un año
-    if (!g.containPixel({ gridIndex: 0 }, [e.offsetX, e.offsetY])) return;
-    const i = Math.round(g.convertFromPixel({ xAxisIndex: 0 }, e.offsetX));
-    if (anios[i] && anios[i] !== estado.anio) actualizar({ anio: anios[i] });
-  });
-};
-
-/* ---------- Evolución del problema elegido ----------
-   La línea del ámbito elegido; con una región, el Perú en gris como referencia. */
-function evolucion(s) {
-  const id = "g-evol", anios = ANIOS;
-  const conRef = estado.region !== NACIONAL;
-  const valores = (filas) => anios.map((a) => filas.find((f) => f.anio === a)?.si ?? null);
-  const principal = valores(s.serie), ref = conRef ? valores(s.nacional) : [];
-  document.getElementById("t-evol").textContent = `${estado.problema}, ${anios[0]}-${anios.at(-1)}`;
-  document.getElementById("d-evol").textContent = `Porcentaje de personas que lo mencionan ${enAmbito(estado.region)}.`;
-  document.getElementById("ley-evol").innerHTML = conRef
-    ? `<span><i class="l" style="border-color:${C.unica}"></i>${Obs.escapar(NOMBRE_REGION.get(estado.region))}</span><span><i class="l" style="border-color:${C.gris}"></i>Perú</span>` : "";
-  if (!principal.some((v) => v != null)) return Obs.vacio(id);
-  const k = anios.indexOf(estado.anio);
-  const g = Obs.grafico(id);
-  g.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis",
-      formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${pct(p.value[1])}</strong>`).join("") },
-    ...ejes(anios, redondeoTope(principal.concat(ref))),
-    series: [
-      ...(conRef ? [{ name: "Perú", type: "line", data: pares(ref, anios), connectNulls: true, symbol: "circle", symbolSize: 6, z: 1,
-        lineStyle: { width: 2, color: C.gris }, itemStyle: { color: C.gris }, emphasis: { disabled: true } }] : []),
-      { name: NOMBRE_REGION.get(estado.region), type: "line", data: pares(principal, anios), connectNulls: true, symbol: "circle", symbolSize: 8, z: 3,
-        lineStyle: { width: 2, color: C.unica }, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 2 },
-        markPoint: principal[k] != null ? { symbol: "circle", symbolSize: 14, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 3 },
-          label: { show: true, position: "top", distance: 8, formatter: () => pct(principal[k]), ...txt({ color: C.texto, fontWeight: 700 }) },
-          data: [{ coord: [String(estado.anio), principal[k]] }] } : undefined },
-    ],
+    series: series.map((s) => ({
+      name: s.nombre, type: "line", data: pares(s.valores), connectNulls: true, symbol: "circle", symbolSize: s.referencia ? 6 : 8, z: s.referencia ? 1 : 3,
+      lineStyle: { width: s.grueso ? 3.5 : 2, color: s.color }, itemStyle: { color: s.color, borderColor: "#fff", borderWidth: 1.5 },
+      emphasis: s.referencia ? { disabled: true } : { focus: "series" },
+    })),
   }, true);
-  clicEnAnio(g, anios);
-  document.getElementById(id).setAttribute("aria-label", `${estado.problema} ${enAmbito(estado.region)}: ` +
-    anios.map((a, i) => (principal[i] == null ? null : `${a}, ${pct(principal[i])}`)).filter(Boolean).join("; ") + ".");
+  document.getElementById(id).setAttribute("aria-label", aria);
 }
 
-/* ---------- Los cinco problemas principales del año elegido, a lo largo del tiempo ----------
-   El color sigue al problema: los cinco más mencionados en el Perú tienen color fijo; si en una región
-   aparece otro, va en gris y se distingue por su nombre en la leyenda y en el globo. */
-function principales(s) {
-  const id = "g-top", anios = ANIOS;
-  const top = s.ranking.slice(0, 5).map((f) => f.problema);
-  const series = top.map((p) => ({ nombre: p, valores: anios.map((a) => fila(p, estado.region, a)?.si ?? null) }));
-  document.getElementById("t-top").textContent = `Los cinco problemas principales de ${estado.anio}, a lo largo del tiempo`;
-  document.getElementById("d-top").textContent = `Porcentaje de personas que mencionan cada uno ${enAmbito(estado.region)}.`;
-  const trazo = trazoDe(top);
-  document.getElementById("ley-top").innerHTML = series.map((x) => `<span><i class="l" style="border-color:${colorProblema(x.nombre)};border-top-style:${trazo.get(x.nombre) ?? "solid"}"></i>${Obs.escapar(x.nombre)}</span>`).join("");
-  if (!series.length) return Obs.vacio(id);
-  const g = Obs.grafico(id);
-  g.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis",
-      formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + [...ps].filter((p) => p.value[1] != null).sort((a, b) => b.value[1] - a.value[1])
-        .map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${pct(p.value[1])}</strong>`).join("") },
-    ...ejes(anios, redondeoTope(series.flatMap((x) => x.valores))),
-    series: series.map((x) => {
-      const elegido = x.nombre === estado.problema, color = colorProblema(x.nombre);
-      return { name: x.nombre, type: "line", data: pares(x.valores, anios), connectNulls: true, symbol: "circle", symbolSize: elegido ? 8 : 6, z: elegido ? 3 : 2,
-        lineStyle: { width: elegido ? 3.5 : 2, color, type: trazo.get(x.nombre) ?? "solid" }, itemStyle: { color, borderColor: "#fff", borderWidth: 1.5 }, emphasis: { focus: "series" } };
-    }),
-  }, true);
-  clicEnAnio(g, anios);
-  document.getElementById(id).setAttribute("aria-label", `Evolución de los cinco problemas principales de ${estado.anio} ${enAmbito(estado.region)}: ` +
-    series.map((x) => `${x.nombre}, ${pct(x.valores.at(-1))} en ${anios.at(-1)}`).join("; ") + ".");
-}
-
-/* ---------- Mapa y ranking regional ---------- */
-let mapa;
-function regiones(s) {
-  document.getElementById("t-mapa").textContent = `${estado.problema}, por región, ${estado.anio}`;
-  const valores = new Map(s.regiones.map((f) => [f.region, f.si * 100])); // en puntos porcentuales para los cortes
-  if (!valores.size) { mapa.pintar({ valores, color: () => C.linea, texto: () => "", elegida: null }); document.getElementById("ley-mapa").innerHTML = ""; return Obs.vacio("g-regiones"); }
+// Mapa coroplético de un porcentaje + tabla de regiones (ignora la región elegida; la resalta)
+function pintarMapa(m, filas, nombreProblema) {
+  const valores = new Map(filas.map((f) => [f.region, f.v * 100])); // en puntos porcentuales para los cortes
+  if (!mapas[m]) mapas[m] = new Obs.Mapa(`mapa-${m}`, GEO, { alClic: elegirRegion, nombre: nombreRegion });
   const cortes = Obs.cortesCuantiles([...valores.values()]);
-  mapa.pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => pct(v / 100), elegida: estado.region === NACIONAL ? null : estado.region });
-  Obs.leyendaTramos("ley-mapa", cortes, C.escala, (v) => `${Obs.fmtN(v, 0)}%`);
-  Obs.barras("g-regiones", s.regiones.map((f) => ({ clave: f.region, etiqueta: NOMBRE_REGION.get(f.region), valor: f.si })), {
-    formato: pct, nombre: estado.problema, seleccion: estado.region === NACIONAL ? null : new Set([estado.region]), alClic: elegirRegion,
-  });
+  mapas[m].pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => pct(v / 100), elegida: estado.region });
+  Obs.leyendaTramos(`ley-${m}`, cortes, C.escala, (v) => `${Obs.fmtN(v, 0)}%`);
+  Obs.tabla(`t-${m}-regiones`,
+    [{ titulo: "#", campo: "pos" }, { titulo: "Región", campo: "nombre" }, { titulo: "Porcentaje", campo: "pct", num: true }],
+    filas.map((f, i) => ({ pos: String(i + 1), region: f.region, nombre: nombreRegion(f.region), pct: pct(f.v) })),
+    { alClic: elegirRegion, elegida: estado.region });
+  document.getElementById(`t-${m}-regiones`).setAttribute("aria-label", `${nombreProblema} por región`);
 }
 
-/* ---------- Controles ---------- */
+/* ---------------------------------------------------------
+   Módulo General
+   --------------------------------------------------------- */
+function moduloGeneral() {
+  const rk = ranking(estado.region);
+  const [uno, dos] = rk;
+  const el = document.getElementById("r-general");
+  if (!uno) {
+    el.textContent = `${enAmbito(estado.region)} no hay datos ${textoPeriodo()}.`;
+    ["k-general-1", "k-general-2", "k-general-3"].forEach((id) => Obs.kpi(id, { etiqueta: "", valor: "—" }));
+    return;
+  }
+  Obs.kpi("k-general-1", { etiqueta: "Problema principal", texto: uno.problema, pie: `${pct(uno.v)}${enPromedio()}` });
+  Obs.kpi("k-general-2", { etiqueta: "Segundo problema", texto: dos.problema, pie: `${pct(dos.v)}${enPromedio()}` });
+  if (unAnio()) Obs.kpi("k-general-3", { etiqueta: "Diferencia entre los dos primeros", valor: pts(uno.v - dos.v), pie: `${uno.problema} y ${dos.problema}` });
+  else {
+    const final = mayor(PROBLEMAS.map((p) => ({ problema: p, v: valor(p, estado.region, estado.hasta) })).filter((x) => x.v != null));
+    Obs.kpi("k-general-3", { etiqueta: `Problema principal en ${estado.hasta}`, texto: final?.problema ?? "—", pie: final ? pct(final.v) : "" });
+  }
+  el.innerHTML = `${enAmbito(estado.region)}, ${textoPeriodo()}, el problema más mencionado fue <strong>${Obs.escapar(uno.problema)}</strong>, con el ${pct(uno.v)} de las personas${enPromedio()}` +
+    (dos ? `, seguido de <strong>${Obs.escapar(dos.problema)}</strong> (${pct(dos.v)}).` : ".");
+
+  // Ranking: el clic lleva a la evolución de ese problema
+  Obs.barras("g-general-ranking", rk.map((x) => ({ clave: x.problema, etiqueta: x.problema, valor: x.v })), {
+    formato: pct, nombre: nombreRegion(estado.region), alClic: (p) => actualizar({ modulo: "evolucion", problemas: new Set([p]) }),
+  });
+  const caja = document.getElementById("g-general-ranking");
+  if (caja.clientWidth < 480) { caja.style.height = `${rk.length * 56 + 16}px`; Obs.grafico("g-general-ranking").resize(); } // nombres largos en pantallas angostas
+  document.getElementById("d-general-ranking").textContent =
+    `Porcentaje de personas que mencionan cada problema ${enLugar(estado.region)}${unAnio() ? ` en ${estado.desde}` : `, en promedio ${textoPeriodo()}`}. Cada persona puede mencionar más de uno.`;
+
+  // Evolución de los cinco principales del período
+  const anios = aniosPeriodo(), top = rk.slice(0, 5).map((x) => x.problema), colores = coloresProblemas(top);
+  const series = top.map((p) => ({ nombre: p, color: colores.get(p), valores: anios.map((a) => valor(p, estado.region, a)) }));
+  leyendaLineas("ley-general-evol", series);
+  document.getElementById("d-general-evol").textContent = `Porcentaje de personas que mencionan cada uno ${enLugar(estado.region)}, ${textoPeriodo()}.`;
+  lineas("g-general-evol", anios, series, `Evolución de los cinco problemas principales ${enLugar(estado.region)}: ` + series.map((s) => `${s.nombre}, ${pct(s.valores.at(-1))} en ${anios.at(-1)}`).join("; ") + ".");
+
+  // Mapa categórico: el problema principal de cada región
+  const topRegion = REGIONES.map((r) => ({ region: r.region, ...(ranking(r.region)[0] ?? { problema: null, v: null }) })).filter((x) => x.problema);
+  const presentes = [...new Set(topRegion.map((x) => x.problema))].sort((a, b) => topRegion.filter((x) => x.problema === b).length - topRegion.filter((x) => x.problema === a).length);
+  const col = coloresProblemas(presentes);
+  if (!mapas.general) mapas.general = new Obs.Mapa("mapa-general", GEO, { alClic: elegirRegion, nombre: nombreRegion });
+  mapas.general.pintar({ valores: new Map(topRegion.map((x) => [x.region, x.problema])), color: (p) => col.get(p), texto: (p) => p, elegida: estado.region });
+  Obs.leyendaCategorias("ley-general", presentes.map((p) => [p, col.get(p)]));
+  const filas = [...topRegion].sort((a, b) => b.v - a.v);
+  Obs.tabla("t-general-regiones",
+    [{ titulo: "#", campo: "pos" }, { titulo: "Región", campo: "nombre" }, { titulo: "Problema principal", campo: "problema" }, { titulo: "Porcentaje", campo: "pct", num: true }],
+    filas.map((f, i) => ({ pos: String(i + 1), region: f.region, nombre: nombreRegion(f.region), problema: f.problema, pct: pct(f.v) })),
+    { alClic: elegirRegion, elegida: estado.region });
+}
+
+/* ---------------------------------------------------------
+   Módulo ¿Cómo han cambiado?
+   --------------------------------------------------------- */
+function moduloEvolucion() {
+  const anios = aniosPeriodo();
+  const sel = [...estado.problemas];
+  const rk = ranking(estado.region, sel);
+  const el = document.getElementById("r-evolucion");
+  const cambios = rk.map((x) => ({ problema: x.problema, a: valor(x.problema, estado.region, estado.desde), b: valor(x.problema, estado.region, estado.hasta) }))
+    .filter((x) => x.a != null && x.b != null).map((x) => ({ ...x, d: x.b - x.a }));
+  const conCambio = !unAnio() && cambios.length;
+
+  // Cifras: mayor aumento, mayor caída y mención más alta
+  const sube = conCambio ? mayor(cambios, "d") : null, baja = conCambio ? menor(cambios, "d") : null;
+  Obs.kpi("k-evolucion-1", sube && sube.d > 0
+    ? { etiqueta: "Mayor aumento", texto: sube.problema, pie: `${signo(sube.d)} puntos, ${estado.desde} a ${estado.hasta}` }
+    : { etiqueta: "Mayor aumento", texto: "—", pie: unAnio() ? "Elige un período de dos o más años" : "Ninguno aumentó" });
+  Obs.kpi("k-evolucion-2", baja && baja.d < 0
+    ? { etiqueta: "Mayor caída", texto: baja.problema, pie: `${signo(baja.d)} puntos, ${estado.desde} a ${estado.hasta}` }
+    : { etiqueta: "Mayor caída", texto: "—", pie: unAnio() ? "Elige un período de dos o más años" : "Ninguno bajó" });
+  let pico = null;
+  for (const p of sel) for (const a of anios) { const v = valor(p, estado.region, a); if (v != null && (!pico || v > pico.v)) pico = { problema: p, anio: a, v }; }
+  Obs.kpi("k-evolucion-3", { etiqueta: "Mención más alta", texto: pico ? `${pico.problema}, ${pico.anio}` : "—", pie: pico ? pct(pico.v) : "" });
+
+  el.innerHTML = !rk.length ? `${enAmbito(estado.region)} no hay datos para esta selección ${textoPeriodo()}.`
+    : sel.length === 1 && conCambio
+      ? `${enAmbito(estado.region)}, la mención de <strong>«${Obs.escapar(sel[0])}»</strong> pasó de <strong>${pct(cambios[0].a)}</strong> en ${estado.desde} a <strong>${pct(cambios[0].b)}</strong> en ${estado.hasta}.`
+      : conCambio && sube.d > 0
+        ? `${enAmbito(estado.region)}, entre ${estado.desde} y ${estado.hasta}, el problema elegido que más creció fue <strong>${Obs.escapar(sube.problema)}</strong> (${signo(sube.d)} puntos, de ${pct(sube.a)} a ${pct(sube.b)}).`
+        : `${enAmbito(estado.region)}, ${textoPeriodo()}, se muestran ${sel.length} ${sel.length === 1 ? "problema" : "problemas"}.`;
+
+  // Líneas: hasta cinco problemas (los más mencionados de los elegidos); con uno y una región, el Perú como referencia
+  const top = rk.slice(0, 5).map((x) => x.problema), colores = coloresProblemas(top);
+  const conRef = top.length === 1 && estado.region !== NACIONAL; // con un problema y una región, el Perú va como referencia
+  const series = top.map((p) => ({ nombre: conRef ? `${p} (${nombreRegion(estado.region)})` : p, color: colores.get(p), valores: anios.map((a) => valor(p, estado.region, a)), grueso: top.length === 1 }));
+  if (conRef) series.push({ nombre: "Perú", color: "#9aa3b0", referencia: true, valores: anios.map((a) => valor(top[0], NACIONAL, a)) });
+  leyendaLineas("ley-evolucion-evol", series);
+  document.getElementById("d-evolucion-evol").textContent = sel.length > 5
+    ? `Los cinco más mencionados de los ${sel.length} elegidos ${enLugar(estado.region)}, ${textoPeriodo()}.`
+    : `Porcentaje de personas que mencionan cada problema ${enLugar(estado.region)}, ${textoPeriodo()}.`;
+  lineas("g-evolucion-evol", anios, series, `Evolución ${enLugar(estado.region)}: ` + series.map((s) => `${s.nombre}, ${pct(s.valores.at(-1))} en ${anios.at(-1)}`).join("; ") + ".");
+
+  // Tabla: todos los elegidos, con el cambio entre el primer y el último año del período
+  document.getElementById("t-evolucion-detalle-titulo").textContent = unAnio() ? `Problemas elegidos, ${estado.desde}` : `Cambio entre ${estado.desde} y ${estado.hasta}`;
+  document.getElementById("d-evolucion-detalle").textContent = unAnio() ? "Elige un período de dos o más años para ver el cambio." : "Variación en puntos porcentuales, ordenada del mayor aumento a la mayor caída.";
+  if (!rk.length) { document.getElementById("t-evolucion-detalle").innerHTML = '<p class="pista">Sin datos para esta selección.</p>'; return; }
+  if (unAnio()) {
+    Obs.tabla("t-evolucion-detalle", [{ titulo: "Problema", campo: "problema" }, { titulo: "Porcentaje", campo: "b", num: true }],
+      rk.map((x) => ({ problema: x.problema, b: pct(valor(x.problema, estado.region, estado.hasta)) })));
+  } else {
+    const ordenados = [...cambios].sort((x, y) => y.d - x.d);
+    Obs.tabla("t-evolucion-detalle",
+      [{ titulo: "Problema", campo: "problema" }, { titulo: String(estado.desde), campo: "a", num: true }, { titulo: String(estado.hasta), campo: "b", num: true }, { titulo: "Cambio (puntos)", campo: "d", num: true }],
+      ordenados.map((x) => ({ problema: x.problema, a: pct(x.a), b: pct(x.b), d: signo(x.d) })));
+  }
+}
+
+/* ---------------------------------------------------------
+   Módulo ¿Dónde se mencionan más?
+   --------------------------------------------------------- */
+function moduloTerritorio() {
+  const p = estado.problema;
+  const filas = REGIONES.map((r) => ({ region: r.region, v: promedio(p, r.region) })).filter((x) => x.v != null).sort((a, b) => b.v - a.v);
+  const nacional = promedio(p, NACIONAL);
+  const el = document.getElementById("r-territorio");
+  const alta = filas[0], baja = filas.at(-1);
+  Obs.kpi("k-territorio-1", { etiqueta: "Región donde más se menciona", texto: alta ? nombreRegion(alta.region) : "—", pie: alta ? `${pct(alta.v)}${enPromedio()}` : "" });
+  Obs.kpi("k-territorio-2", { etiqueta: "Región donde menos se menciona", texto: baja ? nombreRegion(baja.region) : "—", pie: baja ? `${pct(baja.v)}${enPromedio()}` : "" });
+  Obs.kpi("k-territorio-3", { etiqueta: "Perú", valor: pct(nacional), pie: `Total nacional${enPromedio()}` });
+  el.innerHTML = alta
+    ? `${textoPeriodo().replace(/^en /, "En ").replace(/^entre /, "Entre ")}, <strong>«${Obs.escapar(p)}»</strong> fue mencionado por el <strong>${pct(nacional)}</strong> de las personas en el Perú${enPromedio()}. ` +
+      `Se mencionó más en <strong>${Obs.escapar(nombreRegion(alta.region))}</strong> (${pct(alta.v)}) y menos en <strong>${Obs.escapar(nombreRegion(baja.region))}</strong> (${pct(baja.v)}).`
+    : `No hay datos de «${Obs.escapar(p)}» ${textoPeriodo()}.`;
+
+  // Evolución: la región elegida frente al Perú
+  const anios = aniosPeriodo(), conRef = estado.region !== NACIONAL;
+  const color = coloresProblemas([p]).get(p);
+  const series = [{ nombre: nombreRegion(estado.region), color, valores: anios.map((a) => valor(p, estado.region, a)), grueso: true }];
+  if (conRef) series.push({ nombre: "Perú", color: "#9aa3b0", referencia: true, valores: anios.map((a) => valor(p, NACIONAL, a)) });
+  leyendaLineas("ley-territorio-evol", conRef ? series : []);
+  document.getElementById("t-territorio-evol").textContent = `${p}, ${textoPeriodo()}`;
+  document.getElementById("d-territorio-evol").textContent = `Porcentaje de personas que lo mencionan ${enLugar(estado.region)}${conRef ? ", comparado con el Perú" : ""}.`;
+  lineas("g-territorio-evol", anios, series, `${p} ${enLugar(estado.region)}: ` + series.map((s) => `${s.nombre}, ${pct(s.valores.at(-1))} en ${anios.at(-1)}`).join("; ") + ".");
+
+  document.getElementById("t-territorio-mapa").textContent = `${p}, por región, ${textoPeriodo()}`;
+  if (!filas.length) return;
+  pintarMapa("territorio", filas, p);
+}
+
+const PINTAR = { general: moduloGeneral, evolucion: moduloEvolucion, territorio: moduloTerritorio };
+
+/* ---------------------------------------------------------
+   Estado y render
+   --------------------------------------------------------- */
+function actualizar(parche) {
+  Object.assign(estado, parche);
+  if (estado.ambito === "nacional") estado.region = NACIONAL;
+  render();
+}
+function elegirRegion(cod) {
+  if (cod === estado.region) actualizar({ ambito: "nacional", region: NACIONAL });
+  else actualizar({ ambito: "regional", region: cod });
+}
+
+const POR_DEFECTO = () => new Set([...FIJO.keys()]);
 const $ = (s) => document.querySelector(s);
-function render() {
+
+function sincronizarControles() {
+  controles.sincronizar(estado);
+  multi.sincronizar(estado.problemas, { visible: estado.modulo === "evolucion" });
+  // En General no hay filtro de problema: se muestra apagado con su nota
+  multiGeneral.sincronizar(new Set(), { visible: estado.modulo === "general", noAplica: true });
+  $("#f-problema-caja").hidden = estado.modulo !== "territorio";
   $("#f-problema").value = estado.problema;
-  $("#f-region").value = estado.region;
-  $("#f-anio").value = estado.anio;
-  const s = filtrar(FILAS, estado);
-  cifras(s);
-  ranking(s);
-  evolucion(s);
-  principales(s);
-  regiones(s);
+  document.querySelectorAll(".modulos button").forEach((b) => {
+    const activo = b.dataset.modulo === estado.modulo;
+    b.setAttribute("aria-selected", activo);
+    b.tabIndex = activo ? 0 : -1;
+  });
+  MODULOS.forEach((m) => (document.getElementById(`m-${m}`).hidden = m !== estado.modulo));
+}
+
+function actualizarURL() {
+  const defecto = POR_DEFECTO();
+  const igual = estado.problemas.size === defecto.size && [...estado.problemas].every((p) => defecto.has(p));
   Obs.escribirURL({
-    problema: estado.problema === PROBLEMA_INICIAL ? null : estado.problema,
+    modulo: estado.modulo === "general" ? null : estado.modulo,
     region: estado.region === NACIONAL ? null : estado.region,
-    anio: estado.anio === ANIOS.at(-1) ? null : estado.anio,
+    desde: estado.desde === ANIOS[0] ? null : estado.desde,
+    hasta: estado.hasta === ANIOS.at(-1) ? null : estado.hasta,
+    problemas: igual ? null : [...estado.problemas].join("|"),
+    problema: estado.problema === PROBLEMA_INICIAL ? null : estado.problema,
   });
 }
-function actualizar(parche) { Object.assign(estado, parche); render(); }
-const elegirRegion = (cod) => actualizar({ region: cod === estado.region ? NACIONAL : cod });
 
+function render() {
+  sincronizarControles();
+  PINTAR[estado.modulo]();
+  actualizarURL();
+}
+
+/* ---------------------------------------------------------
+   Inicio
+   --------------------------------------------------------- */
 Obs.iniciar(TABLERO, async () => {
   const [datos, geo] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo("../mapas/peru_regiones.geojson")]);
-  const t = Obs.tema();
-  C = { ...t, gris: "#9aa3b0" };
+  GEO = geo;
+  C = { ...Obs.tema() };
 
   FILAS = Obs.expandir(datos.tablas["Problemas del país"]).map((f) => {
     const nac = f.Nivel === "Nacional" || f.region === "Nacional";
-    const nombre = String(f.region).trim();
+    const nombre = String(f.region).trim().replace(/^San Martin$/, "San Martín");
     const cod = nac ? NACIONAL : codigo(nombre);
-    if (!nac) NOMBRE_REGION.set(cod, nombre.replace(/^San Martin$/, "San Martín"));
+    if (!nac) NOMBRE_REGION.set(cod, nombre);
     return { anio: +f["Año"], problema: String(f.Problema).trim(), region: cod, si: f.Si_p };
   });
-  FILAS.forEach((f) => INDICE.set(`${f.problema}|${f.region}|${f.anio}`, f));
+  FILAS.forEach((f) => INDICE.set(`${f.problema}|${f.region}|${f.anio}`, f.si));
   PROBLEMAS = [...new Set(FILAS.map((f) => f.problema))].sort((a, b) => a.localeCompare(b, "es"));
-  REGIONES = [...NOMBRE_REGION.keys()].filter((r) => r !== NACIONAL).sort((a, b) => NOMBRE_REGION.get(a).localeCompare(NOMBRE_REGION.get(b), "es"));
+  REGIONES = [...NOMBRE_REGION].filter(([c]) => c !== NACIONAL).map(([region, nombre]) => ({ region, nombre }));
   ANIOS = [...new Set(FILAS.map((f) => f.anio))].sort((a, b) => a - b);
-  estado.anio = ANIOS.at(-1);
-  if (!PROBLEMAS.includes(estado.problema)) estado.problema = PROBLEMAS[0];
-
-  // Color fijo para los cinco problemas más mencionados en el Perú, según su promedio de todos los años
-  const prom = PROBLEMAS.map((p) => { const v = FILAS.filter((f) => f.problema === p && f.region === NACIONAL).map((f) => f.si); return [p, v.reduce((a, b) => a + b, 0) / (v.length || 1)]; })
-    .sort((a, b) => b[1] - a[1]).slice(0, 5);
-  prom.forEach(([p], i) => COLOR_PROBLEMA.set(p, C.categorias[i]));
-
+  document.getElementById("subtitulo").textContent = `Qué problemas mencionan los peruanos como los más importantes del país, ${ANIOS[0]}-${ANIOS.at(-1)}.`;
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
   document.getElementById("actualizado").textContent = aa ? `${dd} de ${MESES[mm - 1]} de ${aa}` : "—";
 
-  const opcion = (v, e) => `<option value="${Obs.escapar(v)}">${Obs.escapar(e)}</option>`;
-  $("#f-problema").innerHTML = PROBLEMAS.map((p) => opcion(p, p)).join("");
-  $("#f-region").innerHTML = opcion(NACIONAL, "Perú (nacional)") + REGIONES.map((r) => opcion(r, NOMBRE_REGION.get(r))).join("");
-  $("#f-anio").innerHTML = [...ANIOS].reverse().map((a) => opcion(a, a)).join("");
-  $("#f-problema").onchange = (e) => actualizar({ problema: e.target.value });
-  $("#f-region").onchange = (e) => actualizar({ region: e.target.value });
-  $("#f-anio").onchange = (e) => actualizar({ anio: +e.target.value });
+  // Color fijo para los cinco problemas más mencionados en el Perú, según su promedio de todos los años
+  PROBLEMAS.map((p) => { const v = ANIOS.map((a) => valor(p, NACIONAL, a)).filter((x) => x != null); return [p, v.reduce((s, x) => s + x, 0) / (v.length || 1)]; })
+    .sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([p], i) => FIJO.set(p, i));
+  estado.problemas = POR_DEFECTO();
+  if (!PROBLEMAS.includes(estado.problema)) estado.problema = PROBLEMAS[0];
 
   // Estado inicial desde la URL
-  const p = Obs.parametros();
-  const prob = PROBLEMAS.find((x) => x.toLowerCase() === (p.get("problema") || "").toLowerCase());
-  if (prob) estado.problema = prob;
-  const reg = codigo(p.get("region") || "");
-  if (NOMBRE_REGION.has(reg)) estado.region = reg;
-  if (ANIOS.includes(+p.get("anio"))) estado.anio = +p.get("anio");
+  const q = Obs.parametros();
+  const anio = (v, def) => (Number.isInteger(+v) && +v >= ANIOS[0] && +v <= ANIOS.at(-1) ? +v : def);
+  estado.desde = anio(q.get("desde"), ANIOS[0]);
+  estado.hasta = Math.max(estado.desde, anio(q.get("hasta"), ANIOS.at(-1)));
+  if (MODULOS.includes(q.get("modulo"))) estado.modulo = q.get("modulo");
+  const reg = codigo(q.get("region") || "");
+  if (NOMBRE_REGION.has(reg) && reg !== NACIONAL) Object.assign(estado, { ambito: "regional", region: reg });
+  const pedidos = (q.get("problemas") || "").split("|").filter((p) => PROBLEMAS.includes(p));
+  if (pedidos.length) estado.problemas = new Set(pedidos);
+  const uno = PROBLEMAS.find((p) => p.toLowerCase() === (q.get("problema") || "").toLowerCase());
+  if (uno) estado.problema = uno;
 
-  mapa = new Obs.Mapa("mapa-regiones", geo, { alClic: elegirRegion, nombre: (r) => NOMBRE_REGION.get(r) ?? r });
+  // Controles: los comunes, el de problemas (varios) para la evolución y el de un problema para el territorio
+  const filtros = document.getElementById("filtros");
+  controles = Obs.controlesComunes(filtros, { regiones: REGIONES, anios: [ANIOS[0], ANIOS.at(-1)], alCambiar: actualizar, comparar: false });
+  multi = new Obs.Multiseleccion(filtros, {
+    id: "f-problemas", etiqueta: "Problemas", todos: "Todos los problemas",
+    opciones: PROBLEMAS.map((p) => ({ valor: p, etiqueta: p })), alCambiar: (sel) => actualizar({ problemas: sel }),
+  });
+  multiGeneral = new Obs.Multiseleccion(filtros, { id: "f-general", etiqueta: "Problemas", todos: "Todos", opciones: [], alCambiar: () => {} });
+  filtros.insertAdjacentHTML("beforeend",
+    `<div class="filtro" id="f-problema-caja" hidden><label for="f-problema">Problema</label><select id="f-problema">${
+      PROBLEMAS.map((p) => `<option value="${Obs.escapar(p)}">${Obs.escapar(p)}</option>`).join("")}</select></div>`);
+  $("#f-problema").onchange = (e) => actualizar({ problema: e.target.value });
+
+  const pestanas = [...document.querySelectorAll(".modulos button")];
+  pestanas.forEach((b, i) => {
+    b.onclick = () => actualizar({ modulo: b.dataset.modulo });
+    b.onkeydown = (e) => { // flechas para moverse entre pestañas
+      const paso = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!paso) return;
+      const sig = pestanas[(i + paso + pestanas.length) % pestanas.length];
+      sig.focus();
+      sig.click();
+    };
+  });
+
   Obs.descarga({ archivos: ARCHIVOS });
-  window.addEventListener("resize", () => { clearTimeout(window.__espera); window.__espera = setTimeout(() => { Obs.redimensionar(); render(); }, 150); });
+
+  let espera, anchoPrevio = window.innerWidth;
+  window.addEventListener("resize", () => {
+    if (window.innerWidth === anchoPrevio) return; // en celular, la barra del navegador cambia solo el alto
+    anchoPrevio = window.innerWidth;
+    clearTimeout(espera);
+    espera = setTimeout(() => { Obs.redimensionar(); render(); }, 150);
+  });
+
   render();
 });
