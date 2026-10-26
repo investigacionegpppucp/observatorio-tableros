@@ -10,12 +10,12 @@
 .leyenda i.l.gris { border-top-style: dashed; }
 
 .mapa-y-tabla .grafico { margin-top: 0; }
-/* Tarjetas de cifras: el texto o la cifra a la izquierda y el porcentaje (o el dato) al costado, más pequeño.
-   Los nombres de los problemas son largos y se parten en líneas si no caben. */
-.kpi { display: grid; grid-template-columns: minmax(0, max-content) auto 1fr; align-content: center; column-gap: 14px; row-gap: 6px; min-height: 124px; }
+/* Tarjetas de cifras, como las del tablero del Congreso: etiqueta arriba y, centrados en la tarjeta, la cifra o el nombre
+   (grande) con el dato al costado (más pequeño). tablero.js baja el tamaño de la cifra si un nombre largo no cabe. */
+.kpi { display: grid; grid-template-columns: minmax(0, max-content) auto 1fr; grid-template-rows: auto minmax(52px, auto); align-content: center; column-gap: 14px; row-gap: 6px; min-height: 132px; }
 .kpi-etiqueta { grid-column: 1 / -1; } /* ocupa todo el ancho; la tercera columna, flexible, absorbe lo que le sobre */
 .kpi-valor, .kpi-pie { align-self: center; }
-.kpi-valor.texto { font-size: 24px; line-height: 1.2; }
+.kpi-valor, .kpi-valor.texto { font-size: 38px; line-height: 1.15; padding-top: 0; }
 .kpi-pie { font-size: 18px; font-weight: 600; line-height: 1.25; }
 #f-problema { min-width: 280px; }
 

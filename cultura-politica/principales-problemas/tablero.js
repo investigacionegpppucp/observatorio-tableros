@@ -322,9 +322,22 @@ function actualizarURL() {
   });
 }
 
+// Las cifras de una pestaña comparten tamaño: el de la referencia (38 px) o, si un nombre largo no cabe en una línea, el mayor
+// que quepa; hasta 28 px en una línea y, si aun así no cabe, en dos líneas (22 px como mínimo)
+function ajustarCifras() {
+  const v = [...document.querySelectorAll(".modulo:not([hidden]) .kpi-valor")];
+  let px = 38;
+  const fijar = () => v.forEach((e) => (e.style.fontSize = `${px}px`));
+  const cabe = (lineas) => v.every((e) => e.getBoundingClientRect().height <= px * (lineas === 1 ? 1.3 : 2.6));
+  fijar();
+  while (px > 28 && !cabe(1)) { px -= 2; fijar(); }
+  while (px > 22 && !cabe(1) && !cabe(2)) { px -= 2; fijar(); }
+}
+
 function render() {
   sincronizarControles();
   PINTAR[estado.modulo]();
+  ajustarCifras();
   actualizarURL();
 }
 
@@ -407,4 +420,6 @@ Obs.iniciar(TABLERO, async () => {
   });
 
   render();
+  // la medida de las cifras depende de la tipografía: se repite cuando termina de cargar
+  document.fonts?.ready.then(ajustarCifras);
 });
