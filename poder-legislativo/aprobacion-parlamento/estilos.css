@@ -9,7 +9,7 @@
 /* Tarjetas de cifras: el texto pequeño va al costado del número, más grande, y la tarjeta conserva su alto */
 .kpis-4 .kpi { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 52px; align-content: center; column-gap: 14px; row-gap: 6px; min-height: 132px; }
 .kpis-4 .kpi-etiqueta { grid-column: 1 / -1; }
-.kpis-4 .kpi-valor, .kpis-4 .kpi-pie { align-self: baseline; }
+.kpis-4 .kpi-valor, .kpis-4 .kpi-pie { align-self: center; }
 .kpis-4 .kpi-pie { font-size: 18px; font-weight: 600; line-height: 1.25; }
 
 /* Alturas de los gráficos */

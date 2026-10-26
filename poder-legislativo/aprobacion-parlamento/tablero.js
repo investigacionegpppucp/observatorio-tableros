@@ -88,7 +88,7 @@ function resumen(S) {
   Obs.kpi("k-ultimo", { etiqueta: "Dato más reciente", valor: pct0(ultima.valor), pie: fecha(ultima) });
   Obs.kpi("k-min", { etiqueta: "Mínimo", valor: pct0(menor.valor), pie: fecha(menor) });
   Obs.kpi("k-max", { etiqueta: "Máximo", valor: pct0(mayor.valor), pie: fecha(mayor) });
-  Obs.kpi("k-prom", { etiqueta: "Promedio", valor: pct1(prom), pie: `${Obs.fmtN(n)} ${n === 1 ? "mes" : "meses"} con dato` });
+  Obs.kpi("k-prom", { etiqueta: "Promedio", valor: pct1(prom), pie: `desde ${S[0].anio}` });
 }
 
 /* ---------- Serie mensual: una línea, con el máximo, el mínimo y el último dato rotulados, y una línea punteada donde empieza cada Congreso ---------- */
