@@ -3,7 +3,7 @@
    Democracia y Gobernabilidad (EGPP-PUCP)
 
    Datos: datos.json con la forma que arma el Apps Script
-   (Tableros > Publicar tableros) desde cuatro pestañas del Sheet
+   (Tableros > Publicar tableros) desde cinco pestañas del Sheet
    «6. Mociones de Interpelación»:
      - «General»: una fila por moción y ministro (fechas de
        presentación, admisión y concurrencia, votación de admisión,
@@ -14,6 +14,7 @@
        terminaron, Días de gobierno y Ratio (días por pedido).
      - «Mociones por ministerio»: pedidos por gobierno y sector según
        cómo terminaron.
+     - «Mociones por ministro»: lo mismo, por ministro.
 
    Patrón: un objeto `estado`, una función pura `filtrar()` y una
    sola función `render()`.
@@ -39,7 +40,7 @@ const DIA = 86400000;
 
 const estado = { periodo: "", unidad: "moc" };
 
-let FILAS = [], LEGIS = [], POR_GOB = [], POR_MIN = [], PERIODOS = [], GOBIERNOS = [], C;
+let FILAS = [], LEGIS = [], POR_GOB = [], POR_MIN = [], POR_MINISTRO = [], PERIODOS = [], GOBIERNOS = [], C;
 
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
 const n = (k, uno, varios) => `${Obs.fmtN(k)} ${k === 1 ? uno : varios}`;
@@ -211,6 +212,50 @@ function porMinisterio(s) {
   el.setAttribute("aria-label", "Pedidos de interpelación por ministerio: " + sectores.map((k) => `${k}, ${totalSector.get(k)}`).join("; ") + ".");
 }
 
+/* ---------- Ministros con más pedidos ----------
+   Un ministro puede aparecer en varios sectores o gobiernos: se suman.
+   Con un período elegido, solo cuentan los gobiernos de ese período. */
+function porMinistro(s) {
+  const id = "g-ministros";
+  const enSel = new Set(s.filas.map((f) => f.gobierno));
+  const suma = new Map();
+  POR_MINISTRO.filter((x) => !estado.periodo || enSel.has(x.gobierno)).forEach((x) => {
+    const m = suma.get(x.ministro) ?? { ministro: x.ministro, total: 0, cargos: [], ...Object.fromEntries(ESTADOS.map((e) => [e.clave, 0])) };
+    ESTADOS.forEach((e) => (m[e.clave] += x[e.clave]));
+    m.total += x.total;
+    m.cargos.push(`${x.sector} (${x.gobierno})`);
+    suma.set(x.ministro, m);
+  });
+  const lista = [...suma.values()].filter((m) => m.total > 1).sort((a, b) => b.total - a.total || b.realizada - a.realizada).slice(0, 15);
+  document.getElementById("ley-ministros").innerHTML = ESTADOS.map((e) => `<span><i style="background:${C.estado[e.clave]}"></i>${e.nombre}</span>`).join("");
+  document.getElementById("d-ministros").textContent = `Pedidos de interpelación contra cada ministro, según cómo terminaron${estado.periodo ? `, en el período ${estado.periodo}` : ""}. Los ${lista.length} con más pedidos.`;
+  if (!lista.length) return Obs.vacio(id, "Ningún ministro tuvo más de un pedido en este período");
+  const el = document.getElementById(id);
+  el.style.height = `${lista.length * 32 + 40}px`;
+  const g = Obs.grafico(id);
+  g.resize();
+  const angosto = el.clientWidth < 600;
+  // «Pedro Emilio Sánchez Gamarra» -> «Pedro Sánchez Gamarra»
+  const corto = (m) => { const w = m.split(" "); return w.length > 3 ? [w[0], ...w.slice(-2)].join(" ") : m; };
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
+      formatter: (ps) => { const m = lista[ps[0].dataIndex]; return `<strong>${Obs.escapar(m.ministro)}</strong><br>${m.cargos.map(Obs.escapar).join("<br>")}` +
+        ps.filter((q) => q.value && q.seriesName !== "total").map((q) => `<br>${q.marker}${q.seriesName}: <strong>${q.value}</strong>`).join("") + `<br>Total: <strong>${m.total}</strong>`; } },
+    grid: { left: angosto ? 130 : 220, right: 36, top: 4, bottom: 28 },
+    xAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
+    yAxis: { type: "category", inverse: true, data: lista.map((m) => corto(m.ministro)), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+      axisLabel: txt({ color: C.texto, fontSize: angosto ? 12 : 14, width: angosto ? 124 : 212, overflow: "truncate" }) },
+    series: [
+      ...ESTADOS.map((e) => ({ name: e.nombre, type: "bar", stack: "t", barWidth: 16,
+        itemStyle: { color: C.estado[e.clave], borderColor: "#fff", borderWidth: 1 }, data: lista.map((m) => m[e.clave] || null) })),
+      // barra vacía al final de la pila: solo lleva el total como rótulo
+      { name: "total", type: "bar", stack: "t", silent: true, itemStyle: { color: "transparent" }, data: lista.map(() => 0),
+        label: { show: true, position: "right", formatter: (q) => String(lista[q.dataIndex].total), ...txt({ color: C.texto, fontWeight: 700 }) } },
+    ],
+  }, true);
+}
+
 /* ---------- Votos de admisión ---------- */
 function votos(s) {
   const id = "g-votos";
@@ -274,6 +319,7 @@ function render() {
   porLegislatura(s);
   porGobierno(s);
   porMinisterio(s);
+  porMinistro(s);
   votos(s);
   dias(s);
   tabla(s);
@@ -326,6 +372,11 @@ Obs.iniciar(TABLERO, async () => {
   POR_MIN = Obs.expandir(datos.tablas["Mociones por ministerio"]).filter((x) => x.Gobierno && x.Sector).map((x) => ({
     gobierno: limpio(x.Gobierno), sector: limpio(x.Sector), realizada: numero(x.Aprobada) ?? 0, rechazada: numero(x["Admisión rechazada"]) ?? 0,
     archivada: numero(x.Archivada) ?? 0, proceso: numero(x["En proceso"]) ?? 0, total: numero(x.Total) ?? 0,
+  }));
+
+  POR_MINISTRO = Obs.expandir(datos.tablas["Mociones por ministro"]).filter((x) => x.Gobierno && x.Ministro_Interpelado).map((x) => ({
+    gobierno: limpio(x.Gobierno), sector: limpio(x.Sector), ministro: limpio(x.Ministro_Interpelado), realizada: numero(x.Aprobada) ?? 0,
+    rechazada: numero(x["Admisión rechazada"]) ?? 0, archivada: numero(x.Archivada) ?? 0, proceso: numero(x["En proceso"]) ?? 0, total: numero(x.Total) ?? 0,
   }));
 
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
