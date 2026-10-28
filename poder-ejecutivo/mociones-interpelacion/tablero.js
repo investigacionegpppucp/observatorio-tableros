@@ -623,7 +623,7 @@ function lecturaSectores(secs) {
   if (mas[0].tasa === menos[0].tasa) return lectura("l-sectores", "");
   lectura("l-sectores", `${nombres(mas.map((x) => x.nombre))} ${mas.length > 1 ? "son los ministerios" : "es el ministerio"} donde una mayor proporción de procesos ` +
     `terminó en una interpelación: ${fuerte(pct(mas[0].tasa))}. En ${nombres(menos.map((x) => x.nombre))}, ` +
-    `${menos[0].tasa === 0 ? fuerte("ninguno") : `solo ${fuerte(pct(menos[0].tasa))}`}. Se comparan los ministerios con más de ${fuerte(MINIMO)} procesos.`);
+    `${menos[0].tasa === 0 ? fuerte("ninguno") : `solo ${fuerte(pct(menos[0].tasa))}`}.);
 }
 
 /* ---------- Ministros (tabla) ----------
