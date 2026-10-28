@@ -188,3 +188,13 @@
 .ley-familias small { color: var(--texto-suave); font-size: 14px; }
 .tabla .palabra small i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 #fam-matriz { margin-bottom: 6px; }
+
+/* ---------- Aviso del gobierno elegido (en la franja de filtros) ---------- */
+.aviso-gobierno {
+  flex: 1 1 320px; align-self: center; margin: 0; padding: 10px 14px;
+  border-left: 4px solid var(--lima); border-radius: 0 var(--radio) var(--radio) 0;
+  background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 15px; line-height: 1.45;
+}
+.aviso-gobierno strong { color: var(--lima); font-weight: 700; }
+.aviso-gobierno.mezcla { border-left-color: #f2b33d; background: rgba(242, 179, 61, 0.14); }
+.aviso-gobierno.mezcla strong { color: #ffd27a; }

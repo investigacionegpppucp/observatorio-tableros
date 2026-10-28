@@ -45,6 +45,8 @@ const GOBIERNOS = [
   ["Boluarte", "Dina Boluarte"], ["Jerí", "José Jerí"], ["Balcázar", "José María Balcázar"], ["Fujimori", "Keiko Fujimori"],
 ];
 const SIN_TEMA = "sin categoria";
+// Al abrir el tablero se ve un solo gobierno (el más reciente); mezclar todos se elige a propósito
+const gobiernoDefecto = () => new Set([GOB.length - 1]);
 // Familias de temas: dan el color a temas y palabras en todo el tablero (tokens --f-* de estilos.css).
 // `claro`: el texto sobre el color base va en tinta oscura.
 const FAMILIAS = [
@@ -158,9 +160,10 @@ function render() {
 }
 function escribirURL() {
   const lista = (sel, l) => (todos(sel, l) ? null : [...sel].sort((a, b) => a - b).join("-"));
+  const gobs = estado.gobiernos.size === 1 && estado.gobiernos.has(GOB.length - 1) ? null : todos(estado.gobiernos, GOB) ? "todos" : lista(estado.gobiernos, GOB);
   Obs.escribirURL({
     modulo: estado.modulo === "temas" ? null : estado.modulo,
-    gobiernos: lista(estado.gobiernos, GOB), mensajes: lista(estado.mensajes, MENSAJES), temas: lista(estado.temas, TEMAS),
+    gobiernos: gobs, mensajes: lista(estado.mensajes, MENSAJES), temas: lista(estado.temas, TEMAS),
     buscar: estado.buscar.trim() || null, distintivo: estado.distintivo,
   });
 }
@@ -396,9 +399,13 @@ function tablaPalabras(s, lista, total) {
     ? `${plural(halladas.length, "palabra coincide", "palabras coinciden")} con «${estado.buscar.trim()}»`
     : `${plural(lista.length, "palabra distinta", "palabras distintas")} en los mensajes elegidos`;
   const cel = (v) => (v ? num(v) : '<span class="sin-dato">0</span>');
+  // solo los mensajes que dio algún gobierno elegido (sin columnas en cero)
+  const ms = s.ms.filter((m) => palabrasDe(s.gs, [m]) > 0);
+  const titulo = (m, i) => (ms.length > 1 && i === ms.length - 1 && s.gs.length === 1 ? `${MENSAJES[m].corto} (último)` : MENSAJES[m].corto);
+  contextoTabla(s, ms);
   const columnas = [
     { clave: "w", titulo: "Palabra", valor: (x) => x.w, html: (x) => `<span class="palabra">${Obs.escapar(x.w)}${x.t >= 0 ? `<small><i style="background:${colorFam(familia(x.t))}"></i>${Obs.escapar(TEMAS[x.t])}</small>` : ""}</span>` },
-    ...s.ms.map((m) => ({ clave: `m${m}`, titulo: MENSAJES[m].corto, num: true, valor: (x) => x.n[m], html: (x) => cel(x.n[m]) })),
+    ...ms.map((m, i) => ({ clave: `m${m}`, titulo: titulo(m, i), num: true, valor: (x) => x.n[m], html: (x) => cel(x.n[m]) })),
     { clave: "total", titulo: "Total", num: true, valor: (x) => x.total, html: (x) => `<strong>${num(x.total)}</strong>` },
     { clave: "mil", titulo: "Por cada 1.000", num: true, valor: (x) => x.total, html: (x) => mil(porMil(x.total, total)) },
   ];
@@ -411,6 +418,25 @@ function tablaPalabras(s, lista, total) {
   });
   document.getElementById("p-palabras").textContent = halladas.length > LIMITE_TABLA
     ? `Se muestran las ${num(LIMITE_TABLA)} primeras de ${num(halladas.length)} según el orden elegido. Usa el buscador para encontrar cualquier otra.` : "";
+}
+
+// Qué mensajes compara la tabla: del primero (asunción) al último de cada gobierno
+function contextoTabla(s, ms) {
+  const el = document.getElementById("c-palabras");
+  if (!ms.length) return (el.innerHTML = "");
+  const quienes = (m) => s.gs.filter((g) => TOT[g][m] > 0);
+  if (s.gs.length === 1) {
+    const g = GOB[s.gs[0]], ult = ms.at(-1);
+    el.innerHTML = ms.length === 1
+      ? (g.mensajes.filter(Boolean).length === 1
+        ? `${destacar(g.nombre)} dio un solo mensaje: el de ${destacar(Obs.minus(MENSAJES[ms[0]].nombre))}.`
+        : `Con el filtro de mensaje, la tabla muestra solo el ${destacar(Obs.minus(MENSAJES[ms[0]].nombre))} de ${destacar(g.nombre)}.`)
+      : `Las columnas van del primer mensaje de ${destacar(g.nombre)} (${destacar(Obs.minus(MENSAJES[ms[0]].nombre))}) a su último mensaje (${destacar(Obs.minus(MENSAJES[ult].nombre))}).`;
+    return;
+  }
+  el.innerHTML = `Cada columna suma solo los gobiernos elegidos que dieron ese mensaje: ` +
+    ms.map((m) => `${MENSAJES[m].corto}, ${fuerte(plural(quienes(m).length, "gobierno", "gobiernos"))}`).join("; ") +
+    `. Elige un gobierno en el filtro para ver sus mensajes del primero al último.`;
 }
 
 /* ---------- Las 20 palabras más usadas (barras) ----------
@@ -521,8 +547,10 @@ function tablaOrdenable(id, columnas, filas, { inicial, desempate = () => 0, cla
 function alternar(campo, v, lista) {
   if (v == null || v < 0) return;
   const actual = estado[campo];
-  let nuevo = todos(actual, lista) ? new Set([v]) : new Set(actual);
-  if (!todos(actual, lista)) nuevo.has(v) ? nuevo.delete(v) : nuevo.add(v);
+  // con un solo gobierno elegido (lo habitual), un clic en otro lo reemplaza en vez de mezclarlos
+  const reemplaza = todos(actual, lista) || (campo === "gobiernos" && actual.size === 1 && !actual.has(v));
+  let nuevo = reemplaza ? new Set([v]) : new Set(actual);
+  if (!reemplaza) nuevo.has(v) ? nuevo.delete(v) : nuevo.add(v);
   if (!nuevo.size) nuevo = todosLos(lista);
   actualizar({ [campo]: nuevo });
 }
@@ -538,8 +566,21 @@ function pintarAplicados() {
   document.getElementById("aplicados-lista").innerHTML = chips.join("");
 }
 
+// Aviso junto a los filtros: qué gobierno se está viendo, o que se están mezclando todos
+function pintarAviso() {
+  const el = document.getElementById("aviso-gobierno");
+  const g = [...estado.gobiernos];
+  el.classList.toggle("mezcla", todos(estado.gobiernos, GOB) || g.length > 1);
+  el.innerHTML = g.length === 1
+    ? `Estás viendo los mensajes de <strong>${Obs.escapar(GOB[g[0]].nombre)}</strong>. Elige otro gobierno en el filtro, o varios para compararlos.`
+    : todos(estado.gobiernos, GOB)
+      ? `Estás viendo los <strong>${GOB.length} gobiernos juntos</strong>: las cifras suman mensajes de distintos presidentes. Elige uno en el filtro Gobierno para ver solo sus mensajes.`
+      : `Estás viendo <strong>${g.length} gobiernos juntos</strong>: las cifras suman sus mensajes. Elige uno solo para ver sus mensajes del primero al último.`;
+}
+
 function sincronizarControles() {
   multiGob.sincronizar(estado.gobiernos);
+  pintarAviso();
   multiMen.sincronizar(estado.mensajes);
   multiTem.sincronizar(estado.temas);
   document.querySelectorAll(".modulos button").forEach((b) => {
@@ -566,7 +607,7 @@ const CAMPOS = { g: ["gobiernos", () => GOB], m: ["mensajes", () => MENSAJES], t
 function montarControles() {
   const filtros = document.getElementById("filtros");
   multiGob = new Obs.Multiseleccion(filtros, {
-    id: "f-gobiernos", etiqueta: "Gobierno", todos: "Todos los gobiernos",
+    id: "f-gobiernos", etiqueta: "Gobierno", todos: "Todos los gobiernos (juntos)",
     opciones: GOB.map((g) => ({ valor: g.i, etiqueta: g.nombre })), alCambiar: (sel) => actualizar({ gobiernos: sel }),
   });
   multiMen = new Obs.Multiseleccion(filtros, {
@@ -577,6 +618,8 @@ function montarControles() {
     id: "f-temas", etiqueta: "Tema", todos: "Todos los temas",
     opciones: TEMAS.map((t, i) => ({ valor: i, etiqueta: t })), alCambiar: (sel) => actualizar({ temas: sel }),
   });
+
+  filtros.insertAdjacentHTML("beforeend", '<p class="aviso-gobierno" id="aviso-gobierno" aria-live="polite"></p>');
 
   const pestanas = [...document.querySelectorAll(".modulos button")];
   pestanas.forEach((b, i) => {
@@ -615,7 +658,7 @@ function leerURL() {
     return v.length ? new Set(v) : todosLos(lista);
   };
   if (MODULOS.includes(q.get("modulo"))) estado.modulo = q.get("modulo");
-  estado.gobiernos = indices("gobiernos", GOB);
+  estado.gobiernos = q.get("gobiernos") === "todos" ? todosLos(GOB) : q.get("gobiernos") ? indices("gobiernos", GOB) : gobiernoDefecto();
   estado.mensajes = indices("mensajes", MENSAJES);
   estado.temas = indices("temas", TEMAS);
   estado.buscar = q.get("buscar") ?? "";
