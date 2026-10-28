@@ -194,16 +194,15 @@ function porTema(filas, ms) {
 
 function cifrasTemas(s) {
   const total = palabrasDe(s.gs, s.ms), men = mensajesDe(s.gs, s.ms);
-  const v = porTema(s.sinTema, s.ms), conTema = v.reduce((a, b) => a + b, 0);
+  const v = porTema(s.sinTema, s.ms);
   const top = v.map((x, t) => ({ t, x })).sort((a, b) => b.x - a.x)[0];
   const el = document.getElementById("r-temas");
   if (!total) el.textContent = "No hay mensajes con estos filtros. Quita alguno para ver datos.";
   else el.innerHTML = `${alcance(s)} se dijeron ${fuerte(plural(total, "palabra", "palabras"))}, en ${fuerte(plural(men, "mensaje", "mensajes"))}. ` +
-    `${fuerte(pct(conTema / total))} de ellas pertenece a alguno de los temas` +
-    (top?.x ? `; el más mencionado fue ${destacar(TEMAS[top.t])}, con ${fuerte(mil(porMil(top.x, total)))} palabras por cada 1.000.` : ".");
+    (top?.x ? `El tema más mencionado fue ${destacar(TEMAS[top.t])}, con ${fuerte(mil(porMil(top.x, total)))} palabras por cada 1.000.` : "");
   Obs.kpi("k-mensajes", { etiqueta: "Mensajes analizados", valor: num(men), pie: "Asunción al cargo y mensajes del 28 de julio" });
-  Obs.kpi("k-palabras", { etiqueta: "Palabras dichas", valor: num(total), pie: "Todas, incluidas las palabras vacías" });
-  Obs.kpi("k-con-tema", { etiqueta: "Palabras con tema", valor: total ? pct(conTema / total) : "—", pie: `${plural(conTema, "palabra", "palabras")} en ${plural(TEMAS.length, "tema", "temas")}` });
+  Obs.kpi("k-palabras", { etiqueta: "Palabras dichas", valor: num(total), pie: "En los mensajes elegidos" });
+  Obs.kpi("k-por-mensaje", { etiqueta: "Palabras por mensaje", valor: men ? num(total / men) : "—", pie: "Largo promedio de los mensajes elegidos" });
   Obs.kpi("k-tema", { etiqueta: "Tema más mencionado", texto: top?.x ? TEMAS[top.t] : "—",
     pie: top?.x ? `${mil(porMil(top.x, total))} palabras por cada 1.000` : "" });
 }
@@ -329,7 +328,7 @@ function arbol(s) {
   const top = datos.reduce((a, b) => (b.value > a.value ? b : a));
   const palabraTop = top.children[0];
   lectura("l-arbol", `En ${destacar(top.name)}, la palabra más usada fue ${destacar(`«${palabraTop.name}»`)}: ${fuerte(plural(palabraTop.value, "vez", "veces"))} ` +
-    `(${fuerte(pct(palabraTop.value / top.value))} de las palabras del tema). Ese tema reúne ${fuerte(pct(top.value / total))} de las palabras con tema.`);
+    `(${fuerte(pct(palabraTop.value / top.value))} de las palabras del tema).`);
   const g = Obs.grafico(id);
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
@@ -337,7 +336,7 @@ function arbol(s) {
       const ruta = q.treePathInfo ?? [], tema = ruta[1]?.name;
       const base = ruta.length > 2 ? ruta[1].value : total;
       return `<strong>${Obs.escapar(q.name)}</strong>${ruta.length > 2 ? `<br>Tema: ${Obs.escapar(tema)}` : ""}<br>${plural(q.value, "vez", "veces")}` +
-        `<br>${pct(q.value / base)} ${ruta.length > 2 ? "del tema" : "de las palabras con tema"}`;
+        (ruta.length > 2 ? `<br>${pct(q.value / base)} del tema` : "");
     } },
     series: [{
       type: "treemap", name: "Todos los temas", data: datos, roam: false, nodeClick: "zoomToNode", leafDepth: 1, top: 36, bottom: 8, left: 0, right: 0,
@@ -381,14 +380,13 @@ function pintarPalabras(s) {
 
 function cifrasPalabras(s, lista, total) {
   const top = lista.reduce((a, b) => (!a || b.total > a.total ? b : a), null);
-  const tematicas = lista.filter((x) => x.t >= 0).length;
   const el = document.getElementById("r-palabras");
   if (!lista.length) el.textContent = "No hay palabras con estos filtros. Quita alguno para ver datos.";
   else el.innerHTML = `${alcance(s)} se usaron ${fuerte(plural(lista.length, "palabra distinta", "palabras distintas"))}, sin contar las palabras vacías. ` +
     `La más usada fue ${destacar(`«${top.w}»`)}: ${fuerte(plural(top.total, "vez", "veces"))}, ${fuerte(mil(porMil(top.total, total)))} por cada 1.000 palabras.`;
   Obs.kpi("k-distintas", { etiqueta: "Palabras distintas", valor: num(lista.length), pie: "Sin palabras vacías ni cifras sueltas" });
   Obs.kpi("k-top", { etiqueta: "Palabra más usada", texto: top ? top.w : "—", pie: top ? `${plural(top.total, "vez", "veces")}; ${mil(porMil(top.total, total))} por cada 1.000 palabras` : "" });
-  Obs.kpi("k-tematicas", { etiqueta: "Palabras con tema", valor: num(tematicas), pie: lista.length ? `${pct(tematicas / lista.length)} de las palabras distintas` : "" });
+  Obs.kpi("k-dichas", { etiqueta: "Palabras dichas", valor: num(total), pie: "En los mensajes elegidos" });
 }
 
 /* ---------- Tabla de palabras con buscador ---------- */
@@ -446,11 +444,9 @@ function masUsadas(lista, total) {
   if (top.length > 1) {
     const a = top[0], z = top.at(-1);
     lectura("l-top", `${destacar(`«${a.w}»`)} encabeza la lista con ${fuerte(mil(porMil(a.total, total)))} usos por cada 1.000 palabras; ` +
-      `la vigésima, ${destacar(`«${z.w}»`)}, tiene ${fuerte(mil(porMil(z.total, total)))}. ` +
-      `${fuerte(num(top.filter((x) => x.t >= 0).length))} de las 20 pertenecen a algún tema.`);
+      `la vigésima, ${destacar(`«${z.w}»`)}, tiene ${fuerte(mil(porMil(z.total, total)))}.`);
   } else lectura("l-top", "");
-  leyendaFamilias("fam-top", top.map((x) => familia(x.t)), top.some((x) => x.t < 0));
-  Obs.barras("g-top", top.map((x) => ({ clave: x.w, etiqueta: x.w, valor: porMil(x.total, total), color: colorFam(familia(x.t)) })), {
+  Obs.barras("g-top", top.map((x) => ({ clave: x.w, etiqueta: x.w, valor: porMil(x.total, total) })), {
     formato: (v) => mil(v), nombre: "Por cada 1.000 palabras", ordenar: false,
     alClic: (w) => { estado.buscar = w; document.getElementById("f-buscar").value = w; pintarBusqueda(); document.getElementById("t-palabras").scrollIntoView({ behavior: ANIM ? "smooth" : "auto", block: "nearest" }); },
   });
@@ -480,13 +476,12 @@ function distintivas(s) {
     return { w: x.w, t: x.t, n: x.total, o, foco: ef, resto: er, dif: ef - er };
   }).filter((x) => x.foco >= 2 * x.resto).sort((a, b) => b.foco - a.foco || b.dif - a.dif).slice(0, 15);
   document.getElementById("p-distintivas").textContent = No ? "" : "No hay otros gobiernos con mensajes en esta selección para comparar.";
-  if (!lista.length || !No) { lectura("l-distintivas", ""); document.getElementById("fam-distintivas").innerHTML = ""; return Obs.vacio(id, "No hay palabras distintivas con estos filtros"); }
+  if (!lista.length || !No) { lectura("l-distintivas", ""); return Obs.vacio(id, "No hay palabras distintivas con estos filtros"); }
   const a = lista[0], solo = lista.filter((x) => x.o === 0);
   lectura("l-distintivas", `${destacar(`«${a.w}»`)} es la palabra distintiva más usada por ${destacar(GOB[foco].nombre)}: la usó ${fuerte(mil(a.foco))} veces por cada 1.000 palabras, ` +
     (a.o ? `frente a ${fuerte(mil(a.resto))} en el resto de gobiernos.` : "y ningún otro gobierno la usó.") +
     (solo.length ? ` ${fuerte(plural(solo.length, "de estas palabras solo aparece", "de estas palabras solo aparecen"))} en sus mensajes.` : ""));
-  leyendaFamilias("fam-distintivas", lista.map((x) => familia(x.t)), lista.some((x) => x.t < 0));
-  Obs.barras(id, lista.map((x) => ({ clave: x.w, etiqueta: x.w, valor: x.foco, comp: x.resto, color: colorFam(familia(x.t)) })), {
+  Obs.barras(id, lista.map((x) => ({ clave: x.w, etiqueta: x.w, valor: x.foco, comp: x.resto })), {
     formato: (v) => mil(v), nombre: GOB[foco].apellido, comparacion: "Resto de gobiernos", ordenar: false,
   });
   // burbuja con el detalle de cada palabra

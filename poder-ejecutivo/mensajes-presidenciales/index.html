@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/tema.css?v=c0734fa">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=c0734fa">
-  <link rel="stylesheet" href="estilos.css?v=c0734fa">
+  <link rel="stylesheet" href="../../comun/tema.css?v=77d7fdf">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=77d7fdf">
+  <link rel="stylesheet" href="estilos.css?v=77d7fdf">
 </head>
 <body>
   <header class="cabecera">
@@ -48,7 +48,7 @@
       <div class="kpis kpis-4">
         <div class="kpi" id="k-mensajes"></div>
         <div class="kpi" id="k-palabras"></div>
-        <div class="kpi" id="k-con-tema"></div>
+        <div class="kpi" id="k-por-mensaje"></div>
         <div class="kpi" id="k-tema"></div>
       </div>
 
@@ -85,7 +85,7 @@
       <div class="kpis kpis-3">
         <div class="kpi" id="k-distintas"></div>
         <div class="kpi" id="k-top"></div>
-        <div class="kpi" id="k-tematicas"></div>
+        <div class="kpi" id="k-dichas"></div>
       </div>
 
       <article class="tarjeta">
@@ -104,9 +104,8 @@
 
       <article class="tarjeta">
         <header><h3>¿Qué palabras se usaron más?</h3>
-          <p>Las 20 palabras más usadas, por cada 1.000 palabras de los mensajes elegidos. El color indica la familia de su tema; en gris, las palabras sin tema. Haz clic en una palabra para buscarla en la tabla.</p></header>
+          <p>Las 20 palabras más usadas, por cada 1.000 palabras de los mensajes elegidos. Haz clic en una palabra para buscarla en la tabla.</p></header>
         <p class="lectura" id="l-top" aria-live="polite"></p>
-        <div class="ley-familias" id="fam-top"></div>
         <div class="grafico" id="g-top"></div>
       </article>
 
@@ -120,7 +119,6 @@
           </div>
         </header>
         <p class="lectura" id="l-distintivas" aria-live="polite"></p>
-        <div class="ley-familias" id="fam-distintivas"></div>
         <div class="grafico" id="g-distintivas"></div>
         <p class="pista" id="p-distintivas"></p>
       </article>
@@ -130,18 +128,18 @@
   <footer class="pie">
     <p><strong>Fuente:</strong> Oficina de Participación Ciudadana del Congreso de la República, Mensajes Presidenciales. Elaboración del Observatorio.</p>
     <p><strong>Qué se cuenta:</strong> cada palabra de los mensajes a la Nación, por gobierno y por mensaje (asunción al cargo y mensajes siguientes). Los gobiernos dieron distinta cantidad de mensajes, y de distinto largo: por eso los temas y las palabras se comparan por cada 1.000 palabras de los mensajes elegidos. Con mensajes cortos (por ejemplo, de gobiernos breves) un solo uso mueve mucho esa cifra.</p>
-    <p><strong>Temas:</strong> cada palabra con tema pertenece a una de las 16 categorías del Observatorio; la mayoría de palabras no tiene tema. Para leer los gráficos, los temas se agrupan en cuatro familias: economía y desarrollo (economía, crecimiento, empleo, obras), servicios sociales (educación, salud, vivienda, servicios básicos, pobreza), Estado e instituciones (democracia, reforma, anticorrupción, descentralización, seguridad) y grupos de población (mujeres, jóvenes). Las palabras vacías (artículos, preposiciones, conjunciones, pronombres) y las cifras sueltas no se muestran en la pestaña de palabras, pero sí cuentan en el total de palabras.</p>
+    <p><strong>Temas:</strong> las palabras se clasifican en 16 categorías del Observatorio. Para leer los gráficos, los temas se agrupan en cuatro familias: economía y desarrollo (economía, crecimiento, empleo, obras), servicios sociales (educación, salud, vivienda, servicios básicos, pobreza), Estado e instituciones (democracia, reforma, anticorrupción, descentralización, seguridad) y grupos de población (mujeres, jóvenes). Las palabras vacías (artículos, preposiciones, conjunciones, pronombres) y las cifras sueltas no se muestran en la pestaña de palabras, pero sí cuentan en el total de palabras.</p>
     <p><strong>Palabras distintivas:</strong> se compara cuántas veces por cada 1.000 palabras usó cada palabra el gobierno elegido frente a todos los demás gobiernos juntos. Entran las palabras que el gobierno usó al menos 5 veces y al menos el doble que el resto.</p>
     <p>Datos actualizados al <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Mensajes presidenciales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=c0734fa"></script>
-  <script src="../../comun/config.js?v=c0734fa"></script>
-  <script src="../../comun/base.js?v=c0734fa"></script>
-  <script src="../../comun/graficos.js?v=c0734fa"></script>
-  <script src="../../comun/filtros.js?v=c0734fa"></script>
-  <script src="../../comun/descarga.js?v=c0734fa"></script>
-  <script src="tablero.js?v=c0734fa"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=77d7fdf"></script>
+  <script src="../../comun/config.js?v=77d7fdf"></script>
+  <script src="../../comun/base.js?v=77d7fdf"></script>
+  <script src="../../comun/graficos.js?v=77d7fdf"></script>
+  <script src="../../comun/filtros.js?v=77d7fdf"></script>
+  <script src="../../comun/descarga.js?v=77d7fdf"></script>
+  <script src="tablero.js?v=77d7fdf"></script>
 </body>
 </html>
