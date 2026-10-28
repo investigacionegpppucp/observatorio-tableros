@@ -1,0 +1,190 @@
+/* =========================================================
+   Estilos propios del tablero de Mensajes presidenciales.
+   Lo compartido (franja, filtros, tarjetas, tablas) está en
+   comun/estilos.css; los colores de marca, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* Matriz: un solo tono azul, de claro a oscuro (validado con dataviz/validate_palette.js --ordinal) */
+  --m-1: #98b1f3;
+  --m-2: #7393ec;
+  --m-3: #4d6fda;
+  --m-4: #2c4fb4;
+  --m-5: #14286b;
+  /* Familias de temas (validadas como categóricas, todos los pares): color base y tono oscuro para intercalar */
+  --f-1: #2f56c8; --f-1-osc: #1d3fa0; /* Economía y desarrollo */
+  --f-2: #00836b; --f-2-osc: #0b5b4a; /* Servicios sociales */
+  --f-3: #c61c44; --f-3-osc: #9c1636; /* Estado e instituciones */
+  --f-4: #c27c00; --f-4-osc: #8f5a00; /* Grupos de población */
+}
+.cabecera-interior { padding-bottom: 14px; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Pestañas tipo carpeta ----------
+   La pestaña activa se rellena con el gris de la página y se une al contenido,
+   con una franja lima arriba; la otra queda solo con contorno. */
+.modulos.pestanas-carpeta { gap: 10px; padding-top: 16px; align-items: flex-end; }
+.pestanas-carpeta button {
+  min-width: 220px; padding: 12px 22px 12px; margin-bottom: 0;
+  border: 2px solid rgba(255, 255, 255, 0.5); border-bottom: 0; border-radius: 10px 10px 0 0;
+  background: transparent; color: #fff; text-align: left; font-size: 16px; font-weight: 600; line-height: 1.25;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.pestanas-carpeta button:hover { background: rgba(255, 255, 255, 0.1); border-color: #fff; }
+.pestanas-carpeta button[aria-selected="true"] {
+  background: var(--fondo); color: var(--navy); border-color: var(--fondo);
+  box-shadow: inset 0 5px 0 var(--lima);
+}
+.pestanas-carpeta button:focus-visible { outline: 3px solid var(--lima); outline-offset: 3px; }
+
+/* Lectura de cada gráfico: una o dos frases que cambian con los filtros */
+.lectura { margin: 12px 0 0; max-width: 860px; font-size: 16px; line-height: 1.5; color: var(--texto); }
+.lectura:empty { display: none; }
+.lectura strong { color: var(--navy); }
+
+/* Filtros aplicados: cada uno es un botón que lo quita */
+.aplicados { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 20px; padding: 10px 14px;
+  background: #e8eefb; border: 1px solid #c9d6f5; border-radius: var(--radio); }
+.aplicados-titulo { font-size: 14px; font-weight: 700; color: var(--navy); }
+.aplicados-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px 4px 12px; border: 1px solid #b4c6fa;
+  border-radius: var(--radio); background: #fff; color: var(--navy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.chip span { font-size: 18px; line-height: 1; color: var(--azul); }
+.chip:hover { border-color: var(--azul); }
+.quitar-todo { margin-left: auto; min-height: 36px; border: 0; background: none; color: var(--azul); font: inherit; font-size: 14px; font-weight: 700;
+  text-decoration: underline; cursor: pointer; }
+.chip:focus-visible, .quitar-todo:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+/* Cifras clave */
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi .kpi-etiqueta { font-weight: 700; }
+
+/* Leyendas */
+.ley { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 14px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.linea { width: 18px; height: 3px; vertical-align: 3px; }
+
+/* Matriz: en pantallas angostas se desplaza dentro de la tarjeta */
+.matriz-caja { overflow-x: auto; }
+.solo-angosto { display: none; }
+
+/* Pares de tarjetas: mismo ancho y mismo alto */
+.par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.par > .tarjeta { margin-bottom: 0; display: flex; flex-direction: column; }
+.par > .tarjeta > header { min-height: 72px; }
+.tabla-caja.par-tabla { flex: 1 1 auto; max-height: 520px; }
+
+/* Tablas ordenables */
+.tabla-caja { max-height: 640px; overflow: auto; margin-top: 12px; border: 1px solid var(--linea); border-radius: var(--radio); }
+.tabla td { vertical-align: top; }
+.tabla.ordenable th { padding: 0; white-space: nowrap; }
+.tabla.ordenable th button { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; background: none;
+  color: #fff; font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
+.tabla.ordenable th.num button { justify-content: flex-end; }
+.tabla.ordenable th button:hover { background: rgba(255, 255, 255, 0.1); }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.6; }
+.tabla.ordenable th[aria-sort="ascending"] .flecha, .tabla.ordenable th[aria-sort="descending"] .flecha { opacity: 1; color: var(--lima); }
+.tabla.ordenable tbody tr[data-k] { cursor: pointer; }
+.tabla.ordenable tbody tr[data-k]:hover td { background: var(--fondo); }
+.tabla.ordenable tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla tfoot td { position: sticky; bottom: 0; background: #e8eefb; border-top: 2px solid var(--navy); }
+.tabla .ministro { font-weight: 700; min-width: 200px; }
+.tabla .gobierno { font-weight: 700; }
+.tabla .gobierno small { white-space: normal; }
+#t-gobiernos .tabla td, #t-gobiernos .tabla.ordenable th button { padding-left: 10px; padding-right: 10px; }
+.tabla .ministro small, .tabla td small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 14px; }
+.tabla .sin-dato { color: var(--texto-suave); font-weight: 600; }
+.tabla-vacia { margin: 0; padding: 24px 16px; color: var(--texto-suave); }
+#t-ministros .tabla { min-width: 760px; }
+
+/* Tabla de cada pedido */
+.tabla .fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabla .doc { font-weight: 700; white-space: nowrap; }
+.tabla .doc a { color: var(--azul); }
+.tabla .doc a:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+/* el motivo se corta en dos líneas; completo en el atributo title */
+.tabla .sumilla { display: -webkit-box; min-width: 300px; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--texto-suave); font-size: 14px; }
+.resultado { display: inline-flex; align-items: flex-start; gap: 8px; font-weight: 700; white-space: nowrap; }
+.resultado i { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 6px; }
+
+/* Filtro propio de una tarjeta (resultado de la tabla de pedidos) */
+.filtro-local { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 16px 0 0; }
+.filtro-local > span { font-weight: 700; color: var(--navy); }
+.segmentado.claro { display: inline-flex; flex-wrap: wrap; gap: 0; padding: 0; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); overflow: hidden; }
+.segmentado.claro button { border-radius: 0; min-height: 44px; padding: 8px 14px; font-size: 14px; color: var(--texto-suave); border-right: 1px solid var(--linea); }
+.segmentado.claro button:last-child { border-right: 0; }
+.segmentado.claro button:hover:not([aria-pressed="true"]) { background: var(--fondo); color: var(--navy); }
+.segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.segmentado.claro button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.segmentado.claro button small { font-size: 14px; font-weight: 600; opacity: 0.8; margin-left: 4px; }
+
+/* Buscador y resultado de la tabla de cada proceso */
+/* centrados, como las leyendas */
+.controles-tabla { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 28px; margin: 16px 0 0; }
+.controles-tabla .filtro-local { margin: 0; justify-content: center; }
+.buscador { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 14px; flex: 0 1 600px; }
+.buscador label { font-weight: 700; color: var(--navy); }
+.buscador input { flex: 1 1 320px; max-width: 520px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio);
+  font: inherit; font-size: 16px; color: var(--texto); background: #fff; }
+.buscador input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+
+/* Pestaña en preparación */
+.en-preparacion { max-width: 760px; }
+.en-preparacion p { margin: 10px 0 0; font-size: 16px; }
+.en-preparacion a { color: var(--azul); font-weight: 700; }
+.en-preparacion a:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+@media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .par { grid-template-columns: 1fr; }
+  .par > .tarjeta > header { min-height: 0; }
+}
+@media (max-width: 700px) {
+  /* celular: las dos pestañas lado a lado, siempre a la vista */
+  .modulos.pestanas-carpeta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-bottom: 0; }
+  .pestanas-carpeta button { min-width: 0; padding: 12px 12px 12px; font-size: 15px; border-top: 2px solid rgba(255, 255, 255, 0.5); }
+  .pestanas-carpeta button[aria-selected="true"] { border-top-color: var(--fondo); }
+  .solo-angosto { display: block; }
+}
+@media (max-width: 560px) {
+  .kpis-4 { grid-template-columns: 1fr; }
+  .quitar-todo { margin-left: 0; }
+}
+
+/* El resumen y las lecturas ocupan todo el ancho, como los gráficos */
+.resumen, .lectura { max-width: none; }
+/* Cifras que cambian con los filtros (resumen y lecturas): negrita azul con una línea lima debajo */
+.resumen strong, .lectura strong {
+  color: var(--navy);
+  text-decoration: underline;
+  text-decoration-color: var(--lima);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+  text-decoration-skip-ink: none;
+}
+
+/* Mensajes presidenciales */
+.kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cabeza-con-control { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px 24px; }
+.cabeza-con-control .filtro-local { margin: 0; }
+.filtro-local select { height: 44px; min-width: 220px; padding: 0 38px 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); background: #fff;
+  font: inherit; font-size: 15px; color: var(--texto); appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; }
+.filtro-local select:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.filtro-local label { font-weight: 700; color: var(--navy); }
+#t-palabras .tabla { min-width: 860px; }
+.tabla .palabra { font-weight: 800; color: var(--navy); }
+.tabla .palabra small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 14px; }
+#g-matriz { min-width: 980px; }
+@media (max-width: 900px) { .kpis-3 { grid-template-columns: 1fr; } }
+
+/* ---------- Leyenda de familias de temas ---------- */
+.ley-familias { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 4px 0 14px; font-size: 14px; color: var(--texto); }
+.ley-familias span { display: inline-flex; align-items: center; gap: 8px; }
+.ley-familias i { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+.ley-familias small { color: var(--texto-suave); font-size: 14px; }
+.tabla .palabra small i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+#fam-matriz { margin-bottom: 6px; }

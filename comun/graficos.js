@@ -73,7 +73,7 @@ window.Obs = window.Obs || {};
        comparacion nombre de la región de comparación; si existe, se dibuja su marca
        seleccion   Set de claves resaltadas; las demás se atenúan
        alClic      función(clave) al hacer clic en una barra
-       color       color de las barras
+       color       color de las barras (cada ítem puede traer el suyo en `color`)
        limite      número máximo de filas (el resto se omite) */
   Obs.barras = (id, items, opciones = {}) => {
     const t = Obs.tema();
@@ -115,7 +115,7 @@ window.Obs = window.Obs || {};
           type: "bar", barMaxWidth: 18, barCategoryGap: "36%", cursor: alClic ? "pointer" : "default",
           data: datos.map((d) => ({
             value: d.valor,
-            itemStyle: { color, borderRadius: [0, 2, 2, 0], opacity: seleccion && !seleccion.has(d.clave) ? 0.25 : 1 },
+            itemStyle: { color: d.color ?? color, borderRadius: [0, 2, 2, 0], opacity: seleccion && !seleccion.has(d.clave) ? 0.25 : 1 },
           })),
           label: { show: true, position: "right", distance: 8, formatter: (p) => formato(p.value), ...texto({ fontWeight: 700 }) },
         },
