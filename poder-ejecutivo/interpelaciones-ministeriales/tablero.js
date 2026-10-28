@@ -328,7 +328,7 @@ function render() {
 function actualizar(parche) { Object.assign(estado, parche); render(); }
 
 Obs.iniciar(TABLERO, async () => {
-  const datos = await Obs.cargarJSON("datos.json");
+  const datos = await Obs.cargarJSON("../mociones-interpelacion/datos.json");
   const css = getComputedStyle(document.documentElement);
   C = { ...Obs.tema(), estado: Object.fromEntries(ESTADOS.map((e) => [e.clave, css.getPropertyValue(e.css).trim()])) };
 
