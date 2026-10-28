@@ -8,16 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/tema.css?v=d9dc41c">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=d9dc41c">
-  <link rel="stylesheet" href="estilos.css?v=d9dc41c">
+  <link rel="stylesheet" href="../../comun/tema.css?v=fdb1355">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=fdb1355">
+  <link rel="stylesheet" href="estilos.css?v=fdb1355">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Mociones de interpelación</h1>
-        <p class="subtitulo">Los pedidos del Congreso para que un ministro responda ante el Pleno, desde 2001: a quiénes, por qué sectores y cómo terminó cada proceso.</p>
+        <p class="subtitulo">Las mociones con que el Congreso pidió que un ministro respondiera ante el Pleno, desde 2001, y cómo terminó cada proceso.</p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -26,63 +26,164 @@
     </div>
   </header>
 
-  <section class="filtros" id="filtros" aria-label="Filtros">
-    <div class="filtro"><label for="f-gobierno">Gobierno</label><select id="f-gobierno"></select></div>
-    <div class="filtro"><label for="f-sector">Sector</label><select id="f-sector"></select></div>
-  </section>
+  <!-- Los filtros (Congreso, Gobierno, Sector) los arma tablero.js; se aplican a las dos pestañas -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos pestanas-carpeta" role="tablist" aria-label="Pestañas del tablero">
+    <button type="button" role="tab" id="tab-mociones" aria-controls="m-mociones" data-modulo="mociones">Mociones de interpelación</button>
+    <button type="button" role="tab" id="tab-realizadas" aria-controls="m-realizadas" data-modulo="realizadas">Interpelaciones realizadas</button>
+  </nav>
 
   <main>
-    <p class="resumen" id="resumen" aria-live="polite">Cargando datos…</p>
-    <div class="kpis kpis-4">
-      <div class="kpi" id="k-pedidos"></div>
-      <div class="kpi" id="k-realizadas"></div>
-      <div class="kpi" id="k-frenadas"></div>
-      <div class="kpi" id="k-renuncias"></div>
+    <!-- Filtros aplicados: cada uno se quita con un clic -->
+    <div class="aplicados" id="aplicados" hidden>
+      <span class="aplicados-titulo">Filtros aplicados</span>
+      <div class="aplicados-lista" id="aplicados-lista"></div>
+      <button type="button" class="quitar-todo" id="quitar-todo">Quitar todos</button>
     </div>
 
-    <article class="tarjeta">
-      <header><h3>Interpelaciones pedidas cada año</h3><p id="d-anual"></p></header>
-      <div class="ley" id="ley-anual"></div>
-      <div class="grafico" id="g-anual"></div>
-    </article>
+    <!-- ================= MOCIONES DE INTERPELACIÓN ================= -->
+    <section class="modulo" id="m-mociones" role="tabpanel" aria-labelledby="tab-mociones">
+      <p class="resumen" id="r-mociones" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4">
+        <div class="kpi" id="k-mociones"></div>
+        <div class="kpi" id="k-procesos"></div>
+        <div class="kpi" id="k-realizadas"></div>
+        <div class="kpi" id="k-ritmo"></div>
+      </div>
 
-    <div class="grilla">
+      <!-- La tabla de cada proceso va arriba, como en el informe de Looker; el buscador y el resultado solo la filtran a ella -->
       <article class="tarjeta">
-        <header><h3>En cada gobierno</h3><p id="d-gobiernos"></p></header>
-        <div class="grafico" id="g-gobiernos"></div>
-        <p class="pista">Haz clic en un gobierno para verlo en todo el tablero.</p>
+        <header><h3 id="h-pedidos">Cada proceso de interpelación</h3>
+          <p>Un proceso por fila: una moción contra varios ministros aparece una vez por cada uno. El número de la moción lleva al expediente cuando está disponible. Ordena por cualquier columna con un clic en su título.</p></header>
+        <div class="controles-tabla">
+          <div class="buscador">
+            <label for="f-buscar">Buscar</label>
+            <input id="f-buscar" type="search" placeholder="Ministro, n.º de moción o tema" autocomplete="off">
+          </div>
+          <div class="filtro-local" role="group" aria-labelledby="lbl-resultado">
+            <span id="lbl-resultado">Resultado</span>
+            <div class="segmentado claro" id="f-resultado"></div>
+          </div>
+        </div>
+        <div class="tabla-caja" id="t-pedidos"></div>
       </article>
+
       <article class="tarjeta">
-        <header><h3>Sectores más interpelados</h3><p id="d-sectores"></p></header>
+        <header><h3>¿Qué Congreso presentó más mociones de interpelación?</h3>
+          <p>Mociones presentadas, ministros cuestionados (procesos) e interpelaciones realizadas en cada período parlamentario. Haz clic en un período para filtrar el tablero.</p></header>
+        <p class="lectura" id="l-congreso" aria-live="polite"></p>
+        <div class="ley" id="ley-congreso"></div>
+        <div class="grafico" id="g-congreso"></div>
+        <p class="pista" id="p-congreso"></p>
+      </article>
+
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Cómo terminaron los procesos en cada gobierno?</h3>
+            <p>Procesos de interpelación según su resultado. Haz clic en un gobierno para elegirlo.</p></header>
+          <p class="lectura" id="l-gobiernos" aria-live="polite"></p>
+          <div class="ley ley-estados"></div>
+          <div class="grafico" id="g-gobiernos"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Cada cuántos días hubo un proceso de interpelación?</h3>
+            <p>Días de gobierno divididos entre los procesos de interpelación. Menos días, procesos más seguidos.</p></header>
+          <p class="lectura" id="l-ritmo" aria-live="polite"></p>
+          <div class="tabla-caja par-tabla" id="t-gobiernos"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Qué ministerios tuvieron más procesos de interpelación en cada gobierno?</h3>
+          <p>Procesos de interpelación por ministerio y gobierno; los ministerios van de más a menos procesos. Haz clic en una celda, un gobierno o un ministerio para filtrar el tablero.</p></header>
+        <p class="lectura" id="l-matriz" aria-live="polite"></p>
+        <div class="ley" id="ley-matriz"></div>
+        <p class="pista solo-angosto">Desliza la matriz hacia el costado para ver todos los gobiernos.</p>
+        <div class="matriz-caja"><div class="grafico" id="g-matriz"></div></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>¿Cómo terminaron los procesos en cada ministerio?</h3>
+          <p>Porcentaje de procesos según su resultado; al lado, cuántos procesos tuvo el ministerio. Haz clic en un ministerio para elegirlo.</p></header>
+        <p class="lectura" id="l-sectores" aria-live="polite"></p>
+        <div class="ley ley-estados"></div>
         <div class="grafico" id="g-sectores"></div>
-        <p class="pista">Haz clic en un sector para verlo en todo el tablero.</p>
       </article>
-    </div>
 
-    <article class="tarjeta">
-      <header><h3>Ministros con más pedidos de interpelación</h3><p id="d-ministros"></p></header>
-      <div class="grafico" id="g-ministros"></div>
-    </article>
+      <article class="tarjeta">
+        <header><h3 id="h-ministros">Ministros con procesos de interpelación</h3>
+          <p>Un ministro aparece una vez por cada gobierno y ministerio en que fue cuestionado. Ordena por cualquier columna con un clic en su título.</p></header>
+        <p class="lectura" id="l-ministros" aria-live="polite"></p>
+        <div class="tabla-caja" id="t-ministros"></div>
+      </article>
+    </section>
 
-    <article class="tarjeta">
-      <header><h3 id="t-tabla">Cada pedido de interpelación</h3><p>Un pedido por ministro: una moción contra varios ministros aparece una vez por cada uno.</p></header>
-      <div class="tabla-caja" id="t-pedidos"></div>
-    </article>
+    <!-- ================= INTERPELACIONES REALIZADAS ================= -->
+    <section class="modulo" id="m-realizadas" role="tabpanel" aria-labelledby="tab-realizadas" hidden>
+      <p class="resumen" id="r-realizadas" aria-live="polite"></p>
+      <div class="kpis kpis-4">
+        <div class="kpi" id="k-real"></div>
+        <div class="kpi" id="k-votos"></div>
+        <div class="kpi" id="k-preguntas"></div>
+        <div class="kpi" id="k-ministros"></div>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3 id="h-realizadas">Cada interpelación realizada</h3>
+          <p>Una fila por ministro interpelado. A favor, en contra, abstenciones y asistentes son los de la votación de admisión en el Pleno. Ordena por cualquier columna con un clic en su título.</p></header>
+        <p class="lectura" id="l-realizadas" aria-live="polite"></p>
+        <div class="controles-tabla">
+          <div class="buscador">
+            <label for="f-buscar-r">Buscar</label>
+            <input id="f-buscar-r" type="search" placeholder="Ministro, n.º de moción o tema" autocomplete="off">
+          </div>
+        </div>
+        <div class="tabla-caja" id="t-realizadas"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>¿Con cuántos votos se admitieron?</h3>
+          <p>Votos a favor en cada votación de admisión en el Pleno. Pasa por un punto para ver el ministro, los votos en contra, las abstenciones y los asistentes.</p></header>
+        <p class="lectura" id="l-votos" aria-live="polite"></p>
+        <div class="grafico alto" id="g-votos"></div>
+        <p class="pista" id="p-votos"></p>
+      </article>
+
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿En qué años se interpeló a más ministros?</h3>
+            <p>Interpelaciones realizadas según el año en que el ministro acudió al Pleno.</p></header>
+          <p class="lectura" id="l-anios" aria-live="polite"></p>
+          <div class="grafico" id="g-anios"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Qué ministerios fueron interpelados?</h3>
+            <p>Interpelaciones realizadas por ministerio. Haz clic en un ministerio para elegirlo.</p></header>
+          <p class="lectura" id="l-min-real" aria-live="polite"></p>
+          <div class="grafico" id="g-min-real"></div>
+        </article>
+      </div>
+    </section>
   </main>
 
   <footer class="pie">
     <p><strong>Fuente:</strong> Congreso de la República, mociones de interpelación y diario de debates. Elaboración del Observatorio.</p>
-    <p><strong>Notas:</strong> Una moción de interpelación necesita las firmas del 15 % de los congresistas; el Pleno vota si la admite y, si la admite, el ministro acude a responder el pliego de preguntas.
-      «Realizada» es una moción admitida; «archivada» incluye las que perdieron firmas, las que quedaron sin efecto porque el ministro renunció o cambió el gabinete, y las que no llegaron a verse.
-      En octubre de 2008 una sola moción pidió interpelar a todo el Consejo de Ministros (17 ministros). Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Mociones y procesos:</strong> una moción es el documento que presentan los congresistas; un proceso es cada ministro cuestionado en ella. Una moción puede incluir a más de un ministro: en octubre de 2008 una sola pidió interpelar a 17.</p>
+    <p><strong>Resultados:</strong> «Interpelación realizada» es un proceso que el Pleno admitió y en el que el ministro acudió a responder el pliego. «Admisión rechazada» es uno que el Pleno votó y no admitió. «Archivada» reúne los que no llegaron a votarse o quedaron sin efecto, incluso si fueron admitidos y el ministro renunció antes de responder (como en la moción 22132, de mayo de 2026). «En proceso» son los que aún esperan su trámite.</p>
+    <p><strong>Días por proceso:</strong> días de gobierno divididos entre los procesos de interpelación. El total es un promedio ponderado (todos los días entre todos los procesos), no el promedio de los gobiernos. Un gobierno sin mociones de interpelación (como el de Francisco Sagasti) no entra en el cálculo. Si un gobierno coincidió con dos Congresos, sus días se reparten entre ambos según las fechas. El gobierno de Keiko Fujimori y el Congreso 2026-2031 están en curso: sus días se cuentan hasta la última actualización de los datos.</p>
+    <p><strong>Congresos:</strong> cada período parlamentario empieza el 28 de julio. El Congreso elegido en 2016 fue disuelto el 30 de setiembre de 2019; en este tablero va hasta el 16 de marzo de 2020, cuando se instaló el Congreso complementario 2020-2021, que terminó el 28 de julio de 2021.</p>
+    <p><strong>Votación de admisión:</strong> para admitir una moción de interpelación basta el voto de al menos un tercio de los congresistas hábiles. El Congreso tuvo 120 miembros hasta 2011 y 130 desde entonces, así que los votos de distintos períodos no se comparan del todo. Algunas mociones se admitieron sin votación en el Pleno (por ejemplo, por el Consejo Directivo) o no tienen la votación registrada: no aparecen en ese gráfico.</p>
+    <p>Datos actualizados al <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Mociones de interpelación</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=d9dc41c"></script>
-  <script src="../../comun/config.js?v=d9dc41c"></script>
-  <script src="../../comun/base.js?v=d9dc41c"></script>
-  <script src="../../comun/graficos.js?v=d9dc41c"></script>
-  <script src="../../comun/descarga.js?v=d9dc41c"></script>
-  <script src="tablero.js?v=d9dc41c"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=fdb1355"></script>
+  <script src="../../comun/config.js?v=fdb1355"></script>
+  <script src="../../comun/base.js?v=fdb1355"></script>
+  <script src="../../comun/graficos.js?v=fdb1355"></script>
+  <script src="../../comun/filtros.js?v=fdb1355"></script>
+  <script src="../../comun/descarga.js?v=fdb1355"></script>
+  <script src="tablero.js?v=fdb1355"></script>
 </body>
 </html>
