@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estados de emergencia | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=41d5708">
+  <link rel="stylesheet" href="../../comun/tema.css?v=41d5708">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=41d5708">
+  <link rel="stylesheet" href="estilos.css?v=41d5708">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Estados de emergencia</h1>
+        <p class="subtitulo">Cuántas veces, por qué y dónde el Poder Ejecutivo declaró, prorrogó o cambió estados de emergencia mediante decretos supremos, desde 2000.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <!-- Los filtros (Período y Gobierno) los arma tablero.js; se aplican a todas las pestañas -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos pestanas-carpeta" role="tablist" aria-label="Pestañas del tablero">
+    <button type="button" role="tab" id="tab-general" aria-controls="m-general" data-modulo="general">Panorama general</button>
+    <button type="button" role="tab" id="tab-poi" aria-controls="m-poi" data-modulo="poi">Orden interno</button>
+    <button type="button" role="tab" id="tab-cat" aria-controls="m-cat" data-modulo="cat">Catástrofe</button>
+    <button type="button" role="tab" id="tab-san" aria-controls="m-san" data-modulo="san">Emergencia sanitaria</button>
+  </nav>
+
+  <main>
+    <!-- Filtros aplicados: cada uno se quita con un clic -->
+    <div class="aplicados" id="aplicados" hidden>
+      <span class="aplicados-titulo">Filtros aplicados</span>
+      <div class="aplicados-lista" id="aplicados-lista"></div>
+      <button type="button" class="quitar-todo" id="quitar-todo">Quitar todos</button>
+    </div>
+
+    <!-- ================= PANORAMA GENERAL ================= -->
+    <section class="modulo" id="m-general" role="tabpanel" aria-labelledby="tab-general">
+      <p class="resumen" id="r-general" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4">
+        <div class="kpi" id="k-general-total"></div>
+        <div class="kpi" id="k-general-decretos"></div>
+        <div class="kpi" id="k-general-ritmo"></div>
+        <div class="kpi" id="k-general-anio"></div>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Cuántas disposiciones hubo cada año?</h3>
+          <p>Disposiciones por año, según el tipo de emergencia. Una disposición es cada acción de un decreto supremo sobre un estado de emergencia: declararlo, prorrogarlo, modificarlo o terminarlo.</p></header>
+        <p class="lectura" id="l-general-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-general-anual"></div>
+        <div class="grafico" id="g-general-anual"></div>
+      </article>
+
+      <article class="tarjeta" id="c-general-motivo-anual">
+        <header><h3>¿Por qué motivo, cada año?</h3>
+          <p>Disposiciones por año según el motivo: los cuatro motivos más frecuentes de todos los tipos de emergencia y el resto, juntos en «Otros motivos».</p></header>
+        <p class="lectura" id="l-general-motivo-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-general-motivo-anual"></div>
+        <div class="grafico" id="g-general-motivo-anual"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header class="cabeza-con-control">
+          <div><h3>¿Qué gobiernos dictaron más disposiciones?</h3>
+            <p>Los gobiernos duraron muy distinto (Manuel Merino, cinco días; Ollanta Humala, cinco años): por eso se comparan por mes de gobierno. Haz clic en un gobierno para filtrar el tablero.</p></div>
+          <div class="filtro-local">
+            <span id="lbl-medida">Medida</span>
+            <div class="segmentado claro" role="group" aria-labelledby="lbl-medida">
+              <button type="button" data-medida="ritmo">Por mes</button>
+              <button type="button" data-medida="total">Total</button>
+            </div>
+          </div>
+        </header>
+        <p class="lectura" id="l-general-gobierno" aria-live="polite"></p>
+        <div class="grafico" id="g-general-gobierno"></div>
+      </article>
+
+      <div class="par" id="par-general">
+        <article class="tarjeta">
+          <header><h3>¿Qué tipo de disposición?</h3>
+            <p>Declaratorias, prórrogas, modificatorias y términos, como parte del total de disposiciones.</p></header>
+          <p class="lectura" id="l-general-disp" aria-live="polite"></p>
+          <div class="ley" id="ley-general-disp"></div>
+          <div class="grafico dona" id="g-general-disp"></div>
+        </article>
+        <article class="tarjeta" id="c-general-motivo">
+          <header><h3>¿Por qué motivo?</h3>
+            <p>Motivos de todos los tipos de emergencia: los cuatro más frecuentes y el resto, juntos en «Otros motivos». Pasa el cursor por un segmento para ver la cifra.</p></header>
+          <p class="lectura" id="l-general-motivo" aria-live="polite"></p>
+          <div class="ley" id="ley-general-motivo"></div>
+          <div class="grafico dona" id="g-general-motivo"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿En qué regiones?</h3>
+          <p>Disposiciones que alcanzaron a cada región, de todos los tipos de emergencia. Una disposición puede abarcar varias regiones. Haz clic en una región del mapa o de la tabla para filtrar el tablero.</p></header>
+        <p class="lectura" id="l-general-region" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-general"></div><div class="leyenda-mapa" id="ley-mapa-general"></div></div>
+          <div class="tabla-caja" id="t-general-region"></div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ================= ORDEN INTERNO ================= -->
+    <section class="modulo" id="m-poi" role="tabpanel" aria-labelledby="tab-poi" hidden>
+      <p class="resumen" id="r-poi" aria-live="polite"></p>
+      <div class="kpis kpis-4">
+        <div class="kpi" id="k-poi-total"></div>
+        <div class="kpi" id="k-poi-declaratorias"></div>
+        <div class="kpi" id="k-poi-prorrogas"></div>
+        <div class="kpi" id="k-poi-extra"></div>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Cómo se usaron los estados de emergencia por perturbación del orden interno cada año?</h3>
+          <p>Disposiciones de cada tipo por año: la declaratoria abre un estado de emergencia; la prórroga lo extiende; la modificatoria cambia sus condiciones; el término lo cierra antes de tiempo.</p></header>
+        <p class="lectura" id="l-poi-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-poi-anual"></div>
+        <div class="grafico" id="g-poi-anual"></div>
+      </article>
+
+      <article class="tarjeta" id="c-poi-motivo-anual">
+        <header><h3>¿Por qué motivo, cada año?</h3>
+          <p>Disposiciones por año según el motivo: los cuatro motivos más frecuentes y el resto, juntos en «Otros motivos».</p></header>
+        <p class="lectura" id="l-poi-motivo-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-poi-motivo-anual"></div>
+        <div class="grafico" id="g-poi-motivo-anual"></div>
+      </article>
+
+      <div class="par" id="par-poi">
+        <article class="tarjeta">
+          <header><h3>¿Qué tipo de disposición?</h3>
+            <p>Declaratorias, prórrogas, modificatorias y términos, como parte del total de disposiciones.</p></header>
+          <p class="lectura" id="l-poi-disp" aria-live="polite"></p>
+          <div class="ley" id="ley-poi-disp"></div>
+          <div class="grafico dona" id="g-poi-disp"></div>
+        </article>
+        <article class="tarjeta" id="c-poi-motivo">
+          <header><h3>¿Por qué motivo?</h3>
+            <p>Los cuatro motivos más frecuentes y el resto, juntos en «Otros motivos». Pasa el cursor por un segmento para ver la cifra.</p></header>
+          <p class="lectura" id="l-poi-motivo" aria-live="polite"></p>
+          <div class="ley" id="ley-poi-motivo"></div>
+          <div class="grafico dona" id="g-poi-motivo"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Qué acciones se dispusieron?</h3>
+          <p>Disposiciones según la acción que ordenan. Una disposición puede incluir más de una acción, así que las barras pueden sumar más que el total.</p></header>
+        <p class="lectura" id="l-poi-accion" aria-live="polite"></p>
+        <div class="grafico" id="g-poi-accion"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>¿En qué regiones?</h3>
+          <p>Disposiciones que alcanzaron a cada región. Una disposición puede abarcar varias regiones. Haz clic en una región del mapa o de la tabla para filtrar el tablero.</p></header>
+        <p class="lectura" id="l-poi-region" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-poi"></div><div class="leyenda-mapa" id="ley-mapa-poi"></div></div>
+          <div class="tabla-caja" id="t-poi-region"></div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ================= CATÁSTROFE ================= -->
+    <section class="modulo" id="m-cat" role="tabpanel" aria-labelledby="tab-cat" hidden>
+      <p class="resumen" id="r-cat" aria-live="polite"></p>
+      <div class="kpis kpis-4">
+        <div class="kpi" id="k-cat-total"></div>
+        <div class="kpi" id="k-cat-declaratorias"></div>
+        <div class="kpi" id="k-cat-prorrogas"></div>
+        <div class="kpi" id="k-cat-extra"></div>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Cómo se usaron los estados de emergencia por catástrofe cada año?</h3>
+          <p>Disposiciones de cada tipo por año: la declaratoria abre un estado de emergencia; la prórroga lo extiende; la modificatoria cambia sus condiciones; el término lo cierra antes de tiempo.</p></header>
+        <p class="lectura" id="l-cat-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-cat-anual"></div>
+        <div class="grafico" id="g-cat-anual"></div>
+      </article>
+
+      <article class="tarjeta" id="c-cat-motivo-anual">
+        <header><h3>¿Por qué motivo, cada año?</h3>
+          <p>Disposiciones por año según el motivo: los cuatro motivos más frecuentes y el resto, juntos en «Otros motivos».</p></header>
+        <p class="lectura" id="l-cat-motivo-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-cat-motivo-anual"></div>
+        <div class="grafico" id="g-cat-motivo-anual"></div>
+      </article>
+
+      <div class="par" id="par-cat">
+        <article class="tarjeta">
+          <header><h3>¿Qué tipo de disposición?</h3>
+            <p>Declaratorias, prórrogas, modificatorias y términos, como parte del total de disposiciones.</p></header>
+          <p class="lectura" id="l-cat-disp" aria-live="polite"></p>
+          <div class="ley" id="ley-cat-disp"></div>
+          <div class="grafico dona" id="g-cat-disp"></div>
+        </article>
+        <article class="tarjeta" id="c-cat-motivo">
+          <header><h3>¿Por qué motivo?</h3>
+            <p>Los cuatro motivos más frecuentes y el resto, juntos en «Otros motivos». Pasa el cursor por un segmento para ver la cifra.</p></header>
+          <p class="lectura" id="l-cat-motivo" aria-live="polite"></p>
+          <div class="ley" id="ley-cat-motivo"></div>
+          <div class="grafico dona" id="g-cat-motivo"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Qué acciones se dispusieron?</h3>
+          <p>Disposiciones según la acción que ordenan. Una disposición puede incluir más de una acción, así que las barras pueden sumar más que el total.</p></header>
+        <p class="lectura" id="l-cat-accion" aria-live="polite"></p>
+        <div class="grafico" id="g-cat-accion"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>¿En qué regiones?</h3>
+          <p>Disposiciones que alcanzaron a cada región. Una disposición puede abarcar varias regiones. Haz clic en una región del mapa o de la tabla para filtrar el tablero.</p></header>
+        <p class="lectura" id="l-cat-region" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-cat"></div><div class="leyenda-mapa" id="ley-mapa-cat"></div></div>
+          <div class="tabla-caja" id="t-cat-region"></div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ================= EMERGENCIA SANITARIA ================= -->
+    <section class="modulo" id="m-san" role="tabpanel" aria-labelledby="tab-san" hidden>
+      <p class="resumen" id="r-san" aria-live="polite"></p>
+      <div class="kpis kpis-4">
+        <div class="kpi" id="k-san-total"></div>
+        <div class="kpi" id="k-san-declaratorias"></div>
+        <div class="kpi" id="k-san-prorrogas"></div>
+        <div class="kpi" id="k-san-extra"></div>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Cómo se usaron los estados de emergencia por emergencia sanitaria cada año?</h3>
+          <p>Disposiciones de cada tipo por año: la declaratoria abre un estado de emergencia; la prórroga lo extiende; la modificatoria cambia sus condiciones; el término lo cierra antes de tiempo.</p></header>
+        <p class="lectura" id="l-san-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-san-anual"></div>
+        <div class="grafico" id="g-san-anual"></div>
+      </article>
+
+      <article class="tarjeta" id="c-san-motivo-anual">
+        <header><h3>¿Por qué motivo, cada año?</h3>
+          <p>Disposiciones por año según el motivo: los cuatro motivos más frecuentes y el resto, juntos en «Otros motivos».</p></header>
+        <p class="lectura" id="l-san-motivo-anual" aria-live="polite"></p>
+        <div class="ley" id="ley-san-motivo-anual"></div>
+        <div class="grafico" id="g-san-motivo-anual"></div>
+      </article>
+
+      <div class="par" id="par-san">
+        <article class="tarjeta">
+          <header><h3>¿Qué tipo de disposición?</h3>
+            <p>Declaratorias, prórrogas, modificatorias y términos, como parte del total de disposiciones.</p></header>
+          <p class="lectura" id="l-san-disp" aria-live="polite"></p>
+          <div class="ley" id="ley-san-disp"></div>
+          <div class="grafico dona" id="g-san-disp"></div>
+        </article>
+        <article class="tarjeta" id="c-san-motivo">
+          <header><h3>¿Por qué motivo?</h3>
+            <p>Los cuatro motivos más frecuentes y el resto, juntos en «Otros motivos». Pasa el cursor por un segmento para ver la cifra.</p></header>
+          <p class="lectura" id="l-san-motivo" aria-live="polite"></p>
+          <div class="ley" id="ley-san-motivo"></div>
+          <div class="grafico dona" id="g-san-motivo"></div>
+        </article>
+      </div>
+
+      <article class="tarjeta">
+        <header><h3>¿Qué acciones se dispusieron?</h3>
+          <p>Disposiciones según la acción que ordenan. Una disposición puede incluir más de una acción, así que las barras pueden sumar más que el total.</p></header>
+        <p class="lectura" id="l-san-accion" aria-live="polite"></p>
+        <div class="grafico" id="g-san-accion"></div>
+      </article>
+
+      <article class="tarjeta">
+        <header><h3>¿En qué regiones?</h3>
+          <p>Disposiciones que alcanzaron a cada región. Una disposición puede abarcar varias regiones. Haz clic en una región del mapa o de la tabla para filtrar el tablero.</p></header>
+        <p class="lectura" id="l-san-region" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-san"></div><div class="leyenda-mapa" id="ley-mapa-san"></div></div>
+          <div class="tabla-caja" id="t-san-region"></div>
+        </div>
+      </article>
+
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Aragón, J., Cruz, M., Pinillos, X., Gutiérrez, N., y Alcántara, K. (2026). <em>Base de Estados de Emergencia en el Perú</em> (versión junio 2026) [base de datos]. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+    <p><strong>Qué se cuenta:</strong> una disposición es cada acción específica de un decreto supremo sobre un estado de emergencia (declaratoria, prórroga, modificatoria o término). Un mismo decreto supremo puede incluir más de una disposición.</p>
+    <p><strong>Por mes de gobierno:</strong> disposiciones del gobierno entre los meses que gobernó dentro del período elegido. El último gobierno se cuenta hasta el final de los datos.</p>
+    <p><strong>Regiones:</strong> una disposición que abarca varias regiones cuenta en cada una. Lima Metropolitana y Lima Provincias se registran por separado.</p><p><strong>Emergencia sanitaria:</strong> todas las disposiciones de este tipo se dictaron por la COVID-19, entre 2020 y 2022.</p>
+    <p>Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Estados de emergencia</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=41d5708"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=41d5708"></script>
+  <script src="../../comun/config.js?v=41d5708"></script>
+  <script src="../../comun/base.js?v=41d5708"></script>
+  <script src="../../comun/graficos.js?v=41d5708"></script>
+  <script src="../../comun/mapa.js?v=41d5708"></script>
+  <script src="../../comun/filtros.js?v=41d5708"></script>
+  <script src="../../comun/descarga.js?v=41d5708"></script>
+  <script src="tablero.js?v=41d5708"></script>
+</body>
+</html>
