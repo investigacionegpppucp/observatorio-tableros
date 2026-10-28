@@ -215,7 +215,7 @@ const extremos = (lista, campo, mayor = true) => {
   const v = (mayor ? Math.max : Math.min)(...lista.map((x) => x[campo]));
   return lista.filter((x) => x[campo] === v);
 };
-const MINIMO = 5; // procesos mínimos para comparar proporciones (con menos, un caso mueve mucho el porcentaje)
+const MINIMO = 5; // para comparar proporciones se exigen MÁS de estos procesos (con pocos, un caso mueve mucho el porcentaje)
 // «Ninguno terminó», «Todos terminaron» o «37,5 % terminó» (empieza la frase)
 const terminaron = (real, n) => (real === 0 ? (n === 1 ? "No terminó" : "Ninguno terminó")
   : real === n ? (n === 1 ? "Terminó" : "Todos terminaron") : `${fuerte(pct(real / n))} terminó`);
@@ -302,11 +302,8 @@ function porCongreso(filas) {
     const comun = { type: "line", symbol: "circle", symbolSize: (_, q) => (elegidos && estado.periodos.has(q.dataIndex) ? 14 : 9),
       lineStyle: { width: 2, color: C.serie[x.clave] }, emphasis: { focus: "series" },
       itemStyle: { color: C.serie[x.clave], borderColor: "#fff", borderWidth: 2 } };
-    // etiquetas selectivas: los procesos arriba y las realizadas a la izquierda (abajo chocarían con el eje
-    // cuando son pocas); las mociones solo en la burbuja. El tramo punteado solo rotula su último punto.
-    const label = (soloUltimo) => (x.clave === "mociones" || angosto ? { show: false }
-      : { show: true, position: x.clave === "procesos" ? "top" : "left", distance: 8, ...txt({ color: C.texto, fontWeight: 700 }),
-        formatter: (q) => (soloUltimo && q.dataIndex !== enCurso ? "" : num(q.value)) });
+    // sin números en los puntos (se encimaban): los valores salen en la burbuja al pasar el cursor
+    const label = () => ({ show: false });
     // sin endLabel: las series empiezan o terminan en nulos (da NaN) y la leyenda ya nombra cada línea
     return [
       { ...comun, name: x.nombre, data: tramo(vals, false), label: label(false) },
@@ -432,10 +429,10 @@ function lecturaGobiernos(gobs) {
   const alto = extremos(gobs, "total");
   let t = `${nombres(alto.map((x) => x.nombre))} ${alto.length > 1 ? "tuvieron" : "tuvo"} más procesos de interpelación: ` +
     `${fuerte(plural(alto[0].total, "proceso", "procesos"))}${alto.length > 1 ? " cada uno" : ""}.`;
-  const comparables = gobs.filter((x) => x.total >= MINIMO).map((x) => ({ ...x, tasa: tasa(x) }));
+  const comparables = gobs.filter((x) => x.total > MINIMO).map((x) => ({ ...x, tasa: tasa(x) }));
   if (comparables.length >= 2) {
     const mas = extremos(comparables, "tasa"), menos = extremos(comparables, "tasa", false);
-    if (mas[0].tasa !== menos[0].tasa) t += ` Entre los gobiernos con ${fuerte(MINIMO)} procesos o más, la proporción que terminó en una interpelación fue mayor con ` +
+    if (mas[0].tasa !== menos[0].tasa) t += ` Entre los gobiernos con más de ${fuerte(MINIMO)} procesos, la proporción que terminó en una interpelación fue mayor con ` +
       `${nombres(mas.map((x) => x.nombre))} (${fuerte(pct(mas[0].tasa))}); con ${nombres(menos.map((x) => x.nombre))}, ` +
       `${menos[0].tasa === 0 ? `${fuerte("ninguno")} terminó así` : `fue de ${fuerte(pct(menos[0].tasa))}`}.`;
   }
@@ -616,7 +613,7 @@ function lecturaSectores(secs) {
     return lectura("l-sectores", `${sel.length === 1 ? destacar(sel[0].nombre) : nombres(sel.map((x) => x.nombre))} ${sel.length === 1 ? "tuvo" : "tuvieron"} ` +
       `${fuerte(plural(proc, "proceso", "procesos"))} de interpelación. ${terminaron(sumar(sel, "realizada"), proc)} en una interpelación${frente}.`);
   }
-  const comparables = secs.filter((x) => x.total >= MINIMO).map((x) => ({ ...x, tasa: tasa(x) }));
+  const comparables = secs.filter((x) => x.total > MINIMO).map((x) => ({ ...x, tasa: tasa(x) }));
   if (comparables.length < 2) {
     // pocos procesos por ministerio: se nombra el que tuvo más
     const x = extremos(secs, "total")[0];
@@ -626,7 +623,7 @@ function lecturaSectores(secs) {
   if (mas[0].tasa === menos[0].tasa) return lectura("l-sectores", "");
   lectura("l-sectores", `${nombres(mas.map((x) => x.nombre))} ${mas.length > 1 ? "son los ministerios" : "es el ministerio"} donde una mayor proporción de procesos ` +
     `terminó en una interpelación: ${fuerte(pct(mas[0].tasa))}. En ${nombres(menos.map((x) => x.nombre))}, ` +
-    `${menos[0].tasa === 0 ? fuerte("ninguno") : `solo ${fuerte(pct(menos[0].tasa))}`}. Se comparan los ministerios con ${fuerte(MINIMO)} procesos o más.`);
+    `${menos[0].tasa === 0 ? fuerte("ninguno") : `solo ${fuerte(pct(menos[0].tasa))}`}. Se comparan los ministerios con más de ${fuerte(MINIMO)} procesos.`);
 }
 
 /* ---------- Ministros (tabla) ----------
@@ -694,18 +691,17 @@ function tablaPedidos(filas) {
   const columnas = [
     { clave: "fecha", titulo: "Presentada", valor: (f) => (f.fecha ? +f.fecha : null), html: (f) => `<span class="fecha">${fmtFecha(f.fecha)}</span>` },
     { clave: "mocion", titulo: "Moción", valor: (f) => parseFloat(f.num),
-      html: (f) => `<span class="doc">${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${esc(f.mocion)}</a>` : esc(f.mocion)}</span>` },
+      html: (f) => `<span class="doc" title="${esc(`Motivo: ${f.sumilla}`)}">${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${esc(f.mocion)}</a>` : esc(f.mocion)}</span>` },
     { clave: "gobierno", titulo: "Gobierno", valor: (f) => f.g, html: (f) => esc(GOB[f.g].nombre) },
     { clave: "legis", titulo: "Legislatura", valor: (f) => f.legis, html: (f) => `<span class="fecha">${esc(f.legis)}</span>` },
     { clave: "sector", titulo: "Ministerio", valor: (f) => f.sector, html: (f) => esc(f.sector) },
     { clave: "ministro", titulo: "Ministro", valor: (f) => f.ministro, html: (f) => `<span class="ministro">${esc(f.ministro)}</span>` },
     { clave: "resultado", titulo: "Resultado", valor: (f) => ESTADOS.findIndex((e) => e.clave === f.estado),
       html: (f) => `<span class="resultado"><i style="background:${C.estado[f.estado]}"></i>${ESTADOS.find((e) => e.clave === f.estado).nombre}</span>` },
-    { clave: "motivo", titulo: "Motivo", valor: (f) => f.sumilla, html: (f) => `<span class="sumilla" title="${esc(f.sumilla)}">${esc(f.sumilla)}</span>` },
   ];
   tablaOrdenable("t-pedidos", columnas, lista, {
     inicial: { clave: "fecha", dir: -1 }, desempate: (a, b) => parseFloat(b.num) - parseFloat(a.num) || a.ministro.localeCompare(b.ministro, "es"),
-    descripcion: "Cada proceso de interpelación: fecha de presentación, moción, gobierno, legislatura, ministerio, ministro, resultado y motivo",
+    descripcion: "Cada proceso de interpelación: fecha de presentación, moción, gobierno, legislatura, ministerio, ministro, y resultado; el motivo sale al pasar el cursor por el número de moción",
     vacia: estado.buscar.trim() ? `Nada coincide con «${esc(estado.buscar.trim())}» con estos filtros. Prueba con un apellido o un número de moción.` : null,
   });
 }
@@ -785,12 +781,11 @@ function tablaRealizadas(lista) {
     cifra("favor", "A favor", "voto-favor"),
     cifra("contra", "En contra"),
     cifra("abst", "Abstenciones"),
-    cifra("asistentes", "Asistentes", "voto-asistentes"),
     cifra("preguntas", "Preguntas"),
   ];
   tablaOrdenable("t-realizadas", columnas, lista, {
     inicial: { clave: "fecha", dir: -1 }, desempate: (a, b) => parseFloat(b.num) - parseFloat(a.num) || a.ministro.localeCompare(b.ministro, "es"),
-    descripcion: "Cada interpelación realizada: moción, fecha de la interpelación, gobierno, ministerio, ministro, votos a favor, en contra, abstenciones y asistentes en la admisión, y preguntas del pliego",
+    descripcion: "Cada interpelación realizada: moción, fecha de la interpelación, gobierno, ministerio, ministro, votos a favor, en contra y abstenciones en la admisión, y preguntas del pliego",
     vacia: estado.buscarR.trim() ? `Nada coincide con «${esc(estado.buscarR.trim())}» con estos filtros. Prueba con un apellido o un número de moción.` : null,
   });
 }

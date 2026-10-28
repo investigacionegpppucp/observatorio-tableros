@@ -30,9 +30,9 @@
    con una franja lima arriba; la otra queda solo con contorno. */
 .modulos.pestanas-carpeta { gap: 10px; padding-top: 16px; align-items: flex-end; }
 .pestanas-carpeta button {
-  min-width: 240px; padding: 14px 22px 14px; margin-bottom: 0;
+  min-width: 220px; padding: 12px 22px 12px; margin-bottom: 0;
   border: 2px solid rgba(255, 255, 255, 0.5); border-bottom: 0; border-radius: 10px 10px 0 0;
-  background: transparent; color: #fff; text-align: left; font-size: 18px; font-weight: 800; line-height: 1.25;
+  background: transparent; color: #fff; text-align: left; font-size: 16px; font-weight: 600; line-height: 1.25;
   transition: background-color 0.15s, border-color 0.15s;
 }
 .pestanas-carpeta button:hover { background: rgba(255, 255, 255, 0.1); border-color: #fff; }
@@ -107,7 +107,7 @@
 #t-ministros .tabla { min-width: 760px; }
 
 /* Tabla de cada pedido */
-#t-pedidos .tabla { min-width: 1120px; }
+#t-pedidos .tabla { min-width: 900px; }
 .tabla .fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tabla .doc { font-weight: 700; white-space: nowrap; }
 .tabla .doc a { color: var(--azul); }
@@ -152,7 +152,7 @@
 @media (max-width: 700px) {
   /* celular: las dos pestañas lado a lado, siempre a la vista */
   .modulos.pestanas-carpeta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-bottom: 0; }
-  .pestanas-carpeta button { min-width: 0; padding: 12px 12px 12px; font-size: 16px; border-top: 2px solid rgba(255, 255, 255, 0.5); }
+  .pestanas-carpeta button { min-width: 0; padding: 12px 12px 12px; font-size: 15px; border-top: 2px solid rgba(255, 255, 255, 0.5); }
   .pestanas-carpeta button[aria-selected="true"] { border-top-color: var(--fondo); }
   .solo-angosto { display: block; }
 }
@@ -162,7 +162,6 @@
 }
 
 /* Pestaña Interpelaciones realizadas */
-#t-realizadas .tabla { min-width: 1080px; }
 .tabla .doc + small { display: block; white-space: nowrap; }
 .tabla .num b { font-weight: 800; }
 .tabla .num small { white-space: normal; text-align: right; }
@@ -170,9 +169,8 @@
 /* El resumen y las lecturas ocupan todo el ancho, como los gráficos */
 .resumen, .lectura { max-width: none; }
 /* Votación de admisión en la tabla de interpelaciones realizadas */
-#t-realizadas .tabla { min-width: 1180px; }
+#t-realizadas .tabla { min-width: 1060px; }
 .voto-favor { font-weight: 800; color: var(--azul); }
-.voto-asistentes { color: var(--texto-suave); }
 
 /* Cifras que cambian con los filtros (resumen y lecturas): negrita azul con una línea lima debajo */
 .resumen strong, .lectura strong {
