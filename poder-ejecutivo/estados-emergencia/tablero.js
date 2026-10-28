@@ -214,7 +214,7 @@ function pintarGeneral(s) {
   Obs.kpi("k-general-ritmo", { etiqueta: "Por mes de gobierno", valor: n && dias ? num(ritmo(n, dias), 1) : "—", pie: "Disposiciones, en promedio" });
   Obs.kpi("k-general-anio", { etiqueta: "Año con más disposiciones", valor: pico ? String(pico[0]) : "—", pie: pico ? plural(pico[1], "disposición", "disposiciones") : "" });
   anualPorTipo(filas);
-  anualPorMotivo("general", filas);
+  anualPorDisposicion("general", filas, "disp-anual");
   porGobierno(s.sinGobierno);
   donaDisposicion("general", filas);
   donaMotivo("general", filas);
@@ -226,28 +226,30 @@ const colorTipo = (t) => (t >= 0 ? C.tipos[t] : C.otrosTipo);
 // Años del período elegido
 const aniosPeriodo = () => Array.from({ length: estado.hasta - estado.desde + 1 }, (_, i) => estado.desde + i);
 
-/* ---------- Disposiciones por año: total y una línea por tipo de emergencia ----------
+/* ---------- Disposiciones por año: una línea por tipo de emergencia ----------
    Un clic en un año filtra el tablero a ese año; otro clic lo quita. */
 function anualPorTipo(filas) {
   const id = "g-general-anual", anios = aniosPeriodo();
   const tipos = [...TIPOS.keys(), -1].filter((t) => filas.some((f) => f.tipo === t));
   const valores = (t) => anios.map((a) => filas.filter((f) => f.anio === a && f.tipo === t).length);
   const totales = anios.map((a) => filas.filter((f) => f.anio === a).length);
-  const series = [{ nombre: "Total", color: C.navy, valores: totales, total: true }, ...tipos.map((t) => ({ nombre: nombreTipo(t), color: colorTipo(t), valores: valores(t) }))];
-  document.getElementById("ley-general-anual").innerHTML = series.map((x) => `<span><i class="linea${x.total ? " gruesa" : ""}" style="background:${x.color}"></i>${x.nombre}</span>`).join("");
+  // sin línea de total (aplastaba las demás): el total va en el tooltip
+  const series = tipos.map((t) => ({ nombre: nombreTipo(t), color: colorTipo(t), valores: valores(t) }));
+  document.getElementById("ley-general-anual").innerHTML = series.map((x) => `<span><i class="linea" style="background:${x.color}"></i>${x.nombre}</span>`).join("");
   if (!filas.length) { lectura("l-general-anual", ""); return Obs.vacio(id); }
   const max = Math.max(...totales), aMax = anios[totales.indexOf(max)];
   const tTop = [...cuenta(filas.filter((f) => f.anio === aMax), "tipo")].sort((a, b) => b[1] - a[1])[0];
   const primero = totales.find((v) => v > 0), iPrimero = totales.indexOf(primero);
   lectura("l-general-anual", `El año con más disposiciones fue ${destacar(aMax)}, con ${fuerte(num(max))}; ${fuerte(pct(tTop[1] / max))} de ellas por ${destacar(Obs.minus(nombreTipo(tTop[0])))}.` +
     (anios.length > 4 && iPrimero < anios.length - 1 ? ` En ${destacar(anios[iPrimero])} hubo ${fuerte(num(primero))}.` : ""));
-  lineasAnuales(id, anios, series, { alClic: (a) => actualizar(estado.desde === a && estado.hasta === a ? { desde: ANIOS[0], hasta: ANIOS[1] } : { desde: a, hasta: a }) });
+  lineasAnuales(id, anios, series, { totales, alClic: (a) => actualizar(estado.desde === a && estado.hasta === a ? { desde: ANIOS[0], hasta: ANIOS[1] } : { desde: a, hasta: a }) });
   document.getElementById(id).setAttribute("aria-label", `Disposiciones por año y tipo de emergencia, de ${anios[0]} a ${anios.at(-1)}. Los datos están en la tabla de disposiciones.`);
 }
 
 /* Líneas por año, una escala, leyenda aparte (centrada, en HTML); sin cifras en cada punto:
    van en el tooltip. alClic(año): opcional. */
-function lineasAnuales(id, anios, series, { alClic = null } = {}) {
+// totales: opcional, el total de cada año para el tooltip
+function lineasAnuales(id, anios, series, { totales = null, alClic = null } = {}) {
   const el = document.getElementById(id);
   el.style.height = "360px";
   const g = Obs.grafico(id);
@@ -256,8 +258,8 @@ function lineasAnuales(id, anios, series, { alClic = null } = {}) {
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animationDurationUpdate: ANIM ? 400 : 0,
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "line", lineStyle: { color: C.linea, width: 1.5 } },
-      formatter: (ps) => `<strong>${ps[0].name}</strong>` + ps.filter((p) => p.value).sort((a, b) => b.value - a.value)
-        .map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${num(p.value)}</strong>`).join("") + (alClic ? `<br><span style="color:${C.textoSuave}">Clic para ver solo este año</span>` : "") },
+      formatter: (ps) => `<strong>${ps[0].name}</strong>` + (totales ? `<br>Total: <strong>${num(totales[ps[0].dataIndex])}</strong>` : "") + ps.filter((p) => p.value).sort((a, b) => b.value - a.value)
+        .map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${num(p.value)}</strong>`).join("") + (alClic ? `<br><span style="opacity:.85">Clic para ver solo este año</span>` : "") },
     grid: { left: 48, right: 18, top: 14, bottom: 34 },
     xAxis: { type: "category", data: anios, boundaryGap: unAnio || anios.length < 4, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: angosto ? (anios.length > 10 ? 4 : 0) : anios.length > 16 ? 1 : 0 }) },
@@ -309,7 +311,7 @@ function porGobierno(filas) {
       formatter: (ps) => { const d = conDatos[ps[0].dataIndex];
         return `<strong>${Obs.escapar(GOB[d.clave].nombre)}</strong><br>${plural(d.k, "disposición", "disposiciones")}<br>` +
           (d.dias ? `${plural(d.dias, "día", "días")} de gobierno en el período<br><strong>${num(d.r ?? 0, 1)}</strong> por mes de gobierno` : "") +
-          `<br><span style="color:${C.textoSuave}">Clic para filtrar el tablero</span>`; } },
+          `<br><span style="opacity:.85">Clic para filtrar el tablero</span>`; } },
     grid: { left: 44, right: 8, top: 26, bottom: angosto ? 74 : 40 },
     xAxis: { type: "category", data: conDatos.map((d) => d.etiqueta), triggerEvent: true, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ color: C.texto, interval: 0, rotate: angosto ? 45 : 0, hideOverlap: false }) },
@@ -380,7 +382,6 @@ function pintarTipo(t) {
     Obs.kpi(`k-${k}-extra`, { etiqueta: "Duración promedio", valor: prom ? `${num(prom)} días` : "—", pie: "De cada declaratoria o prórroga" });
   }
   anualPorDisposicion(k, filas);
-  anualPorMotivo(k, filas);
   donaMotivo(k, filas); // primero: si se oculta, la dona de disposiciones toma todo el ancho
   donaDisposicion(k, filas);
   barrasDe(k, "accion", filas, (f) => [...f.acciones], "acción", "f");
@@ -388,46 +389,22 @@ function pintarTipo(t) {
 }
 
 /* ---------- Disposiciones por año, una línea por tipo de disposición ---------- */
-function anualPorDisposicion(k, filas) {
-  const id = `g-${k}-anual`;
+// sufijo: «anual» en las pestañas por tipo; «disp-anual» en el panorama (su «anual» es por tipo de emergencia)
+function anualPorDisposicion(k, filas, sufijo = "anual") {
+  const id = `g-${k}-${sufijo}`;
   // solo los años con datos de este tipo dentro del período (la emergencia sanitaria va de 2020 a 2022)
   const conDatos = filas.map((f) => f.anio);
   const anios = conDatos.length ? Array.from({ length: Math.max(...conDatos) - Math.min(...conDatos) + 1 }, (_, i) => Math.min(...conDatos) + i) : [];
-  const disp = DISPOSICIONES.map((d, i) => ({ ...d, i, color: C.disp[i], valores: anios.map((a) => filas.filter((f) => f.anio === a && f.disp === i).length) }))
+  const disp = DISPOSICIONES.map((d, i) => ({ ...d, i, color: C.dispLineas[i], valores: anios.map((a) => filas.filter((f) => f.anio === a && f.disp === i).length) }))
     .filter((d) => d.valores.some((v) => v > 0));
-  document.getElementById(`ley-${k}-anual`).innerHTML = disp.map((d) => `<span><i class="linea" style="background:${d.color}"></i>${d.nombre}</span>`).join("");
-  if (!disp.length) { lectura(`l-${k}-anual`, ""); return Obs.vacio(id); }
+  document.getElementById(`ley-${k}-${sufijo}`).innerHTML = disp.map((d) => `<span><i class="linea" style="background:${d.color}"></i>${d.nombre}</span>`).join("");
+  if (!disp.length) { lectura(`l-${k}-${sufijo}`, ""); return Obs.vacio(id); }
   const tot = anios.map((_, j) => disp.reduce((a, d) => a + d.valores[j], 0));
   const max = Math.max(...tot), aMax = anios[tot.indexOf(max)];
   const prorr = disp.find((d) => d.i === 1), decl = disp.find((d) => d.i === 0);
-  lectura(`l-${k}-anual`, `El año con más disposiciones fue ${destacar(aMax)}, con ${fuerte(num(max))}.` +
+  lectura(`l-${k}-${sufijo}`, `El año con más disposiciones fue ${destacar(aMax)}, con ${fuerte(num(max))}.` +
     (prorr && decl ? ` En todo el período hubo ${fuerte(num(prorr.valores.reduce((a, b) => a + b, 0)))} prórrogas por ${fuerte(num(decl.valores.reduce((a, b) => a + b, 0)))} declaratorias.` : ""));
   lineasAnuales(id, anios, disp.map((d) => ({ nombre: d.nombre, color: d.color, valores: d.valores })));
-}
-
-/* ---------- Disposiciones por año, una línea por motivo ----------
-   Los cuatro motivos más frecuentes de la pestaña (mismos verdes que la dona de motivo)
-   y el resto en «Otros motivos». Con un solo motivo (COVID-19) la tarjeta se oculta. */
-function anualPorMotivo(m, filas) {
-  const id = `g-${m}-motivo-anual`;
-  const conMotivo = filas.filter((f) => f.motivo);
-  const solo = new Set(conMotivo.map((f) => f.motivo)).size < 2;
-  document.getElementById(`c-${m}-motivo-anual`).hidden = solo;
-  if (solo) return;
-  // años: el período elegido en el panorama; en las pestañas, los años con datos del tipo
-  const desde = Math.min(...conMotivo.map((f) => f.anio)), hasta = Math.max(...conMotivo.map((f) => f.anio));
-  const anios = m === "general" ? aniosPeriodo() : Array.from({ length: hasta - desde + 1 }, (_, i) => desde + i);
-  const fijos = MOTIVOS_COLOR[m];
-  const serie = (pred) => anios.map((a) => conMotivo.filter((f) => f.anio === a && pred(f)).length);
-  const series = fijos.map((v, i) => ({ nombre: v, color: C.motivos[i], valores: serie((f) => f.motivo === v) }))
-    .concat([{ nombre: "Otros motivos", color: C.otrosTipo, valores: serie((f) => !fijos.includes(f.motivo)) }])
-    .filter((x) => x.valores.some((v) => v > 0));
-  document.getElementById(`ley-${m}-motivo-anual`).innerHTML = series.map((x) => `<span><i class="linea" style="background:${x.color}"></i>${Obs.escapar(x.nombre)}</span>`).join("");
-  // el pico más alto entre los motivos con nombre propio
-  const picos = series.filter((x) => x.nombre !== "Otros motivos").map((x) => { const v = Math.max(...x.valores); return { x, v, a: anios[x.valores.indexOf(v)] }; });
-  const top = picos.reduce((a, b) => (b.v > a.v ? b : a), picos[0]);
-  lectura(`l-${m}-motivo-anual`, top ? `El año con más disposiciones por un mismo motivo fue ${destacar(top.a)}: ${fuerte(plural(top.v, "disposición", "disposiciones"))} por ${destacar(Obs.minus(top.x.nombre))}.` : "");
-  lineasAnuales(id, anios, series);
 }
 
 /* ---------- Donas: tipo de disposición y motivo ----------
@@ -443,7 +420,7 @@ function dona(id, partes, { total, unidad = "disposiciones" }) {
     textStyle: { fontFamily: C.fuente }, animationDurationUpdate: ANIM ? 400 : 0,
     tooltip: { ...Obs.tooltipBase(), trigger: "item",
       formatter: (q) => `<strong>${Obs.escapar(q.name)}</strong><br><strong>${num(q.value)}</strong> ${unidad}<br>${pct(q.value / total)} del total` +
-        (q.data.detalle ? `<br><span style="color:${C.textoSuave}">${Obs.escapar(q.data.detalle)}</span>` : "") },
+        (q.data.detalle ? `<br><span style="opacity:.85">${Obs.escapar(q.data.detalle)}</span>` : "") },
     // total en el centro de la dona
     title: { text: num(total), subtext: unidad, left: "center", top: angosto ? "42%" : "43%", itemGap: 2,
       textStyle: { fontFamily: C.fuente, fontSize: 24, fontWeight: 800, color: C.navy }, subtextStyle: { fontFamily: C.fuente, fontSize: 14, color: C.textoSuave } },
@@ -655,7 +632,7 @@ Obs.iniciar(TABLERO, async () => {
   Obs._geo_datos = geo;
   const css = getComputedStyle(document.documentElement);
   const v = (n) => css.getPropertyValue(n).trim();
-  C = { ...Obs.tema(), tipos: TIPOS.map((t) => v(t.color)), otrosTipo: v("--t-otros"), disp: DISPOSICIONES.map((d) => v(d.color)), motivos: [1, 2, 3, 4].map((i) => v(`--mot-${i}`)) };
+  C = { ...Obs.tema(), tipos: TIPOS.map((t) => v(t.color)), otrosTipo: v("--t-otros"), disp: DISPOSICIONES.map((d) => v(d.color)), dispLineas: DISPOSICIONES.map((d) => v(d.color.replace("--d-", "--dl-"))), motivos: [1, 2, 3, 4].map((i) => v(`--mot-${i}`)) };
   preparar(datos.tablas);
   const [a, m, d] = String(datos.actualizado || "").split("-").map(Number);
   document.getElementById("actualizado").textContent = a ? new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : "—";

@@ -15,6 +15,12 @@
   --d-prorroga: #2a4fb8;
   --d-modificatoria: #5379e0;
   --d-termino: #8aa6ef;
+  /* Tipo de disposición en las líneas por año: colores distintos, para seguir cada línea
+     (validados como categóricos, todos los pares); las donas usan la escala azul de arriba */
+  --dl-declaratoria: #2f56c8;
+  --dl-prorroga: #c27c00;
+  --dl-modificatoria: #00836b;
+  --dl-termino: #c61c44;
   /* Motivos: un solo tono verde, del más frecuente (oscuro) al cuarto (validado --ordinal) */
   --mot-1: #1f4a08;
   --mot-2: #3f7a16;
@@ -159,11 +165,16 @@
   .pestanas-carpeta button[aria-selected="true"] { border-bottom-color: var(--fondo); }
 }
 
-/* Leyenda de líneas: el total, más grueso */
-.ley i.linea.gruesa { height: 5px; vertical-align: 2px; }
 /* Tabla de regiones, al lado del mapa */
 .mapa-y-tabla .tabla-caja { margin-top: 0; max-height: 600px; }
 /* Donas: altura fija; con una sola tarjeta en el par (emergencia sanitaria), ocupa todo el ancho */
 .grafico.dona { height: 340px; }
 @media (max-width: 560px) { .grafico.dona { height: 280px; } }
 .par.solo { grid-template-columns: 1fr; }
+/* Pares de donas a la misma altura: las dos tarjetas comparten filas (título, lectura,
+   leyenda y gráfico), aunque sus textos tengan distinto largo */
+@supports (grid-template-rows: subgrid) {
+  .par:has(.dona) { grid-template-rows: auto auto auto 1fr; row-gap: 0; }
+  .par:has(.dona) > .tarjeta { display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start; }
+  .par:has(.dona) > .tarjeta > header { min-height: 0; }
+}
