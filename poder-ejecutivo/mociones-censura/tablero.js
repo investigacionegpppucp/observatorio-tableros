@@ -267,9 +267,9 @@ function dona(filas) {
     tooltip: { ...Obs.tooltipBase(), trigger: "item",
       formatter: (q) => `<strong>${q.name}</strong><br>${plural(q.value, "proceso", "procesos")} (${pct(q.value / filas.length)})` },
     // el total va en el centro
-    title: { text: num(filas.length), subtext: filas.length === 1 ? "proceso" : "procesos", left: "center", top: "38%", itemGap: 2,
-      textStyle: { fontFamily: C.fuente, fontSize: 30, fontWeight: 800, color: C.navy }, subtextStyle: txt() },
-    series: [{ type: "pie", radius: ["58%", "88%"], center: ["50%", "50%"], avoidLabelOverlap: false, label: { show: false }, cursor: "pointer",
+    title: { text: num(filas.length), subtext: filas.length === 1 ? "proceso" : "procesos", left: "center", top: "center", itemGap: 0,
+      textStyle: { fontFamily: C.fuente, fontSize: 40, fontWeight: 800, color: C.navy }, subtextStyle: txt({ fontSize: 16 }) },
+    series: [{ type: "pie", radius: ["56%", "90%"], center: ["50%", "50%"], avoidLabelOverlap: false, label: { show: false }, cursor: "pointer",
       itemStyle: { borderColor: "#fff", borderWidth: 3 }, emphasis: { scale: true, scaleSize: 4 },
       data: presentes.map((e) => ({ name: e.nombre, value: cuenta[e.clave], clave: e.clave,
         itemStyle: { color: C.estado[e.clave], opacity: elegido && elegido !== e.clave ? 0.25 : 1 } })) }],

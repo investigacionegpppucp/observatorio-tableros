@@ -131,7 +131,7 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
    ancho, como los gráficos; las cifras que cambian con los filtros van en negrita azul con
    una línea lima debajo */
 .resumen { margin: 0 0 24px; font-size: 19px; line-height: 1.55; }
-.lectura { margin: 12px 0 0; font-size: 16px; line-height: 1.5; color: var(--texto); }
+.lectura { margin: 14px 0 0; font-size: 17px; line-height: 1.5; color: var(--texto); }
 .lectura:empty { display: none; }
 .resumen strong, .lectura strong {
   color: var(--navy);
@@ -159,8 +159,10 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
   padding: 22px 22px 16px;
 }
 .grilla > .tarjeta { margin-bottom: 0; }
-.tarjeta h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--navy); line-height: 1.3; }
-.tarjeta header p { margin: 4px 0 0; font-size: 14px; color: var(--texto-suave); }
+/* Escala de cada tarjeta: título 22 px > lectura 17 px > descripción 15 px, para que el título se distinga
+   del texto dinámico y del gráfico. Vale para todos los tableros. */
+.tarjeta h3 { margin: 0; font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1.25; text-wrap: balance; }
+.tarjeta header p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--texto-suave); }
 .leyenda { display: flex; gap: 6px 16px; flex-wrap: wrap; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
 .leyenda:empty { display: none; }
 .leyenda i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
@@ -297,6 +299,8 @@ body.embed .cabecera-interior { padding-top: 14px; justify-content: flex-end; }
   .filtro select.corto { min-width: 0; }
   .rango select { flex: 1; }
   .resumen { font-size: 16px; }
+  .tarjeta h3 { font-size: 19px; }
+  .lectura { font-size: 16px; }
   .tarjeta { padding: 16px 14px 12px; }
   .kpi-valor { font-size: 32px; }
   .dl-fila { grid-template-columns: 1fr; }
