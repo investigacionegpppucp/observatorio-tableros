@@ -97,8 +97,6 @@
 #t-gabinetes .tabla { min-width: 980px; }
 .tabla .fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
 #t-gabinetes td small { display: block; color: var(--texto-suave); font-size: 14px; }
-#g-gabinetes { height: 400px; min-width: 980px; margin-top: 20px; }
+#g-gabinetes { height: 400px; min-width: 980px; margin-top: 12px; }
 .nota-tabla { margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); }
 #t-gabinetes { margin-top: 16px; max-height: 340px; } /* tabla baja, con scroll: el gráfico va debajo */
-.titulo-grafico { margin: 32px 0 0; font-size: 17px; font-weight: 800; color: var(--navy); }
-.titulo-grafico + .lectura { margin-top: 8px; }
