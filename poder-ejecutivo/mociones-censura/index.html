@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mociones de censura | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/tema.css?v=133dcae">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=133dcae">
+  <link rel="stylesheet" href="estilos.css?v=133dcae">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Mociones de censura</h1>
+        <p class="subtitulo">Las mociones con que el Congreso pidió censurar a un ministro, desde 2001, y cómo terminó cada proceso.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <!-- Los filtros (Congreso, Gobierno, Ministerio) los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <main>
+    <!-- Filtros aplicados: cada uno se quita con un clic -->
+    <div class="aplicados" id="aplicados" hidden>
+      <span class="aplicados-titulo">Filtros aplicados</span>
+      <div class="aplicados-lista" id="aplicados-lista"></div>
+      <button type="button" class="quitar-todo" id="quitar-todo">Quitar todos</button>
+    </div>
+
+    <p class="resumen" id="r-censura" aria-live="polite">Cargando datos…</p>
+    <div class="kpis kpis-4">
+      <div class="kpi" id="k-mociones"></div>
+      <div class="kpi" id="k-procesos"></div>
+      <div class="kpi" id="k-aprobadas"></div>
+      <div class="kpi" id="k-ritmo"></div>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3>¿Cómo terminaron los procesos de censura?</h3>
+        <p>Cada cuadro es un proceso: un ministro cuestionado en una moción. Pasa el cursor por un cuadro para ver la moción; elige un resultado para ver solo esos procesos en la tabla.</p></header>
+      <p class="lectura" id="l-cuadros" aria-live="polite"></p>
+      <div class="ley-cuadros" id="ley-cuadros" role="group" aria-label="Resultado"></div>
+      <div class="cuadros" id="g-cuadros" role="img"></div>
+    </article>
+
+    <!-- La tabla de cada proceso va arriba, como en el informe de Looker; el buscador y el resultado solo la filtran a ella -->
+    <article class="tarjeta">
+      <header><h3 id="h-pedidos">Cada proceso de censura</h3>
+        <p>Un proceso por fila: una moción contra varios ministros aparece una vez por cada uno. Ordena por cualquier columna con un clic en su título.</p></header>
+      <div class="controles-tabla">
+        <div class="buscador">
+          <label for="f-buscar">Buscar</label>
+          <input id="f-buscar" type="search" placeholder="Ministro o n.º de moción" autocomplete="off">
+        </div>
+        <div class="filtro-local" role="group" aria-labelledby="lbl-resultado">
+          <span id="lbl-resultado">Resultado</span>
+          <div class="segmentado claro" id="f-resultado"></div>
+        </div>
+      </div>
+      <div class="tabla-caja" id="t-pedidos"></div>
+    </article>
+
+    <article class="tarjeta">
+      <header><h3>¿En qué Congreso hubo más procesos de censura?</h3>
+        <p>Procesos de censura presentados en cada período legislativo y cuántos terminaron en una censura aprobada; pasa el cursor por una barra para ver los demás resultados. Haz clic en un Congreso para filtrar el tablero.</p></header>
+      <p class="lectura" id="l-congreso" aria-live="polite"></p>
+      <div class="ley ley-dos"></div>
+      <div class="grafico" id="g-congreso"></div>
+    </article>
+
+    <div class="par">
+      <article class="tarjeta">
+        <header><h3>¿Cuántas censuras se aprobaron en cada gobierno?</h3>
+          <p>Procesos de censura y censuras aprobadas en cada gobierno. Haz clic en un gobierno para elegirlo.</p></header>
+        <p class="lectura" id="l-gobiernos" aria-live="polite"></p>
+        <div class="ley ley-dos"></div>
+        <div class="grafico" id="g-gobiernos"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Cada cuántos días hubo un proceso de censura?</h3>
+          <p>Días de gobierno divididos entre los procesos de censura. Menos días, procesos más seguidos.</p></header>
+        <p class="lectura" id="l-ritmo" aria-live="polite"></p>
+        <div class="tabla-caja par-tabla" id="t-gobiernos"></div>
+      </article>
+    </div>
+
+    <article class="tarjeta">
+      <header><h3>¿Qué ministerios tuvieron más procesos de censura?</h3>
+        <p>Procesos de censura y censuras aprobadas por ministerio; los ministerios van de más a menos procesos. Haz clic en un ministerio para elegirlo.</p></header>
+      <p class="lectura" id="l-sectores" aria-live="polite"></p>
+      <div class="ley ley-dos"></div>
+      <div class="grafico" id="g-sectores"></div>
+    </article>
+
+    <article class="tarjeta">
+      <header><h3 id="h-ministros">Ministros con procesos de censura</h3>
+        <p>Un ministro aparece una vez por cada gobierno y ministerio en que fue cuestionado. Ordena por cualquier columna con un clic en su título.</p></header>
+      <p class="lectura" id="l-ministros" aria-live="polite"></p>
+      <div class="tabla-caja" id="t-ministros"></div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Congreso de la República, mociones de censura. Elaboración del Observatorio.</p>
+    <p><strong>Mociones y procesos:</strong> una moción es el documento que presentan los congresistas; un proceso es cada ministro cuestionado en ella. Una moción puede incluir a más de un ministro, así que hay más procesos que mociones.</p>
+    <p><strong>Resultados:</strong> «Censura aprobada» es un proceso que el Pleno votó y aprobó: el ministro censurado debe renunciar. «Censura rechazada» es uno que el Pleno votó y no aprobó. «No llegó al Pleno» reúne los que no se votaron. «Archivada» son los que se archivaron sin votación de fondo.</p>
+    <p><strong>Censura al gabinete:</strong> la moción 5657 (gobierno de Alan García) pidió censurar a todo el Consejo de Ministros; se registra a nombre de su presidente, Jorge Del Castillo.</p>
+    <p><strong>Días por proceso:</strong> días de gobierno divididos entre los procesos de censura. El total es un promedio ponderado (todos los días entre todos los procesos), no el promedio de los gobiernos. Solo entran los gobiernos con mociones de censura. Si se eligen Congresos, se cuentan solo los días de gobierno dentro de ellos; si un gobierno coincidió con dos Congresos, sus días se reparten entre ambos según las fechas.</p>
+    <p><strong>Congresos:</strong> cada período legislativo empieza el 28 de julio, y cada legislatura (período anual de sesiones) se cuenta en el Congreso en que empezó. El Congreso elegido en 2016 fue disuelto el 30 de setiembre de 2019; en este tablero va hasta el 16 de marzo de 2020, cuando se instaló el Congreso complementario 2020-2021, que terminó el 28 de julio de 2021.</p>
+    <p>Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Mociones de censura</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=133dcae"></script>
+  <script src="../../comun/config.js?v=133dcae"></script>
+  <script src="../../comun/base.js?v=133dcae"></script>
+  <script src="../../comun/graficos.js?v=133dcae"></script>
+  <script src="../../comun/filtros.js?v=133dcae"></script>
+  <script src="../../comun/descarga.js?v=133dcae"></script>
+  <script src="tablero.js?v=133dcae"></script>
+</body>
+</html>
