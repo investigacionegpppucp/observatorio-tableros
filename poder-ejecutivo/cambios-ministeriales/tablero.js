@@ -177,6 +177,7 @@ function pintarMinistros(s) {
    El % de mujeres se calcula al juramentar. Aplica los filtros de gobierno y ministerio;
    no el de sexo, porque muestra mujeres y hombres. */
 const DIAS_JURAMENTO = 3;
+const DIAS_ANTES = 7;
 const MIN_JURAMENTO = 10; // registros con menos ministros al juramentar no son gabinetes completos y no se muestran
 
 // Apellido paterno de quien presidió el gabinete, para rotular el gráfico:
@@ -270,7 +271,13 @@ function gabinetes() {
     const porDia = new Map();
     for (const f of x.filas) porDia.set(f.desde, (porDia.get(f.desde) ?? 0) + 1);
     const jura = [...porDia].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
-    const ini = x.filas.filter((f) => f.desde <= jura + DIAS_JURAMENTO), desp = x.filas.filter((f) => f.desde > jura + DIAS_JURAMENTO);
+    // al juramentar: nombramientos entre DIAS_ANTES antes y DIAS_JURAMENTO después del día en que juró
+    // la mayoría (a veces el premier jura unos días antes que su gabinete), uno por ministerio: el más
+    // cercano a ese día. Así un reemplazo con la fecha mal registrada no se cuenta dos veces.
+    const porMin = new Map();
+    for (const f of [...x.filas].sort((a, b) => Math.abs(a.desde - jura) - Math.abs(b.desde - jura)))
+      if (f.desde >= jura - DIAS_ANTES && f.desde <= jura + DIAS_JURAMENTO && !porMin.has(f.m)) porMin.set(f.m, f);
+    const ini = [...porMin.values()], enIni = new Set(ini), desp = x.filas.filter((f) => !enIni.has(f));
     const mujeres = (l) => l.filter((f) => f.sexo === "Mujer").length;
     return { ...x, jura, ini: ini.length, iniM: mujeres(ini), desp: desp.length, despM: mujeres(desp), pm: ini.length ? mujeres(ini) / ini.length : 0 };
   });
