@@ -130,21 +130,20 @@
 .dona-cuerpo { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 8px 0 4px; }
 /* leyenda en dos filas parejas (2 × 2), centrada sobre la dona */
 .ley.ley-dona { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 4px 36px; margin: 0; }
-.grafico.dona { height: 420px; }
+.grafico.dona { height: 320px; }
 .ley-dona button { display: inline-flex; align-items: center; min-height: 40px; padding: 4px 2px; border: 0; background: none;
   color: var(--texto-suave); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ley-dona button i { width: 14px; height: 14px; margin-right: 8px; }
 .ley-dona button:hover { color: var(--navy); }
 .ley-dona button[aria-pressed="true"] { color: var(--navy); font-weight: 800; text-decoration: underline 3px var(--lima); text-underline-offset: 5px; }
 .ley-dona button:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
-/* Tabla al lado de la dona: llena el alto de la tarjeta */
-#t-procesos { max-height: 560px; }
-#t-procesos .tabla td small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 14px; }
-.buscador.compacto { justify-content: flex-start; flex: none; margin-top: 12px; }
-.buscador.compacto input { flex: 1 1 200px; max-width: none; }
+/* Tabla de cada proceso, a todo el ancho */
+#t-procesos .tabla { min-width: 860px; }
+/* Barras por Congreso en media fila */
+#g-congreso { height: 380px; }
 
 @media (max-width: 560px) {
-  .grafico.dona { height: 320px; }
+  .grafico.dona { height: 280px; }
   .ley.ley-dona { gap: 0 18px; }
   .ley-dona button { font-size: 15px; }
 }

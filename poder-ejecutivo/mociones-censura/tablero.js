@@ -21,7 +21,7 @@
    Mismo diseño que Mociones de interpelación.
 
    Parámetros de URL:
-     ?congresos=4&gobiernos=6&sectores=9&buscar=<texto>&resultado=todos|rechazada|archivada|novotada|proceso (sin él: aprobada)
+     ?congresos=4&gobiernos=6&sectores=9&buscar=<texto>&resultado=aprobada|rechazada|archivada|novotada|proceso (sin él: todos)
      (índices, en orden cronológico los Congresos y gobiernos y alfabético los ministerios)
      &embed=1   oculta título y pie (para un iframe)
    ========================================================= */
@@ -63,7 +63,7 @@ const SECTOR_CORTO = { "Presidencia del Consejo de Ministros": "Presidencia del 
   "Mujer y Desarrollo Social": "Mujer" };
 
 // buscar y resultado solo afectan a la tabla al lado de la dona; resultado "" es «todos»
-const RESULTADO_INICIAL = "aprobada";
+const RESULTADO_INICIAL = ""; // al abrir, todos los procesos
 const estado = { periodos: null, gobiernos: null, sectores: null, buscar: "", resultado: RESULTADO_INICIAL };
 
 let C, FILAS = [], PER = [], GOB = [], SEC = [], ACTUALIZADO = "";
@@ -190,7 +190,7 @@ function escribirURL() {
   const lista = (sel, l) => (todos(sel, l) ? null : [...sel].sort((a, b) => a - b).join("-"));
   Obs.escribirURL({
     congresos: lista(estado.periodos, PER), gobiernos: lista(estado.gobiernos, GOB), sectores: lista(estado.sectores, SEC),
-    buscar: estado.buscar.trim() || null, resultado: estado.resultado === RESULTADO_INICIAL ? null : estado.resultado || "todos",
+    buscar: estado.buscar.trim() || null, resultado: estado.resultado || null,
   });
 }
 
@@ -577,46 +577,39 @@ function lecturaMinistros(filas) {
   lectura("l-ministros", t);
 }
 
-/* ---------- Procesos del resultado elegido (tabla al lado de la dona) ----------
-   Muestra los procesos del resultado elegido en la dona; al abrir, las censuras aprobadas
-   («¿A quiénes censuró el Pleno?»). Con «Todos», los 68 procesos, como la tabla del informe de Looker.
-   El buscador solo afecta a esta tabla. */
+/* ---------- Cada proceso de censura (tabla a todo el ancho, debajo de la dona) ----------
+   La tabla del informe de Looker: un proceso por fila. Los botones de resultado y la dona eligen
+   el mismo resultado; el buscador solo afecta a esta tabla. */
 function pintarBusqueda(filas) {
   const b = sinTildes(estado.buscar.trim());
-  tablaProcesos(b ? filas.filter((f) => f.busqueda.includes(b)) : filas, filas);
+  tablaProcesos(b ? filas.filter((f) => f.busqueda.includes(b)) : filas);
 }
-const TITULO_RESULTADO = { aprobada: "¿A quiénes censuró el Pleno?", rechazada: "¿Qué censuras rechazó el Pleno?",
-  novotada: "¿Qué mociones no llegaron al Pleno?", archivada: "¿Qué mociones se archivaron?", proceso: "¿Qué mociones siguen en trámite?" };
-function tablaProcesos(filas, sinBuscar) {
+function tablaProcesos(filas) {
+  const cuenta = cuentaEstados(filas);
   const r = estado.resultado;
+  const opciones = [{ clave: "", corto: "Todos", n: filas.length }, ...ESTADOS.map((e) => ({ clave: e.clave, corto: e.corto, n: cuenta[e.clave] }))];
+  document.getElementById("f-resultado").innerHTML = opciones.map((o) =>
+    `<button type="button" data-resultado="${o.clave}" aria-pressed="${r === o.clave}">${o.corto}<small>${num(o.n)}</small></button>`).join("");
   const lista = r ? filas.filter((f) => f.estado === r) : filas;
-  const base = r ? sinBuscar.filter((f) => f.estado === r) : sinBuscar;
-  document.getElementById("h-procesos").textContent = TITULO_RESULTADO[r] ?? "Todos los procesos de censura";
-  // lectura: cuántos procesos y ministros; con censuras aprobadas, quiénes tienen más de una
-  const personas = (xs) => new Set(xs.map((f) => f.ministro)).size;
-  const n = base.length, p = personas(base);
-  let t = !n ? "No hay procesos con este resultado y estos filtros."
-    : r === "aprobada" ? `El Pleno aprobó la censura de ${fuerte(plural(p, "ministro", "ministros"))}, en ${fuerte(plural(n, "moción", "mociones"))}.`
-    : `${fuerte(plural(n, "proceso", "procesos"))}, contra ${fuerte(plural(p, "ministro", "ministros"))}.`;
-  if (n && r === "aprobada") {
-    const veces = new Map(); base.forEach((f) => veces.set(f.ministro, (veces.get(f.ministro) ?? 0) + 1));
-    const varias = [...veces].filter(([, v]) => v > 1).map(([k]) => k);
-    if (varias.length) t += ` Contra ${nombres(varias)} se aprobó más de una moción.`;
-  }
-  lectura("l-procesos", t);
+  const nombre = ESTADOS.find((e) => e.clave === r)?.nombre;
+  document.getElementById("h-procesos").textContent = lista.length
+    ? `${plural(lista.length, "proceso", "procesos")} de censura, en ${plural(mociones(lista), "moción", "mociones")}${nombre ? `: ${Obs.minus(nombre)}` : ""}`
+    : "Cada proceso de censura";
   const esc = Obs.escapar;
   const columnas = [
-    { clave: "ministro", titulo: "Ministro", valor: (f) => f.ministro, html: (f) => `<span class="ministro">${esc(f.ministro)}<small>${esc(f.sector)}</small></span>` },
-    { clave: "gobierno", titulo: "Gobierno", valor: (f) => f.g * 1e3 + f.l, html: (f) => `${esc(GOB[f.g].nombre)}<small>${esc(f.legis)}</small>` },
-    { clave: "mocion", titulo: "Moción", num: true, valor: (f) => +f.legis.slice(0, 4) * 1e6 + (+f.mocion || 0), html: (f) => `<span class="doc">${esc(f.mocion)}</span>` },
-    // con un solo resultado elegido, la columna sobra
-    ...(r ? [] : [{ clave: "resultado", titulo: "Resultado", valor: (f) => ESTADOS.findIndex((e) => e.clave === f.estado),
-      html: (f) => `<span class="resultado"><i style="background:${C.estado[f.estado]}"></i>${ESTADOS.find((e) => e.clave === f.estado).nombre}</span>` }]),
+    { clave: "mocion", titulo: "Moción", valor: (f) => +f.legis.slice(0, 4) * 1e6 + (+f.mocion || 0), html: (f) => `<span class="doc">${esc(f.mocion)}</span>` },
+    { clave: "legis", titulo: "Legislatura", valor: (f) => f.legis, html: (f) => `<span class="fecha">${esc(f.legis)}</span>` },
+    { clave: "gobierno", titulo: "Gobierno", valor: (f) => f.g, html: (f) => esc(GOB[f.g].nombre) },
+    { clave: "sector", titulo: "Ministerio", valor: (f) => f.sector, html: (f) => esc(f.sector) },
+    { clave: "ministro", titulo: "Ministro", valor: (f) => f.ministro, html: (f) => `<span class="ministro">${esc(f.ministro)}</span>` },
+    { clave: "resultado", titulo: "Resultado", valor: (f) => ESTADOS.findIndex((e) => e.clave === f.estado),
+      html: (f) => `<span class="resultado"><i style="background:${C.estado[f.estado]}"></i>${ESTADOS.find((e) => e.clave === f.estado).nombre}</span>` },
   ];
+
   if (!columnas.some((c) => c.clave === ORDEN["t-procesos"]?.clave)) delete ORDEN["t-procesos"];
   tablaOrdenable("t-procesos", columnas, lista, {
     inicial: { clave: "mocion", dir: -1 }, desempate: (a, b) => a.ministro.localeCompare(b.ministro, "es"),
-    descripcion: "Procesos de censura: ministro y ministerio, gobierno y legislatura, número de moción" + (r ? "" : " y resultado"),
+    descripcion: "Cada proceso de censura: moción, legislatura, gobierno, ministerio, ministro y resultado",
     vacia: estado.buscar.trim() ? `Nada coincide con «${esc(estado.buscar.trim())}» con estos filtros. Prueba con un apellido o un número de moción.` : null,
   });
 }
@@ -733,7 +726,15 @@ function montarControles() {
     clearTimeout(buscar.__espera);
     buscar.__espera = setTimeout(() => { pintarBusqueda(filtrar(estado).todo); escribirURL(); }, 150);
   };
-  // la leyenda de la dona elige un resultado y filtra la tabla del costado
+  // los botones de resultado de la tabla eligen el mismo resultado que la dona
+  const resultado = document.getElementById("f-resultado");
+  resultado.onclick = (e) => {
+    const b = e.target.closest("button[data-resultado]");
+    if (!b) return;
+    elegirResultado(b.dataset.resultado);
+    resultado.querySelector(`button[data-resultado="${b.dataset.resultado}"]`)?.focus(); // los botones se redibujan
+  };
+  // la leyenda de la dona elige un resultado y filtra la tabla de cada proceso
   document.getElementById("ley-dona").onclick = (e) => {
     const b = e.target.closest("button[data-resultado]");
     if (!b) return;
@@ -753,7 +754,7 @@ function leerURL() {
   estado.sectores = indices("sectores", SEC);
   estado.buscar = q.get("buscar") ?? "";
   const res = q.get("resultado");
-  estado.resultado = res === "todos" ? "" : ESTADOS.some((e) => e.clave === res) ? res : RESULTADO_INICIAL;
+  estado.resultado = ESTADOS.some((e) => e.clave === res) ? res : RESULTADO_INICIAL;
 }
 
 Obs.iniciar(TABLERO, async () => {
