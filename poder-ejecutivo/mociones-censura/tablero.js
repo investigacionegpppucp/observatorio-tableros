@@ -39,7 +39,7 @@ const ESTADOS_TODOS = [
 ];
 let ESTADOS = ESTADOS_TODOS; // solo los que tienen procesos (hoy no hay ninguno en proceso)
 // Las barras por Congreso, gobierno y ministerio van en dos tonos: lo que importa es cuántas censuras se aprobaron.
-// El detalle de los cuatro resultados está en el gráfico de cuadros y en la burbuja de cada barra.
+// El detalle de los cuatro resultados está en la dona y en la burbuja de cada barra.
 const DOS = [
   { clave: "aprobada", nombre: "Censura aprobada", css: "--e-aprobada" },
   { clave: "otros", nombre: "Otros resultados", css: "--e-otros" },
@@ -175,7 +175,8 @@ function render() {
   sincronizarControles();
   const s = filtrar(estado);
   cifras(s.todo);
-  cuadros(s.todo);
+  dona(s.todo);
+  censurados(s.todo);
   porCongreso(s.sinPeriodo);
   porGobierno(s.sinGobierno);
   tablaGobiernos(s.todo);
@@ -249,36 +250,79 @@ function cifras(filas) {
     pie: r.porProceso == null ? "Sin procesos con estos filtros" : `Promedio ponderado: ${num(r.dias)} días de gobierno entre ${plural(r.procesos, "proceso", "procesos")}` });
 }
 
-/* ---------- ¿Cómo terminaron? (gráfico de cuadros) ----------
-   Un cuadro por proceso, agrupados por resultado y, dentro, del más reciente al más antiguo.
-   Es el único gráfico con los cuatro colores. La leyenda también filtra la tabla de cada proceso. */
-function cuadros(filas) {
+/* ---------- ¿Cómo terminaron? (dona) ----------
+   Es el único gráfico con los cuatro colores. La leyenda (y cada tramo) también filtra la tabla de cada proceso. */
+function dona(filas) {
+  const id = "g-dona";
   const cuenta = cuentaEstados(filas);
   const elegido = estado.resultado;
-  document.getElementById("ley-cuadros").innerHTML = ESTADOS.filter((e) => cuenta[e.clave]).map((e) =>
+  const presentes = ESTADOS.filter((e) => cuenta[e.clave]);
+  document.getElementById("ley-dona").innerHTML = presentes.map((e) =>
     `<button type="button" data-resultado="${e.clave}" aria-pressed="${elegido === e.clave}">` +
-    `<i style="background:${C.estado[e.clave]}"></i>${e.nombre}<b>${num(cuenta[e.clave])}</b><small>${pct(cuenta[e.clave] / filas.length)}</small></button>`).join("");
-  const el = document.getElementById("g-cuadros");
-  if (!filas.length) { el.innerHTML = ""; lectura("l-cuadros", ""); return; }
-  const orden = (f) => ESTADOS.findIndex((e) => e.clave === f.estado);
-  const lista = [...filas].sort((a, b) => orden(a) - orden(b) || b.legis.localeCompare(a.legis) || (+b.mocion || 0) - (+a.mocion || 0));
-  const esc = Obs.escapar;
-  el.innerHTML = lista.map((f) => {
-    const e = ESTADOS[orden(f)];
-    const t = `${e.nombre}: moción ${f.mocion} (${f.legis}), ${f.ministro}, ${f.sector}`;
-    return `<span title="${esc(t)}" style="background:${C.estado[f.estado]}"${elegido && elegido !== f.estado ? ' class="apagado"' : ""}></span>`;
-  }).join("");
-  el.setAttribute("aria-label", `${plural(filas.length, "proceso de censura", "procesos de censura")}: ` +
-    ESTADOS.filter((e) => cuenta[e.clave]).map((e) => `${e.nombre}, ${num(cuenta[e.clave])}`).join("; ") + ".");
+    `<i style="background:${C.estado[e.clave]}"></i><span>${e.nombre}</span><b>${num(cuenta[e.clave])}</b><small>${pct(cuenta[e.clave] / filas.length)}</small></button>`).join("");
+  if (!filas.length) { lectura("l-dona", ""); return Obs.vacio(id); }
+  const g = Obs.grafico(id);
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 300,
+    tooltip: { ...Obs.tooltipBase(), trigger: "item",
+      formatter: (q) => `<strong>${q.name}</strong><br>${plural(q.value, "proceso", "procesos")} (${pct(q.value / filas.length)})` },
+    // el total va en el centro
+    title: { text: num(filas.length), subtext: filas.length === 1 ? "proceso" : "procesos", left: "center", top: "38%", itemGap: 2,
+      textStyle: { fontFamily: C.fuente, fontSize: 30, fontWeight: 800, color: C.navy }, subtextStyle: txt() },
+    series: [{ type: "pie", radius: ["58%", "88%"], center: ["50%", "50%"], avoidLabelOverlap: false, label: { show: false }, cursor: "pointer",
+      itemStyle: { borderColor: "#fff", borderWidth: 3 }, emphasis: { scale: true, scaleSize: 4 },
+      data: presentes.map((e) => ({ name: e.nombre, value: cuenta[e.clave], clave: e.clave,
+        itemStyle: { color: C.estado[e.clave], opacity: elegido && elegido !== e.clave ? 0.25 : 1 } })) }],
+  }, true);
+  document.getElementById(id).setAttribute("aria-label", `${plural(filas.length, "proceso de censura", "procesos de censura")}: ` +
+    presentes.map((e) => `${e.nombre}, ${num(cuenta[e.clave])}`).join("; ") + ".");
+  g.off("click");
+  g.on("click", (q) => { g.dispatchAction({ type: "hideTip" }); elegirResultado(q.data.clave); });
   // lectura: las aprobadas primero y luego los demás resultados, de más a menos
   const apr = cuenta.aprobada ?? 0;
   const resto = ESTADOS.filter((e) => e.clave !== "aprobada" && cuenta[e.clave]).sort((a, b) => cuenta[b.clave] - cuenta[a.clave]);
   const verbo = { rechazada: (n) => `${n === 1 ? "fue rechazado" : "fueron rechazados"} en el Pleno`, novotada: (n) => `no ${n === 1 ? "llegó" : "llegaron"} a votarse`,
     archivada: (n) => `${n === 1 ? "se archivó" : "se archivaron"}`, proceso: (n) => `${n === 1 ? "sigue" : "siguen"} en trámite` };
   const partes = resto.map((e) => `${fuerte(num(cuenta[e.clave]))} ${verbo[e.clave](cuenta[e.clave])}`);
-  lectura("l-cuadros", `De ${filas.length === 1 ? "este proceso" : `estos ${fuerte(num(filas.length))} procesos`}, ` +
+  lectura("l-dona", `De ${filas.length === 1 ? "este proceso" : `estos ${fuerte(num(filas.length))} procesos`}, ` +
     (apr ? `${fuerte(num(apr))} ${apr === 1 ? "terminó" : "terminaron"} en una censura aprobada (${fuerte(pct(apr / filas.length))})` : `${fuerte("ninguno")} terminó en una censura aprobada`) +
     (partes.length ? `; ${enumerar(partes)}.` : "."));
+}
+// Un resultado elegido en la dona o en su leyenda (otro clic lo quita); filtra la tabla de cada proceso
+function elegirResultado(clave) {
+  estado.resultado = estado.resultado === clave ? "" : clave;
+  const filas = filtrar(estado).todo;
+  dona(filas); pintarBusqueda(filas); escribirURL();
+}
+
+/* ---------- ¿A quiénes censuró el Pleno? (tabla) ----------
+   Una fila por ministro con censura aprobada. Varias mociones aprobadas contra la misma persona cuentan por separado. */
+function censurados(filas) {
+  const m = new Map();
+  filas.filter((f) => f.estado === "aprobada").forEach((f) => {
+    const k = `${f.ministro}|${f.g}`;
+    const x = m.get(k) ?? { ministro: f.ministro, g: f.g, sectores: new Set(), legis: new Set(), mociones: 0 };
+    x.sectores.add(f.sector); x.legis.add(f.legis); x.mociones++;
+    m.set(k, x);
+  });
+  const lista = [...m.values()].map((x) => ({ ...x, sector: [...x.sectores].join(", "), legislatura: [...x.legis].sort().join(", ") }));
+  const varias = lista.filter((x) => x.mociones > 1);
+  lectura("l-censurados", !lista.length ? "Ningún ministro fue censurado con estos filtros."
+    : `El Pleno aprobó la censura de ${fuerte(plural(lista.length, "ministro", "ministros"))}` +
+      (varias.length ? `; ${varias.length === 1 ? `contra ${destacar(varias[0].ministro)}` : `contra ${nombres(varias.map((x) => x.ministro))}`} ` +
+        "se aprobó más de una moción." : "."));
+  const esc = Obs.escapar;
+  const columnas = [
+    { clave: "ministro", titulo: "Ministro", valor: (x) => x.ministro, html: (x) => `<span class="ministro">${esc(x.ministro)}<small>${esc(x.sector)}</small></span>` },
+    { clave: "gobierno", titulo: "Gobierno", valor: (x) => x.g, html: (x) => esc(GOB[x.g].nombre) },
+    { clave: "legislatura", titulo: "Legislatura", valor: (x) => x.legislatura, html: (x) => `<span class="fecha">${esc(x.legislatura)}</span>` },
+    { clave: "mociones", titulo: "Mociones", num: true, valor: (x) => x.mociones, html: (x) => num(x.mociones) },
+  ];
+  tablaOrdenable("t-censurados", columnas, lista, {
+    inicial: { clave: "legislatura", dir: -1 }, desempate: (a, b) => a.ministro.localeCompare(b.ministro, "es"),
+    descripcion: "Ministros con censura aprobada por el Pleno: ministerio, gobierno, legislatura y mociones aprobadas",
+    vacia: "Ningún ministro fue censurado con estos filtros.",
+  });
 }
 
 /* ---------- Por Congreso (barras en dos tonos) ----------
@@ -708,14 +752,12 @@ function montarControles() {
     clearTimeout(buscar.__espera);
     buscar.__espera = setTimeout(() => { pintarBusqueda(filtrar(estado).todo); escribirURL(); }, 150);
   };
-  // la leyenda del gráfico de cuadros elige un resultado (otro clic lo quita) y filtra la tabla de cada proceso
-  document.getElementById("ley-cuadros").onclick = (e) => {
+  // la leyenda de la dona elige un resultado y filtra la tabla de cada proceso
+  document.getElementById("ley-dona").onclick = (e) => {
     const b = e.target.closest("button[data-resultado]");
     if (!b) return;
-    estado.resultado = estado.resultado === b.dataset.resultado ? "" : b.dataset.resultado;
-    const filas = filtrar(estado).todo;
-    cuadros(filas); pintarBusqueda(filas); escribirURL();
-    document.getElementById("ley-cuadros").querySelector(`button[data-resultado="${b.dataset.resultado}"]`)?.focus();
+    elegirResultado(b.dataset.resultado);
+    document.getElementById("ley-dona").querySelector(`button[data-resultado="${b.dataset.resultado}"]`)?.focus();
   };
   const resultado = document.getElementById("f-resultado");
   resultado.onclick = (e) => {
@@ -723,7 +765,7 @@ function montarControles() {
     if (!b) return;
     estado.resultado = b.dataset.resultado;
     const filas = filtrar(estado).todo;
-    cuadros(filas); pintarBusqueda(filas);
+    dona(filas); pintarBusqueda(filas);
     escribirURL();
     resultado.querySelector(`button[data-resultado="${estado.resultado}"]`)?.focus(); // los botones se redibujan
   };
