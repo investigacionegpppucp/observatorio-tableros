@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/tema.css?v=cda52eb">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=cda52eb">
-  <link rel="stylesheet" href="estilos.css?v=cda52eb">
+  <link rel="stylesheet" href="../../comun/tema.css?v=e39896c">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=e39896c">
+  <link rel="stylesheet" href="estilos.css?v=e39896c">
 </head>
 <body>
   <header class="cabecera">
@@ -48,37 +48,23 @@
     <div class="par">
       <article class="tarjeta">
         <header><h3>¿Cómo terminaron los procesos de censura?</h3>
-          <p>Procesos de censura según su resultado. Elige un resultado para ver solo esos procesos en la tabla de abajo.</p></header>
+          <p>Procesos de censura según su resultado. Elige un resultado para ver sus procesos en la tabla del costado.</p></header>
         <p class="lectura" id="l-dona" aria-live="polite"></p>
-        <div class="dona-caja">
-          <div class="grafico dona" id="g-dona" role="img"></div>
-          <div class="ley-dona" id="ley-dona" role="group" aria-label="Resultado"></div>
-        </div>
+        <div class="ley ley-dona" id="ley-dona" role="group" aria-label="Resultado"></div>
+        <div class="grafico dona" id="g-dona" role="img"></div>
       </article>
       <article class="tarjeta">
-        <header><h3>¿A quiénes censuró el Pleno?</h3>
-          <p>Ministros con al menos una moción de censura aprobada. Ordena por cualquier columna con un clic en su título.</p></header>
-        <p class="lectura" id="l-censurados" aria-live="polite"></p>
-        <div class="tabla-caja par-tabla" id="t-censurados"></div>
-      </article>
-    </div>
-
-    <!-- La tabla de cada proceso va arriba, como en el informe de Looker; el buscador y el resultado solo la filtran a ella -->
-    <article class="tarjeta">
-      <header><h3 id="h-pedidos">Cada proceso de censura</h3>
-        <p>Un proceso por fila: una moción contra varios ministros aparece una vez por cada uno. Ordena por cualquier columna con un clic en su título.</p></header>
-      <div class="controles-tabla">
-        <div class="buscador">
+        <header><h3 id="h-procesos">¿A quiénes censuró el Pleno?</h3>
+          <p>Los procesos del resultado elegido en la dona; otro clic en el mismo resultado los muestra todos. Ordena por cualquier columna con un clic en su título.</p></header>
+        <p class="lectura" id="l-procesos" aria-live="polite"></p>
+        <div class="buscador compacto">
           <label for="f-buscar">Buscar</label>
           <input id="f-buscar" type="search" placeholder="Ministro o n.º de moción" autocomplete="off">
         </div>
-        <div class="filtro-local" role="group" aria-labelledby="lbl-resultado">
-          <span id="lbl-resultado">Resultado</span>
-          <div class="segmentado claro" id="f-resultado"></div>
-        </div>
-      </div>
-      <div class="tabla-caja" id="t-pedidos"></div>
-    </article>
+        <div class="tabla-caja par-tabla" id="t-procesos"></div>
+      </article>
+    </div>
+
 
     <article class="tarjeta">
       <header><h3>¿En qué Congreso hubo más procesos de censura?</h3>
@@ -131,12 +117,12 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Mociones de censura</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=cda52eb"></script>
-  <script src="../../comun/config.js?v=cda52eb"></script>
-  <script src="../../comun/base.js?v=cda52eb"></script>
-  <script src="../../comun/graficos.js?v=cda52eb"></script>
-  <script src="../../comun/filtros.js?v=cda52eb"></script>
-  <script src="../../comun/descarga.js?v=cda52eb"></script>
-  <script src="tablero.js?v=cda52eb"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=e39896c"></script>
+  <script src="../../comun/config.js?v=e39896c"></script>
+  <script src="../../comun/base.js?v=e39896c"></script>
+  <script src="../../comun/graficos.js?v=e39896c"></script>
+  <script src="../../comun/filtros.js?v=e39896c"></script>
+  <script src="../../comun/descarga.js?v=e39896c"></script>
+  <script src="tablero.js?v=e39896c"></script>
 </body>
 </html>
