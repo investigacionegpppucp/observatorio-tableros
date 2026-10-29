@@ -33,7 +33,7 @@
 .kpi .kpi-cuando { font-size: 15px; font-weight: 600; color: var(--navy); }
 
 /* Leyendas */
-.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 12px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
 .ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .escala-ley { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
 .escala-ley i { display: inline-block; width: 140px; height: 12px; border-radius: 2px; }
@@ -92,3 +92,13 @@
   #g-matriz { min-width: 1000px; }
   .solo-angosto { display: block; }
 }
+
+/* Tabla de gabinetes */
+#t-gabinetes .tabla { min-width: 980px; }
+.tabla .fecha { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#t-gabinetes td small { display: block; color: var(--texto-suave); font-size: 14px; }
+#g-gabinetes { height: 400px; min-width: 980px; margin-top: 20px; }
+.nota-tabla { margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); }
+#t-gabinetes { margin-top: 16px; max-height: 340px; } /* tabla baja, con scroll: el gráfico va debajo */
+.titulo-grafico { margin: 32px 0 0; font-size: 17px; font-weight: 800; color: var(--navy); }
+.titulo-grafico + .lectura { margin-top: 8px; }

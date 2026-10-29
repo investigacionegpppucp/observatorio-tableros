@@ -45,6 +45,10 @@ const anio = (n) => new Date(n * 864e5).getUTCFullYear();
 const num = (v) => Obs.fmtN(v);
 const pct = (v) => Obs.fmtPct(v, 1);
 const plural = (n, uno, varios) => `${num(n)} ${n === 1 ? uno : varios}`;
+// Lecturas: los datos que cambian con los filtros van destacados (negrita azul con línea lima)
+const lectura = (id, html) => (document.getElementById(id).innerHTML = html);
+const fuerte = (s) => `<strong>${s}</strong>`;
+const destacar = (s) => fuerte(Obs.escapar(String(s)));
 const corto = (nombre) => nombre.trim().split(/\s+/).at(-1); // «Pedro Pablo Kuczynski» -> «Kuczynski»
 const txt = (x = {}) => ({ fontFamily: C.fuente, fontSize: 14, color: C.textoSuave, ...x });
 const todos = (sel, lista) => sel.size === lista.length;
@@ -163,6 +167,142 @@ function pintarMinistros(s) {
   barrasSexo("g-por-gobierno", GOB.map((p) => ({ clave: p.i, etiqueta: p.nombre, sub: anios(p), filas: s.sinPresidente.filter((x) => x.p === p.i) })),
     { seleccion: estado.presidentes, total: GOB.length, alClic: (i) => alternar("presidentes", i, GOB), izq: 200 });
   porAnio(g);
+  gabinetes();
+}
+
+/* Ministros por gabinete. Cada gabinete jura con todo su equipo un mismo día; después
+   entran reemplazos. Para comparar gabinetes se separan:
+     al juramentar: nombramientos del día en que juró la mayoría (o hasta 3 días después)
+     entraron después: nombramientos posteriores, por cambios de ministro
+   El % de mujeres se calcula al juramentar. Aplica los filtros de gobierno y ministerio;
+   no el de sexo, porque muestra mujeres y hombres. */
+const DIAS_JURAMENTO = 3;
+const MIN_JURAMENTO = 10; // registros con menos ministros al juramentar no son gabinetes completos y no se muestran
+
+// Apellido paterno de quien presidió el gabinete, para rotular el gráfico:
+// «Luis Solari de la Fuente» -> «Solari»; «Salvador … del Solar Labarthe» -> «del Solar»
+const PARTICULAS = new Set(["de", "del", "la", "las", "los", "y"]);
+function apellido(nombre) {
+  const t = nombre.split(/\s+/);
+  const saltar = (i) => { let j = i; while (j > 0 && PARTICULAS.has(t[j - 1].toLowerCase())) j--; return j; };
+  const materno = saltar(t.length - 1);
+  if (materno <= 1) return t.slice(materno).join(" ");
+  const paterno = saltar(materno - 1);
+  return t.slice(paterno, materno).join(" ");
+}
+
+/* Composición de cada gabinete al juramentar, apilada al 100 % por sexo (mujeres y hombres, con los
+   colores del tablero), en orden cronológico; una línea separa cada gobierno.
+   Un clic elige ese gobierno. */
+function mujeresPorGabinete(lista) {
+  const id = "g-gabinetes";
+  const orden = [...lista].sort((a, b) => a.jura - b.jura);
+  if (!orden.length) return Obs.vacio(id);
+  const el = document.getElementById(id);
+  const g = Obs.grafico(id);
+  g.resize();
+  const datos = orden;
+  const elegidos = !todos(estado.presidentes, GOB);
+  const op = (x) => (elegidos && !estado.presidentes.has(x.p) ? 0.25 : 1);
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animationDurationUpdate: 400,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
+      formatter: (ps) => { const x = datos[ps[0].dataIndex];
+        return `<strong>Gabinete ${Obs.escapar(apellido(x.gabinete))}</strong><br>${Obs.escapar(GOB[x.p].nombre)}, juró el ${fecha(x.jura)}<br>` +
+          `<strong>${pct(x.pm)}</strong> de mujeres: ${num(x.iniM)} de ${num(x.ini)} ministros<br><span style="opacity:.85">Clic para elegir este gobierno</span>`; } },
+    grid: { left: 48, right: 24, top: 24, bottom: 96 },
+    // eje: apellido de quien presidió el Consejo de Ministros en cada gabinete
+    xAxis: { type: "category", data: datos.map((x) => apellido(x.gabinete)), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+      axisLabel: txt({ color: C.texto, interval: 0, rotate: 50, fontSize: 13 }) },
+    yAxis: { type: "value", max: 0.6, interval: 0.1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: { ...txt(), formatter: (v) => `${Math.round(v * 100)} %` } },
+    series: [{
+      name: "Mujeres al juramentar", type: "bar", barCategoryGap: "30%", cursor: "pointer",
+      data: datos.map((x) => ({ value: x.pm, itemStyle: { color: C.mujer, borderRadius: [3, 3, 0, 0], opacity: op(x) } })),
+      // referencia: paridad
+      markLine: { silent: true, symbol: "none", data: [{ yAxis: 0.5 }], lineStyle: { color: C.navy, type: "dashed", width: 1.5, opacity: 0.6 },
+        label: { position: "insideEndTop", formatter: "Paridad", ...txt({ color: C.navy, fontWeight: 700 }) } },
+    }],
+  }, true);
+  // clic en cualquier punto de la columna (no solo sobre la barra)
+  g.getZr().off("click");
+  g.getZr().on("click", (e) => {
+    if (!g.containPixel("grid", [e.offsetX, e.offsetY])) return;
+    const i = g.convertFromPixel({ seriesIndex: 0 }, [e.offsetX, e.offsetY])[0];
+    if (datos[i]) { g.dispatchAction({ type: "hideTip" }); alternar("presidentes", datos[i].p, GOB); }
+  });
+  el.setAttribute("aria-label", "Mujeres y hombres que juraron con cada gabinete, en orden cronológico. Los datos están en la tabla de abajo.");
+}
+/* Arriba de la tabla: qué gabinetes terminaron con los mismos ministros con que juraron
+   y cuáles cambiaron más (ministros que entraron después de juramentar) */
+function lecturaCambios(lista) {
+  if (!lista.length) return lectura("l-gabinetes-cambios", "");
+  const nombre = (x) => `${destacar(apellido(x.gabinete))} (${Obs.escapar(GOB[x.p].corto)})`;
+  const enumerar = (l) => (l.length === 1 ? l[0] : `${l.slice(0, -1).join(", ")} y ${l.at(-1)}`);
+  // el último gabinete de un gobierno en curso sigue en funciones: no «terminó»
+  const ultimo = new Map();
+  for (const x of lista) if (!ultimo.has(x.p) || x.jura > ultimo.get(x.p).jura) ultimo.set(x.p, x);
+  const enCurso = lista.find((x) => GOB[x.p].enCurso && ultimo.get(x.p) === x);
+  const cerrados = lista.filter((x) => x !== enCurso);
+  const intactos = cerrados.filter((x) => x.desp === 0).sort((a, b) => a.jura - b.jura);
+  const max = Math.max(...lista.map((x) => x.desp)), cambiantes = lista.filter((x) => x.desp === max && max > 0);
+  const total = lista.reduce((t, x) => t + x.desp, 0);
+  let t = intactos.length
+    ? `${fuerte(`${num(intactos.length)} de ${num(cerrados.length)}`)} gabinetes terminaron con los mismos ministros con que juraron` +
+      (intactos.length <= 10 ? `: ${enumerar(intactos.map(nombre))}.` : ".")
+    : `Ningún gabinete terminó con los mismos ministros con que juró.`;
+  if (cambiantes.length) t += ` ${cambiantes.length === 1 ? "El que más cambió fue el de" : "Los que más cambiaron fueron los de"} ${enumerar(cambiantes.map(nombre))}: ` +
+    `${fuerte(plural(max, "ministro entró", "ministros entraron"))} después de juramentar.`;
+  if (enCurso) t += ` El gabinete ${destacar(apellido(enCurso.gabinete))} sigue en funciones${enCurso.desp ? `, con ${fuerte(plural(enCurso.desp, "cambio", "cambios"))} hasta ahora` : ", sin cambios hasta ahora"}.`;
+  if (total) t += ` En total, ${fuerte(plural(total, "ministro entró", "ministros entraron"))} por cambios en los gabinetes ya formados.`;
+  lectura("l-gabinetes-cambios", t);
+}
+
+function gabinetes() {
+  const porGab = new Map();
+  for (const f of FILAS) {
+    if (!estado.presidentes.has(f.p) || !estado.ministerios.has(f.m)) continue;
+    const k = `${f.p}|${f.gabinete}`;
+    if (!porGab.has(k)) porGab.set(k, { k, p: f.p, gabinete: f.gabinete, filas: [] });
+    porGab.get(k).filas.push(f);
+  }
+  const lista = [...porGab.values()].map((x) => {
+    // día de juramento: el día con más nombramientos del gabinete
+    const porDia = new Map();
+    for (const f of x.filas) porDia.set(f.desde, (porDia.get(f.desde) ?? 0) + 1);
+    const jura = [...porDia].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+    const ini = x.filas.filter((f) => f.desde <= jura + DIAS_JURAMENTO), desp = x.filas.filter((f) => f.desde > jura + DIAS_JURAMENTO);
+    const mujeres = (l) => l.filter((f) => f.sexo === "Mujer").length;
+    return { ...x, jura, ini: ini.length, iniM: mujeres(ini), desp: desp.length, despM: mujeres(desp), pm: ini.length ? mujeres(ini) / ini.length : 0 };
+  });
+  // fuera los registros con menos de MIN_JURAMENTO ministros al juramentar: no son gabinetes
+  // completos (p. ej. un ministro de la Presidencia, ministerio que ya no existe, anotado aparte)
+  const completos = lista.filter((x) => x.ini >= MIN_JURAMENTO);
+  tablaOrdenable("t-gabinetes", [
+    { clave: "jura", titulo: "Juramento", valor: (x) => x.jura, html: (x) => `<span class="fecha">${fecha(x.jura)}</span>` },
+    { clave: "gobierno", titulo: "Gobierno", valor: (x) => x.p, html: (x) => Obs.escapar(GOB[x.p].corto) },
+    { clave: "gabinete", titulo: "Gabinete", valor: (x) => x.gabinete,
+      html: (x) => Obs.escapar(x.gabinete) },
+    { clave: "iniH", titulo: "Hombres", num: true, valor: (x) => x.ini - x.iniM, html: (x) => num(x.ini - x.iniM) },
+    { clave: "iniM", titulo: "Mujeres", num: true, valor: (x) => x.iniM, html: (x) => num(x.iniM) },
+    { clave: "ini", titulo: "Juraron", num: true, valor: (x) => x.ini, html: (x) => `<strong>${num(x.ini)}</strong>` },
+    { clave: "pm", titulo: "% mujeres", num: true, valor: (x) => x.pm, html: (x) => pct(x.pm) },
+  ], completos, { inicial: { clave: "jura", dir: 1 }, desempate: (a, b) => a.jura - b.jura, claveFila: (x) => x.k,
+    elegidas: todos(estado.presidentes, GOB) ? null : new Set(lista.filter((x) => estado.presidentes.has(x.p)).map((x) => x.k)),
+    alClic: (k) => alternar("presidentes", +k.split("|")[0], GOB), descripcion: "Ministros que juraron con cada gabinete: hombres, mujeres, total y porcentaje de mujeres",
+  });
+  mujeresPorGabinete(completos);
+  lecturaCambios(completos);
+  // lectura: solo gabinetes que juraron completos (10 ministros o más al juramentar)
+  if (!completos.length) return lectura("l-gabinetes", "");
+  // empates: se nombran todos los gabinetes con el mismo porcentaje
+  const max = Math.max(...completos.map((x) => x.pm)), min = Math.min(...completos.map((x) => x.pm));
+  const altos = completos.filter((x) => x.pm === max), bajos = completos.filter((x) => x.pm === min);
+  const nombre = (x) => `${destacar(apellido(x.gabinete))} (${Obs.escapar(GOB[x.p].corto)})`;
+  const los = (l) => (l.length === 1 ? `el de ${nombre(l[0])}` : `los de ${l.slice(0, -1).map(nombre).join(", ")} y ${nombre(l.at(-1))}`);
+  const cifra = (x) => `${fuerte(`${num(x.iniM)} de ${num(x.ini)}`)} ministros, ${fuerte(pct(x.pm))}`;
+  lectura("l-gabinetes", `Al juramentar, ${altos.length === 1 ? "el gabinete con más mujeres fue" : "los gabinetes con más mujeres fueron"} ${los(altos)}: ${cifra(altos[0])}.` +
+    (max !== min ? ` ${bajos.length === 1 ? "El de menos fue" : "Los de menos fueron"} ${los(bajos)}: ${cifra(bajos[0])}.` : "") +
+    "");
 }
 const anios = (p) => (anio(p.inicio) === anio(p.fin ?? HOY) ? `${anio(p.inicio)}` : `${anio(p.inicio)}-${p.enCurso ? "hoy" : anio(p.fin)}`);
 
