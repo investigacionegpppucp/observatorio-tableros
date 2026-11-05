@@ -30,6 +30,9 @@
 .par > .tarjeta > header { min-height: 72px; }
 /* El gráfico no se estira: si se estira, ECharts no se redibuja y los ejes quedan corridos */
 .par > .tarjeta > .grafico { flex: none; }
+/* Una tarjeta del par sin datos para el nivel elegido no se muestra: la otra ocupa todo el ancho */
+.par:has(> .tarjeta[hidden]) { grid-template-columns: 1fr; }
+.par:not(:has(> .tarjeta:not([hidden]))) { display: none; }
 
 /* Botones de cada tarjeta (nivel, grado, curso, indicador) */
 .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin: 16px 0 0; }

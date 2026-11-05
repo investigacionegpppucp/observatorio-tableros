@@ -8,7 +8,10 @@
    cuadros de ESCALE. Una pestaña por indicador, en formato largo:
      nivel, (grado, curso), grupo, categoria, codigo, anio, valor
    grupo: Perú, Región, Área, Sexo, Gestión o Área y sexo.
-   Porcentajes de 0 a 1; alumnos por docente, en número de alumnos.
+   Porcentajes de 0 a 1; alumnos por docente, en número de alumnos;
+   gasto por alumno, en soles corrientes. Los locales escolares tienen
+   un solo nivel, «Educación básica», y solo la serie 2001-2015.
+   Un indicador cuya pestaña no viene en datos.json no se muestra.
 
    Tres módulos (pestañas): Estudiantes, Docentes y Escuelas. Filtros
    comunes arriba: región, «Comparar con» y nivel educativo. En cada
@@ -41,6 +44,8 @@ const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pct = (v) => Obs.fmtPct(v, 1);
 const num1 = (v) => (v == null ? "—" : Obs.fmtN(v, 1));
+const soles = (v) => (v == null ? "—" : `S/\u00a0${Obs.fmtN(v, 0)}`);
+const BASICA = "Educación básica"; // nivel único de los indicadores de locales escolares
 
 /* Grados evaluados en logros de aprendizaje */
 const GRADO = {
@@ -63,7 +68,21 @@ const IND = {
     frase: (n) => `alumnos por docente en ${n}` },
   internet: { corto: "Escuelas con internet", niveles: ["Primaria", "Secundaria"], formato: pct, mejor: "alto",
     frase: (n) => `de las escuelas de ${n} tenía acceso a internet` },
+  conclusion: { corto: "Conclusión", niveles: ["Primaria", "Secundaria"], formato: pct, mejor: "alto",
+    frase: (n) => (n === "primaria" ? "de los adolescentes de 12 a 13 años había terminado la primaria" : "de los jóvenes de 17 a 18 años había terminado la secundaria") },
+  asistencia: { corto: "Asistencia a inicial", niveles: ["Inicial"], formato: pct, mejor: "alto",
+    frase: () => "de los niños de 3 a 5 años asistía a educación inicial" },
+  // fijo: un solo nivel (educación básica), sea cual sea el nivel elegido arriba
+  locales_servicios: { corto: "Locales con servicios básicos", niveles: [BASICA], fijo: true, formato: pct, mejor: "alto",
+    frase: () => "de los locales escolares públicos tenía agua, desagüe y luz" },
+  locales_estado: { corto: "Locales en buen estado", niveles: [BASICA], fijo: true, formato: pct, mejor: "alto",
+    frase: () => "de los locales escolares públicos estaba en buen estado" },
+  gasto: { corto: "Gasto por alumno", niveles: NIVELES, formato: soles, numero: true, mejor: "alto", columna: "Soles por alumno",
+    difTxt: (d) => soles(Math.abs(d)),
+    texto: (v, n) => `el gasto público por alumno de ${n} fue de ${v}` },
 };
+// Un indicador sin su pestaña en datos.json no se muestra
+const hay = (ind) => HAY.has(ind);
 
 /* Tarjetas de cada pestaña y qué dice su resumen */
 const MOD = {
@@ -75,9 +94,14 @@ const MOD = {
         { ind: "atraso", titulo: "¿Cuántos van atrasados?", desc: "Porcentaje de alumnos con dos o más años más que la edad de su grado." },
         { ind: "desaprobados", titulo: "¿Cuántos desaprueban el año?", desc: "Porcentaje de alumnos que no aprobó el año. Entre 2020 y 2022 hubo promoción guiada." },
       ] },
+      { par: [
+        { ind: "conclusion", titulo: "¿Cuántos terminan el colegio a tiempo?", desc: "Porcentaje de adolescentes de 12 a 13 años que terminó la primaria, o de jóvenes de 17 a 18 años que terminó la secundaria." },
+        { ind: "asistencia", titulo: "¿Cuántos niños van a inicial?", desc: "Porcentaje de niños de 3 a 5 años que asiste a educación inicial (tasa neta de asistencia)." },
+      ] },
     ],
-    indicadores: ["aprendizajes", "atraso", "desaprobados"],
-    kpis: [["aprendizajes", "Lectura"], ["aprendizajes", "Matemática"], ["atraso"], ["desaprobados"]],
+    indicadores: ["aprendizajes", "atraso", "desaprobados", "conclusion", "asistencia"],
+    // se muestran las primeras cuatro con datos para el nivel elegido
+    kpis: [["aprendizajes", "Lectura"], ["aprendizajes", "Matemática"], ["asistencia"], ["conclusion"], ["atraso"], ["desaprobados"]],
     resumen: { principal: ["aprendizajes", "Lectura"], tendencia: "atraso", brecha: ["aprendizajes", "Lectura"] },
   },
   docentes: {
@@ -90,13 +114,31 @@ const MOD = {
     resumen: { principal: ["titulados"], tendencia: "alumnos_docente", brecha: ["titulados"] },
   },
   escuelas: {
-    evol: [{ ind: "internet", titulo: "¿Cuántas escuelas tienen internet?", desc: "Porcentaje de escuelas con acceso a internet." }],
-    indicadores: ["internet"],
-    kpis: [["internet"], ["internet", "", "Área:Urbana"], ["internet", "", "Área:Rural"]],
-    resumen: { principal: ["internet"], tendencia: "internet", brecha: ["internet"] },
+    evol: [
+      { par: [
+        { ind: "internet", titulo: "¿Cuántas escuelas tienen internet?", desc: "Porcentaje de escuelas con acceso a internet." },
+        { ind: "gasto", titulo: "¿Cuánto gasta el Estado por alumno?", desc: "Gasto público en educación por alumno, en soles corrientes (no descuenta la inflación)." },
+      ] },
+      { par: [
+        { ind: "locales_servicios", titulo: "¿Cuántos locales tienen agua, desagüe y luz?", desc: "Porcentaje de locales escolares públicos con los tres servicios básicos. Toda la educación básica, 2001-2015." },
+        { ind: "locales_estado", titulo: "¿Cuántos locales están en buen estado?", desc: "Porcentaje de locales escolares públicos en buen estado. Toda la educación básica, 2001-2015." },
+      ] },
+    ],
+    indicadores: ["internet", "gasto", "locales_servicios", "locales_estado"],
+    kpis: [["internet"], ["gasto"], ["locales_servicios"], ["locales_estado"], ["internet", "", "Área:Urbana"], ["internet", "", "Área:Rural"]],
+    resumen: { principal: ["internet"], tendencia: "gasto", brecha: ["internet"] },
   },
 };
-const NIVELES_MOD = (m) => NIVELES.filter((n) => MOD[m].indicadores.some((i) => IND[i].niveles.includes(n)));
+const NIVELES_MOD = (m) => NIVELES.filter((n) => MOD[m].indicadores.some((i) => hay(i) && IND[i].niveles.includes(n)));
+
+/* Notas al pie de las tarjetas de algunos indicadores */
+const NOTA = {
+  conclusion: "Fuente: Encuesta Nacional de Hogares (ENAHO) del INEI.",
+  asistencia: "Fuente: Encuesta Nacional de Hogares (ENAHO) del INEI.",
+  locales_servicios: "Solo hay serie de 2001 a 2015: ESCALE no publica este indicador desde 2016. Fuente: Censo Escolar (Minedu).",
+  locales_estado: "Solo hay serie de 2001 a 2015: ESCALE no publica este indicador desde 2016. No hay dato de 2004, ni de Tumbes en 2010. Fuente: Censo Escolar (Minedu).",
+  gasto: "En soles de cada año: no descuenta la inflación. Fuente: SIAF-SP (MEF) y Censo Escolar (Minedu).",
+};
 
 /* Datos de ESCALE que no se muestran por ser errores de copia evidentes
    (ver docs/revision-datos-educacion.md). Se quedan en el Sheet tal como vienen.
@@ -139,6 +181,7 @@ const ANIOS = new Map();      // "ind|serie|curso|lugar" -> años con dato, orde
 const NOMBRE_REGION = new Map([[NACIONAL, "Perú"]]);
 let REGIONES = [];
 const mapas = {};
+const HAY = new Set();        // indicadores con datos
 const ORDEN = {};             // id de tabla -> { clave, dir }
 const BUSCAR = {};            // id de tabla -> texto buscado
 
@@ -152,6 +195,8 @@ const ultimo = (ind, s, curso, lugar) => aniosDe(ind, s, curso, lugar).at(-1) ??
 const aniosRegionales = (ind, s, curso) => [...new Set(REGIONES.flatMap((r) => aniosDe(ind, s, curso, r.region)))].sort((a, b) => a - b);
 // Serie de un indicador para el nivel elegido: el nivel, o el grado evaluado en logros de aprendizaje
 const serieDe = (ind) => {
+  if (!hay(ind)) return null;
+  if (IND[ind].fijo) return IND[ind].niveles[0];
   if (!IND[ind].niveles.includes(estado.nivel)) return null;
   if (!IND[ind].cursos) return estado.nivel;
   return estado.nivel === "Primaria" ? estado.grado : "2s";
@@ -159,16 +204,26 @@ const serieDe = (ind) => {
 const cursosDe = (s) => CURSOS.filter((c) => aniosDe("aprendizajes", s, c, NACIONAL).length);
 const gruposDe = (ind, s, curso = "") => GRUPOS.filter((g) => PARES[g].cats.every(([c]) => aniosDe(ind, s, curso, `${g}:${c}`).length));
 const nivelMin = () => estado.nivel.toLowerCase();
+// Nombre del nivel de un indicador: el elegido, o «educación básica» en los de nivel único
+const nivelDe = (ind) => (IND[ind].fijo ? IND[ind].niveles[0] : estado.nivel);
 const nombreRegion = (c) => NOMBRE_REGION.get(c) ?? c;
 const enLugar = (c) => (c === NACIONAL ? "en el Perú" : `en ${nombreRegion(c)}`);
 const EnLugar = (c) => (c === NACIONAL ? "En el Perú" : `En ${nombreRegion(c)}`);
 const fmt = (ind, v) => IND[ind].formato(v);
-const cifra = (ind, v) => (IND[ind].numero ? `<strong>${num1(v)}</strong>` : `el <strong>${pct(v)}</strong>`);
+const cifra = (ind, v) => (IND[ind].numero ? `<strong>${fmt(ind, v)}</strong>` : `el <strong>${pct(v)}</strong>`);
+// Frase completa con la cifra: «el 94,1 % de los niños…», «había 15,2 alumnos por docente…», «el gasto… fue de S/ 5 417»
+const oracion = (ind, v, conNegrita = true) => {
+  const info = IND[ind], n = nivelDe(ind).toLowerCase(), f = conNegrita ? destacar(fmt(ind, v)) : fmt(ind, v);
+  if (info.texto) return info.texto(f, n);
+  return info.numero ? `había ${f} ${info.frase(n)}` : `el ${f} ${info.frase(n)}`;
+};
+// «frente al 80,0 %», «frente a 15,2», «frente a S/ 4 000»
+const frente = (ind, v) => `frente ${IND[ind].numero ? "a" : "al"} ${fmt(ind, v)}`;
 const sinNivel = (ind) => `${IND[ind].corto} no tiene datos de ${nivelMin()}.`;
 // Lugar de comparación: el elegido en «Comparar con», si no es el mismo que el principal
 const lugarComp = () => (estado.comparar && estado.comparar !== estado.region ? estado.comparar : null);
 // Diferencia legible: puntos porcentuales o alumnos
-const dif = (ind, d) => (IND[ind].numero ? `${num1(Math.abs(d))} ${Math.abs(d) === 1 ? "alumno" : "alumnos"}` : `${Obs.fmtN(Math.abs(d) * 100, 1)} ${Math.abs(d * 100) === 1 ? "punto" : "puntos"}`);
+const dif = (ind, d) => (IND[ind].difTxt ? IND[ind].difTxt(d) : IND[ind].numero ? `${num1(Math.abs(d))} ${Math.abs(d) === 1 ? "alumno" : "alumnos"}` : `${Obs.fmtN(Math.abs(d) * 100, 1)} ${Math.abs(d * 100) === 1 ? "punto" : "puntos"}`);
 // Puesto de una región entre las 26 (1 = valor más alto)
 function puesto(ind, s, curso, region, a) {
   const v = val(ind, s, curso, region, a);
@@ -258,7 +313,9 @@ function lineas(id, ind, anios, series, aria) {
   const ancho = el.clientWidth;
   // Tope del eje en un múltiplo del intervalo, para que la última marca no quede pegada a la anterior
   const maximo = Math.max(...todos) * 1.05;
-  const paso = IND[ind].numero ? (maximo > 25 ? 10 : 5) : maximo > 0.5 ? 0.2 : maximo > 0.2 ? 0.1 : 0.05;
+  // números: un paso «redondo» (1, 2 o 5 por una potencia de 10) para unas cinco marcas
+  const redondo = (x) => { const p = 10 ** Math.floor(Math.log10(x)), r = x / p; return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * p; };
+  const paso = IND[ind].numero ? redondo(maximo / 5) : maximo > 0.5 ? 0.2 : maximo > 0.2 ? 0.1 : 0.05;
   const tope = IND[ind].numero ? Math.ceil(maximo / paso) * paso : Math.min(1, Math.ceil(maximo / paso - 1e-9) * paso);
   const cada = ancho < 420 ? 5 : ancho < 760 ? 3 : 2;
   const hueco = IND[ind].hueco;
@@ -275,7 +332,7 @@ function lineas(id, ind, anios, series, aria) {
         const filas = ps.filter((p) => p.value != null).sort((x, y) => y.value - x.value);
         return `<strong>${a}</strong>` + (filas.length ? filas.map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${fmt(ind, p.value)}</strong>`).join("") : "<br>Sin dato");
       } },
-    grid: { left: IND[ind].numero ? 40 : 52, right: rotular ? 64 : 18, top: 16, bottom: 30 },
+    grid: { left: IND[ind].numero ? (maximo >= 1000 ? 52 : 40) : 52, right: rotular ? (IND[ind].difTxt ? 80 : 64) : 18, top: 16, bottom: 30 },
     xAxis: { type: "category", data: anios.map(String), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: (i) => (anios.length - 1 - i) % cada === 0 }) },
     yAxis: { type: "value", min: 0, max: tope, interval: paso, splitLine: { lineStyle: { color: C.linea } },
@@ -339,12 +396,9 @@ function pintarEvol(ind) {
     $("[data-grado]", card).innerHTML = botones([
       { valor: "4p", etiqueta: "4.º grado (2016-2025)" }, { valor: "2p", etiqueta: "2.º grado (2007-2023)" }], estado.grado);
   }
-  if (!s) {
-    lectura.textContent = sinNivel(ind);
-    leyenda(`ley-${ind}`, []);
-    document.getElementById(`tb-${ind}`).hidden = true;
-    return Obs.vacio(`g-${ind}`, `Sin datos de ${nivelMin()}`);
-  }
+  // Sin datos para el nivel elegido (o sin la pestaña en datos.json), la tarjeta no se muestra
+  card.hidden = !s;
+  if (!s) return;
   // «Ver por»: total o un desglose (solo para el Perú)
   const cursosS = info.cursos ? cursosDe(s) : [""];
   const grupos = GRUPOS.filter((g) => cursosS.some((c) => gruposDe(ind, s, c).includes(g)));
@@ -368,7 +422,7 @@ function pintarEvol(ind) {
     lineasDef.push({ curso: "", lugar: NACIONAL, nombre: "Perú, total", color: C.otros, punteada: true, gris: true });
     referencia = "Perú, total";
   } else {
-    const base = info.cursos ? cursosDe(s).map((c) => ({ curso: c, nombre: c, color: C.cursos[c] })) : [{ curso: "", nombre: estado.nivel, color: C.niveles[estado.nivel] }];
+    const base = info.cursos ? cursosDe(s).map((c) => ({ curso: c, nombre: c, color: C.cursos[c] })) : [{ curso: "", nombre: nivelDe(ind), color: info.fijo ? C.unica : C.niveles[estado.nivel] }];
     lineasDef = [];
     for (const x of base) {
       lineasDef.push({ ...x, lugar, nombre: comp ? `${x.nombre} (${nombreRegion(lugar)})` : x.nombre, corto: x.nombre });
@@ -389,7 +443,7 @@ function pintarEvol(ind) {
     document.getElementById(`ley-${ind}`).innerHTML = [...new Set(series.map((x) => x.curso))].map((c) => `<span><i class="l" style="border-color:${C.cursos[c]}"></i>${Obs.escapar(c)}</span>`).join("") +
       `<span><i class="l" style="border-color:${C.textoSuave}"></i>${leyendaVp[0]} (línea continua)</span><span><i class="l punteada" style="border-color:${C.textoSuave}"></i>${leyendaVp[1]} (línea punteada)</span>`;
   } else leyenda(`ley-${ind}`, series.filter((x) => !x.punteada).map((x) => [x.nombre, x.color]), { hueco: !!info.hueco, comparacion: conComp, referencia });
-  lineas(`g-${ind}`, ind, anios, series, `${info.corto}, ${info.cursos ? GRADO[s].nombre : nivelMin()}, ${vp !== "Total" ? `por ${PARES[vp].nombre.toLowerCase()}, Perú` : enLugar(lugar)}, ${a0}-${a1}`);
+  lineas(`g-${ind}`, ind, anios, series, `${info.corto}, ${info.cursos ? GRADO[s].nombre : nivelDe(ind).toLowerCase()}, ${vp !== "Total" ? `por ${PARES[vp].nombre.toLowerCase()}, Perú` : enLugar(lugar)}, ${a0}-${a1}`);
 
   // Ver como tabla: un año por fila, una columna por línea
   const caja = document.getElementById(`tb-${ind}`);
@@ -411,7 +465,7 @@ function pintarEvol(ind) {
     const d0 = val(ind, s, cu, `${vp}:${c1[0]}`, p1) - val(ind, s, cu, `${vp}:${c2[0]}`, p1);
     lectura.innerHTML = `En el Perú, en ${a}${cu ? `, en ${cu}` : ""}: ${c1[1].toLowerCase()}, ${destacar(fmt(ind, v1))}; ${c2[1].toLowerCase()}, ${destacar(fmt(ind, v2))}. ` +
       `La diferencia es de ${destacar(dif(ind, v1 - v2))}` + (p1 !== a && !Number.isNaN(d0) ? `, frente a ${dif(ind, d0)} en ${p1}.` : ".");
-    nota.textContent = `Los desgloses son del Perú: ESCALE no los publica por región.${ind === "titulados" && vp === "Sexo" ? " En docentes titulados, el sexo es el de los docentes." : ""}`;
+    nota.textContent = `Los desgloses son del Perú: ESCALE no los publica por región.${ind === "titulados" && vp === "Sexo" ? " En docentes titulados, el sexo es el de los docentes." : ""}${NOTA[ind] ? ` ${NOTA[ind]}` : ""}`;
     return;
   }
   if (info.cursos) {
@@ -431,15 +485,16 @@ function pintarEvol(ind) {
     nota.textContent = notas.join(" ");
     return;
   }
+  nota.textContent = NOTA[ind] ?? "";
   const a = ultimo(ind, s, "", lugar);
-  if (!a) { lectura.textContent = `${EnLugar(lugar)} no hay datos de ${nivelMin()}.`; return; }
+  if (!a) { lectura.textContent = `${EnLugar(lugar)} no hay datos de ${nivelDe(ind).toLowerCase()}.`; return; }
   const v = val(ind, s, "", lugar, a);
-  let t = info.numero ? `${EnLugar(lugar)} había ${destacar(num1(v))} ${info.frase(nivelMin())} en ${a}` : `${EnLugar(lugar)}, ${cifra(ind, v)} ${info.frase(nivelMin())} en ${a}`;
+  let t = `${EnLugar(lugar)}${info.numero && !info.texto ? "" : ","} ${oracion(ind, v)} en ${a}`;
   const k = comp ? val(ind, s, "", comp, a) : null;
   if (k != null) t += `; ${enLugar(comp)}, ${fmt(ind, k)}`;
   else {
     const a0d = aniosDe(ind, s, "", lugar)[0];
-    if (a0d !== a) t += `, frente ${info.numero ? `a ${num1(val(ind, s, "", lugar, a0d))}` : `al ${pct(val(ind, s, "", lugar, a0d))}`} en ${a0d}`;
+    if (a0d !== a) t += `, ${frente(ind, val(ind, s, "", lugar, a0d))} en ${a0d}`;
   }
   lectura.innerHTML = `${t}.`;
 }
@@ -465,10 +520,14 @@ function htmlMapa(m) {
 }
 
 function pintarMapa(m) {
-  const conf = estado.mapa[m], ind = conf.ind, info = IND[ind];
+  const conf = estado.mapa[m];
   const card = document.getElementById(`c-mapa-${m}`);
+  // Indicadores con datos para el nivel elegido; si el del mapa no tiene, se pasa al primero que sí
+  const conDatos = MOD[m].indicadores.filter((i) => serieDe(i));
+  if (conDatos.length && !conDatos.includes(conf.ind)) Object.assign(conf, { ind: conDatos[0], curso: IND[conDatos[0]].cursos ? "Lectura" : "", anio: null });
+  const ind = conf.ind, info = IND[ind];
   const s = serieDe(ind);
-  if ($("[data-mapa-ind]", card)) $("[data-mapa-ind]", card).innerHTML = botones(MOD[m].indicadores.map((i) => ({ valor: i, etiqueta: IND[i].corto })), ind);
+  if ($("[data-mapa-ind]", card)) $("[data-mapa-ind]", card).innerHTML = botones(MOD[m].indicadores.map((i) => ({ valor: i, etiqueta: IND[i].corto, desactivado: !conDatos.includes(i) })), ind);
   $("[data-mapa-curso-caja]", card).hidden = !info.cursos;
   const lectura = document.getElementById(`l-mapa-${m}`), cuerpo = document.getElementById(`mt-${m}`);
   if (!s) {
@@ -495,11 +554,11 @@ function pintarMapa(m) {
   if (!mapas[m]) mapas[m] = new Obs.Mapa(`mapa-${m}`, GEO, { alClic: elegirRegion, nombre: nombreRegion });
   const cortes = Obs.cortesCuantiles([...valores.values()]);
   mapas[m].pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => fmt(ind, v / escala), elegida: estado.region });
-  Obs.leyendaTramos(`ley-mapa-${m}`, cortes, C.escala, (v) => (info.numero ? Obs.fmtN(v, 0) : `${Obs.fmtN(v, 0)} %`));
+  Obs.leyendaTramos(`ley-mapa-${m}`, cortes, C.escala, (v) => (info.difTxt ? soles(v) : info.numero ? Obs.fmtN(v, 0) : `${Obs.fmtN(v, 0)} %`));
 
   const peru = val(ind, s, curso, NACIONAL, anio);
   const alto = filas[0], bajo = filas.at(-1);
-  const que = info.cursos ? `logros de aprendizaje en ${curso}, ${GRADO[s].nombre}` : `${info.corto.toLowerCase()}, ${nivelMin()}`;
+  const que = info.cursos ? `logros de aprendizaje en ${curso}, ${GRADO[s].nombre}` : `${info.corto.toLowerCase()}, ${nivelDe(ind).toLowerCase()}`;
   let t = `En ${anio} (${que}), ${destacar(nombreRegion(alto.region))} tiene el valor más alto (${fmt(ind, alto.v)}) y ` +
     `${destacar(nombreRegion(bajo.region))} el más bajo (${fmt(ind, bajo.v)})` + (peru != null ? `; el Perú, ${fmt(ind, peru)}` : "");
   if (estado.region !== NACIONAL) {
@@ -515,7 +574,7 @@ function pintarMapa(m) {
   tablaOrdenable(`t-mapa-${m}`, [
     { clave: "pos", titulo: "#", num: true, valor: (f) => (f.pos ?? filas.filter((x) => x.v > f.v).length + 0.5), html: (f) => (f.pos ? String(f.pos) : "") },
     { clave: "nombre", titulo: "Región", valor: (f) => f.nombre, html: (f) => Obs.escapar(f.nombre) },
-    { clave: "v", titulo: info.numero ? "Alumnos por docente" : "Porcentaje", num: true, valor: (f) => f.v,
+    { clave: "v", titulo: info.columna ?? (info.numero ? "Alumnos por docente" : "Porcentaje"), num: true, valor: (f) => f.v,
       html: (f) => `<span class="celda-barra"><i style="width:${Math.max(3, (f.v / max) * 100)}%"></i><b>${fmt(ind, f.v)}</b></span>` },
   ], lista, { inicial: { clave: "v", dir: -1 }, claveFila: (f) => f.region, elegida: estado.region, alClic: elegirRegion, buscar: "Nombre de la región",
     claseFila: (f) => (f.region === NACIONAL ? "peru" : ""), descripcion: `${info.corto} por región, ${anio}` });
@@ -536,12 +595,13 @@ function cifraClave(ind, curso = "", lugarFijo = null) {
 function pintarCifras(m) {
   const comp = lugarComp();
   const caja = document.getElementById(`k-${m}`);
-  const kpis = MOD[m].kpis;
+  // las primeras cuatro cifras con datos para el nivel elegido
+  const kpis = MOD[m].kpis.filter(([ind, , lugarFijo]) => { const s = serieDe(ind); return s && aniosDe(ind, s, "", lugarFijo ?? NACIONAL).length + (IND[ind].cursos ? 1 : 0); }).slice(0, 4);
   caja.className = `kpis kpis-${kpis.length}`;
   caja.innerHTML = kpis.map(([ind, curso = "", lugarFijo = null]) => {
     const info = IND[ind], x = cifraClave(ind, curso, lugarFijo);
     const zona = lugarFijo ? ` en zona ${lugarFijo.split(":")[1].toLowerCase()}, Perú` : "";
-    const etiqueta = info.cursos ? `Logran los aprendizajes en ${curso}${x?.s ? ` (${GRADO[x.s].nombre})` : ""}` : `${info.corto} (${nivelMin()})${zona}`;
+    const etiqueta = info.cursos ? `Logran los aprendizajes en ${curso}${x?.s ? ` (${GRADO[x.s].nombre})` : ""}` : `${info.corto} (${nivelDe(ind).toLowerCase()})${zona}`;
     if (!x || !x.a) return `<div class="kpi"><span class="kpi-etiqueta">${etiqueta}</span><span class="kpi-valor">—</span><span class="kpi-pie">${x ? "Sin datos" : `Sin datos de ${nivelMin()}`}</span></div>`;
     // Cambio frente a la medición anterior, con su sentido (mejora o empeora según el indicador)
     let cambio = "";
@@ -555,7 +615,7 @@ function pintarCifras(m) {
       cambio = `<span class="kpi-cambio ${clase}"><span aria-hidden="true">${flecha}</span> ${quieto ? "Igual" : dif(ind, d)} frente a ${x.previo}<span class="solo-lectores"> (${palabra})</span></span>`;
     }
     const k = comp && !lugarFijo ? val(ind, x.s, curso, comp, x.a) : null;
-    const color = info.cursos ? C.cursos[curso] : C.niveles[estado.nivel];
+    const color = info.cursos ? C.cursos[curso] : info.fijo ? C.unica : C.niveles[estado.nivel];
     return `<div class="kpi">
       <span class="kpi-etiqueta">${etiqueta}</span>
       <div class="kpi-cuerpo"><span class="kpi-valor">${fmt(ind, x.v)}</span>${chispa(x.anios.map((a) => [a, val(ind, x.s, curso, x.lugar, a)]), color)}</div>
@@ -569,13 +629,15 @@ function pintarCifras(m) {
 function pintarResumen(m) {
   const lugar = estado.region, comp = lugarComp(), el = document.getElementById(`r-${m}`), R = MOD[m].resumen;
   const frases = [];
-  const [ip, cp = ""] = R.principal, sp = serieDe(ip);
+  // Cifra principal: la de la pestaña o, si no tiene datos para el nivel, la del primer indicador que sí
+  const [ip, cp = ""] = serieDe(R.principal[0]) ? R.principal : [MOD[m].indicadores.find((i) => serieDe(i) && !IND[i].cursos) ?? R.principal[0]];
+  const sp = serieDe(ip);
   if (sp) {
     const a = ultimo(ip, sp, cp, lugar);
     if (a) {
       const v = val(ip, sp, cp, lugar, a);
       let t = IND[ip].cursos ? `${EnLugar(lugar)}, en ${a}, el ${destacar(pct(v))} de los alumnos de ${GRADO[sp].nombre} logró los aprendizajes esperados en ${cp}`
-        : IND[ip].numero ? `${EnLugar(lugar)}, en ${a}, había ${destacar(num1(v))} ${IND[ip].frase(nivelMin())}` : `${EnLugar(lugar)}, en ${a}, ${cifra(ip, v)} ${IND[ip].frase(nivelMin())}`;
+        : `${EnLugar(lugar)}, en ${a}, ${oracion(ip, v)}`;
       const k = comp ? val(ip, sp, cp, comp, a) : null;
       if (k != null) t += `, frente a ${fmt(ip, k)} ${enLugar(comp)}`;
       frases.push(`${t}.`);
@@ -599,7 +661,7 @@ function pintarResumen(m) {
     const a = Math.min(ultimo(ib, sb, cb, "Área:Urbana") ?? 0, ultimo(ib, sb, cb, "Área:Rural") ?? 0);
     const u = val(ib, sb, cb, "Área:Urbana", a), r = val(ib, sb, cb, "Área:Rural", a);
     if (u != null && r != null) {
-      const que = IND[ib].cursos ? `logró los aprendizajes en ${cb}` : IND[ib].frase(nivelMin()).replace(/^de (los|las) \S+ de \S+ /, "");
+      const que = IND[ib].cursos ? `logró los aprendizajes en ${cb}` : IND[ib].frase(nivelDe(ib).toLowerCase()).replace(/^de (los|las) \S+ de \S+ /, "");
       frases.push(`En zona rural, ${IND[ib].numero ? "" : "el "}${destacar(fmt(ib, r))} ${que}, frente ${IND[ib].numero ? "a" : "al"} ${fmt(ib, u)} en la urbana (Perú, ${a}).`);
     }
   }
@@ -722,6 +784,7 @@ Obs.iniciar(TABLERO, async () => {
       const a = +f.anio;
       if (OCULTO.has(clave(ind, s, curso, lugar, a))) continue;
       V.set(clave(ind, s, curso, lugar, a), +f.valor);
+      HAY.add(ind);
       const k = clave(ind, s, curso, lugar);
       if (!listas.has(k)) listas.set(k, new Set());
       listas.get(k).add(a);
