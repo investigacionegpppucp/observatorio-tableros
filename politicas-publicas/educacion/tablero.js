@@ -13,9 +13,9 @@
    Tres módulos (pestañas): Estudiantes, Docentes y Escuelas. Filtros
    comunes arriba: región, «Comparar con» y nivel educativo. En cada
    pestaña: resumen dinámico, cifras clave (con su cambio y su línea),
-   evolución de cada indicador (con «Ver por» zona, sexo o gestión y
-   «Ver como tabla»), mapa con ranking y diferencias por zona, escuela
-   y sexo de un indicador elegido (puntos unidos, los tres a la vez). Patrón: un objeto `estado`, funciones puras
+   evolución de cada indicador (con «Ver por» zona, sexo o gestión, que
+   muestra las diferencias en el tiempo, y «Ver como tabla») y mapa con
+   ranking. Patrón: un objeto `estado`, funciones puras
    para leer los datos y una sola `render()`.
 
    Parámetros de URL:
@@ -26,7 +26,6 @@
      &grado=2p                grado de primaria en logros de aprendizaje (4p por defecto)
      &verpor=atraso:Área      desglose de los gráficos de evolución (indicador:grupo, separados por «-»)
      &mapa=aprendizajes-Matemática-2019   indicador, curso y año del mapa de la pestaña
-     &diferencias=atraso      indicador de la tarjeta de diferencias
      &embed=1                 oculta título y pie (para un iframe)
    ========================================================= */
 
@@ -126,14 +125,13 @@ const estado = {
   grado: "4p",            // grado de primaria en logros de aprendizaje
   verPor: {},             // indicador -> "Total" o un grupo de PARES
   tabla: {},              // id de tarjeta -> true si se ve como tabla
-  dif: { estudiantes: "aprendizajes", docentes: "titulados", escuelas: "internet" }, // indicador de la tarjeta de diferencias
   mapa: {
     estudiantes: { ind: "aprendizajes", curso: "Lectura", anio: null },
     docentes: { ind: "titulados", curso: "", anio: null },
     escuelas: { ind: "internet", curso: "", anio: null },
   },
 };
-const DEFECTO = JSON.parse(JSON.stringify({ mapa: estado.mapa, dif: estado.dif }));
+const DEFECTO = JSON.parse(JSON.stringify({ mapa: estado.mapa }));
 
 let C, GEO, controles;
 const V = new Map();          // "ind|serie|curso|lugar|anio" -> valor (lugar: código de región, NACIONAL o "Área:Rural")
@@ -186,9 +184,9 @@ const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 
 const $ = (s, raiz = document) => raiz.querySelector(s);
 const destacar = (s) => `<strong>${s}</strong>`;
 
-// Botones de una sola opción
-const botones = (opciones, elegida) => opciones.map((o) =>
-  `<button type="button" data-valor="${Obs.escapar(o.valor)}" aria-pressed="${o.valor === elegida}"${o.desactivado ? " disabled" : ""}>${Obs.escapar(o.etiqueta)}</button>`).join("");
+// Botones de una sola opción. Las opciones sin datos (desactivado) no se dibujan: no se muestran apagadas.
+const botones = (opciones, elegida) => opciones.filter((o) => !o.desactivado).map((o) =>
+  `<button type="button" data-valor="${Obs.escapar(o.valor)}" aria-pressed="${o.valor === elegida}">${Obs.escapar(o.etiqueta)}</button>`).join("");
 
 // Línea pequeña (SVG) para las cifras clave
 function chispa(valores, color) {
@@ -315,8 +313,8 @@ function htmlEvol({ ind, titulo, desc }) {
   return `<article class="tarjeta" id="c-${ind}">
     <header><h3>${titulo}</h3><p>${desc}</p></header>
     <div class="controles">
-      ${info.cursos ? `<div class="filtro-local" data-grado-caja role="group" aria-labelledby="lbl-grado"><span id="lbl-grado">Grado evaluado</span><div class="segmentado claro" data-grado></div></div>`
-        : `<div class="filtro-local" role="group" aria-labelledby="lbl-vp-${ind}"><span id="lbl-vp-${ind}">Ver por</span><div class="segmentado claro" data-verpor="${ind}"></div></div>`}
+      ${info.cursos ? `<div class="filtro-local" data-grado-caja role="group" aria-labelledby="lbl-grado"><span id="lbl-grado">Grado evaluado</span><div class="segmentado claro" data-grado></div></div>` : ""}
+      <div class="filtro-local" role="group" aria-labelledby="lbl-vp-${ind}"><span id="lbl-vp-${ind}">Ver por</span><div class="segmentado claro" data-verpor="${ind}"></div></div>
       <button type="button" class="ver-tabla" data-tabla="${ind}" aria-controls="tb-${ind}">Ver como tabla</button>
     </div>
     <p class="lectura" id="l-${ind}" aria-live="polite"></p>
@@ -348,17 +346,24 @@ function pintarEvol(ind) {
     return Obs.vacio(`g-${ind}`, `Sin datos de ${nivelMin()}`);
   }
   // «Ver por»: total o un desglose (solo para el Perú)
-  const grupos = info.cursos ? [] : gruposDe(ind, s);
+  const cursosS = info.cursos ? cursosDe(s) : [""];
+  const grupos = GRUPOS.filter((g) => cursosS.some((c) => gruposDe(ind, s, c).includes(g)));
   let vp = estado.verPor[ind] ?? "Total";
   if (vp !== "Total" && !grupos.includes(vp)) vp = "Total";
-  if (!info.cursos) {
-    $(`[data-verpor="${ind}"]`, card).innerHTML = botones([{ valor: "Total", etiqueta: "Total" },
-      ...GRUPOS.map((g) => ({ valor: g, etiqueta: PARES[g].boton, desactivado: !grupos.includes(g) }))], vp);
-  }
+  $(`[data-verpor="${ind}"]`, card).innerHTML = botones([{ valor: "Total", etiqueta: "Total" },
+    ...GRUPOS.map((g) => ({ valor: g, etiqueta: PARES[g].boton, desactivado: !grupos.includes(g) }))], vp);
 
   // Líneas
   let lineasDef, conComp = null, referencia = null;
-  if (vp !== "Total") {
+  let leyendaVp = null;
+  if (vp !== "Total" && info.cursos) {
+    // Logros por curso: cada curso con su color; el primer grupo continuo y el segundo punteado
+    const [k1, k2] = PARES[vp].cats;
+    lineasDef = cursosS.filter((c) => gruposDe(ind, s, c).includes(vp)).flatMap((c) => [
+      { curso: c, lugar: `${vp}:${k1[0]}`, nombre: `${c}, ${k1[2].toLowerCase()}`, color: C.cursos[c] },
+      { curso: c, lugar: `${vp}:${k2[0]}`, nombre: `${c}, ${k2[2].toLowerCase()}`, color: C.cursos[c], punteada: true }]);
+    leyendaVp = [k1[1], k2[1]];
+  } else if (vp !== "Total") {
     lineasDef = PARES[vp].cats.map(([c, nombre], i) => ({ curso: "", lugar: `${vp}:${c}`, nombre, color: C.pares[i] }));
     lineasDef.push({ curso: "", lugar: NACIONAL, nombre: "Perú, total", color: C.otros, punteada: true, gris: true });
     referencia = "Perú, total";
@@ -380,7 +385,10 @@ function pintarEvol(ind) {
   const a0 = Math.min(...todos), a1 = Math.max(...todos);
   const anios = Array.from({ length: a1 - a0 + 1 }, (_, i) => a0 + i);
   const series = lineasDef.map((x) => ({ ...x, valores: anios.map((a) => val(ind, s, x.curso, x.lugar, a)) }));
-  leyenda(`ley-${ind}`, series.filter((x) => !x.punteada).map((x) => [x.nombre, x.color]), { hueco: !!info.hueco, comparacion: conComp, referencia });
+  if (leyendaVp) {
+    document.getElementById(`ley-${ind}`).innerHTML = [...new Set(series.map((x) => x.curso))].map((c) => `<span><i class="l" style="border-color:${C.cursos[c]}"></i>${Obs.escapar(c)}</span>`).join("") +
+      `<span><i class="l" style="border-color:${C.textoSuave}"></i>${leyendaVp[0]} (línea continua)</span><span><i class="l punteada" style="border-color:${C.textoSuave}"></i>${leyendaVp[1]} (línea punteada)</span>`;
+  } else leyenda(`ley-${ind}`, series.filter((x) => !x.punteada).map((x) => [x.nombre, x.color]), { hueco: !!info.hueco, comparacion: conComp, referencia });
   lineas(`g-${ind}`, ind, anios, series, `${info.corto}, ${info.cursos ? GRADO[s].nombre : nivelMin()}, ${vp !== "Total" ? `por ${PARES[vp].nombre.toLowerCase()}, Perú` : enLugar(lugar)}, ${a0}-${a1}`);
 
   // Ver como tabla: un año por fila, una columna por línea
@@ -396,11 +404,12 @@ function pintarEvol(ind) {
   // Lectura
   if (vp !== "Total") {
     const [c1, c2] = PARES[vp].cats;
-    const a = Math.min(ultimo(ind, s, "", `${vp}:${c1[0]}`), ultimo(ind, s, "", `${vp}:${c2[0]}`));
-    const v1 = val(ind, s, "", `${vp}:${c1[0]}`, a), v2 = val(ind, s, "", `${vp}:${c2[0]}`, a);
-    const p1 = aniosDe(ind, s, "", `${vp}:${c1[0]}`)[0];
-    const d0 = val(ind, s, "", `${vp}:${c1[0]}`, p1) - val(ind, s, "", `${vp}:${c2[0]}`, p1);
-    lectura.innerHTML = `En el Perú, en ${a}: ${c1[1].toLowerCase()}, ${destacar(fmt(ind, v1))}; ${c2[1].toLowerCase()}, ${destacar(fmt(ind, v2))}. ` +
+    const cu = series[0].curso; // en logros, el primer curso con ese desglose
+    const a = Math.min(ultimo(ind, s, cu, `${vp}:${c1[0]}`), ultimo(ind, s, cu, `${vp}:${c2[0]}`));
+    const v1 = val(ind, s, cu, `${vp}:${c1[0]}`, a), v2 = val(ind, s, cu, `${vp}:${c2[0]}`, a);
+    const p1 = aniosDe(ind, s, cu, `${vp}:${c1[0]}`)[0];
+    const d0 = val(ind, s, cu, `${vp}:${c1[0]}`, p1) - val(ind, s, cu, `${vp}:${c2[0]}`, p1);
+    lectura.innerHTML = `En el Perú, en ${a}${cu ? `, en ${cu}` : ""}: ${c1[1].toLowerCase()}, ${destacar(fmt(ind, v1))}; ${c2[1].toLowerCase()}, ${destacar(fmt(ind, v2))}. ` +
       `La diferencia es de ${destacar(dif(ind, v1 - v2))}` + (p1 !== a && !Number.isNaN(d0) ? `, frente a ${dif(ind, d0)} en ${p1}.` : ".");
     nota.textContent = `Los desgloses son del Perú: ESCALE no los publica por región.${ind === "titulados" && vp === "Sexo" ? " En docentes titulados, el sexo es el de los docentes." : ""}`;
     return;
@@ -513,111 +522,6 @@ function pintarMapa(m) {
 }
 
 /* ---------------------------------------------------------
-   Diferencias por zona, gestión y sexo (Perú, último año): puntos unidos,
-   todas a la vez. Un bloque por indicador; dentro, un gráfico por desglose.
-   --------------------------------------------------------- */
-function htmlDiferencias(m) {
-  const bloques = MOD[m].indicadores.map((ind) => `
-    <section class="dif-bloque" id="db-${m}-${ind}">
-      <h4>${IND[ind].corto} <span class="dif-anio" id="da-${m}-${ind}"></span></h4>
-      <div class="dif-fila">${GRUPOS.map((g) => `
-        <div class="dif-panel" id="dp-${m}-${ind}-${g}">
-          <p class="dif-titulo">${PARES[g].nombre}</p>
-          <div class="grafico dif-grafico" id="dg-${m}-${ind}-${g}"></div>
-        </div>`).join("")}</div>
-    </section>`).join("");
-  return `<article class="tarjeta" id="c-dif-${m}">
-    <header><h3>¿Qué diferencias hay entre zonas, escuelas y sexos?</h3>
-      <p>Último año con datos, para todo el Perú y el nivel elegido arriba. Cada línea une los dos grupos: cuanto más larga, más grande la diferencia. ESCALE no publica estos desgloses por región.</p></header>
-    ${MOD[m].indicadores.length > 1 ? `<div class="controles"><div class="filtro-local" role="group" aria-labelledby="lbl-di-${m}"><span id="lbl-di-${m}">Indicador</span><div class="segmentado claro" data-dif-ind></div></div></div>` : ""}
-    <p class="lectura" id="l-dif-${m}" aria-live="polite"></p>
-    ${bloques}
-  </article>`;
-}
-
-function pintarDiferencias(m) {
-  const lectura = document.getElementById(`l-dif-${m}`), card = document.getElementById(`c-dif-${m}`);
-  const elegido = estado.dif[m];
-  if ($("[data-dif-ind]", card)) $("[data-dif-ind]", card).innerHTML = botones(MOD[m].indicadores.map((i) => ({ valor: i, etiqueta: IND[i].corto })), elegido);
-  let mayor = null;
-  for (const ind of MOD[m].indicadores) {
-    const info = IND[ind], s = ind === elegido ? serieDe(ind) : null, bloque = document.getElementById(`db-${m}-${ind}`);
-    const cursos = s ? (info.cursos ? cursosDe(s) : [""]) : [];
-    // último año con todos los desgloses disponibles en algún curso
-    const anio = s ? Math.max(0, ...cursos.flatMap((c) => GRUPOS.flatMap((g) => PARES[g].cats.map(([k]) => ultimo(ind, s, c, `${g}:${k}`) ?? 0)))) : 0;
-    const filasDe = (g) => cursos.map((c) => {
-      const [a, b] = PARES[g].cats.map(([k]) => val(ind, s, c, `${g}:${k}`, anio));
-      return a != null && b != null ? { c, a, b } : null;
-    }).filter(Boolean);
-    const presentes = GRUPOS.filter((g) => filasDe(g).length);
-    bloque.hidden = !s || !presentes.length;
-    if (bloque.hidden) continue;
-    document.getElementById(`da-${m}-${ind}`).textContent = `(${info.cursos ? `${GRADO[s].nombre}, ` : ""}${anio})`;
-    const todos = presentes.flatMap((g) => filasDe(g).flatMap((f) => [f.a, f.b]));
-    const max = Math.max(...todos) * 1.02;
-    for (const g of GRUPOS) {
-      const panel = document.getElementById(`dp-${m}-${ind}-${g}`), filas = filasDe(g);
-      panel.hidden = !filas.length;
-      if (!filas.length) continue;
-      for (const f of filas) {
-        const d = Math.abs(f.a - f.b);
-        if (!mayor || d > mayor.d) mayor = { ind, s, g, ...f, d, anio };
-      }
-      dumbbell(`dg-${m}-${ind}-${g}`, ind, g, filas, max);
-    }
-  }
-  if (mayor) {
-    const [c1, c2] = PARES[mayor.g].cats;
-    const que = IND[mayor.ind].cursos ? `logros de aprendizaje en ${mayor.c} (${GRADO[mayor.s].nombre})` : IND[mayor.ind].corto.toLowerCase();
-    const entre = `${c1[1].toLowerCase()} (${fmt(mayor.ind, mayor.a)}) y ${c2[1].toLowerCase()} (${fmt(mayor.ind, mayor.b)})`;
-    lectura.innerHTML = IND[mayor.ind].cursos
-      ? `La mayor diferencia está en ${destacar(que)}, entre ${entre}: ${destacar(dif(mayor.ind, mayor.a - mayor.b))} en ${mayor.anio}.`
-      : `En ${destacar(que)}, la mayor diferencia es entre ${entre}: ${destacar(dif(mayor.ind, mayor.a - mayor.b))} en ${mayor.anio}.`;
-  } else lectura.textContent = serieDe(elegido) ? "No hay desgloses para esta selección." : sinNivel(elegido);
-}
-
-// Puntos unidos: una fila por curso (o una sola), dos puntos por fila, con su nombre y valor
-function dumbbell(id, ind, g, filas, max) {
-  const el = document.getElementById(id);
-  el.style.height = `${filas.length * 46 + 34}px`;
-  const g2 = Obs.grafico(id);
-  g2.resize();
-  const [c1, c2] = PARES[g].cats;
-  const conCurso = filas.length > 1 || filas[0].c;
-  const angosto = el.clientWidth < 300;
-  const izq = conCurso ? (angosto ? 84 : 100) : 0;
-  const etiqueta = (nombre, valor) => `${nombre} ${fmt(ind, valor)}`;
-  g2.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
-      formatter: (ps) => { const f = filas[ps[0].dataIndex];
-        return `<strong>${f.c ? `${Obs.escapar(f.c)}, ` : ""}${PARES[g].nombre.toLowerCase()}</strong><br>${c1[1]}: <strong>${fmt(ind, f.a)}</strong><br>${c2[1]}: <strong>${fmt(ind, f.b)}</strong><br>Diferencia: ${dif(ind, f.a - f.b)}`; } },
-    // margen a los costados para el nombre y el valor de cada punto
-    grid: { left: izq + 96, right: 116, top: 6, bottom: 26 },
-    xAxis: { type: "value", min: 0, max, splitNumber: 3, splitLine: { lineStyle: { color: C.linea } },
-      axisLabel: txt({ formatter: (v) => (IND[ind].numero ? Obs.fmtN(v) : `${Math.round(v * 100)} %`), hideOverlap: true, showMaxLabel: false }) },
-    yAxis: { type: "category", inverse: true, data: filas.map((f) => f.c || " "), axisTick: { show: false }, axisLine: { show: false },
-      axisLabel: txt({ color: C.texto, show: !!conCurso, width: izq - 10, overflow: "break", margin: 96 + 10 }) },
-    series: [
-      { type: "custom", silent: true, z: 1, renderItem: (p, api) => {
-          const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]);
-          return { type: "line", shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: { stroke: "#c9d1dc", lineWidth: 6, lineCap: "round" } };
-        }, data: filas.map((f, i) => [f.a, f.b, i]), encode: { x: [0, 1], y: 2 } },
-      ...[["a", c1, 0], ["b", c2, 1]].map(([k, cat, i]) => ({
-        name: cat[1], type: "scatter", symbolSize: 15, z: 3, itemStyle: { color: C.pares[i], borderColor: "#fff", borderWidth: 2 },
-        data: filas.map((f) => {
-          const otro = k === "a" ? f.b : f.a, yo = f[k];
-          return { value: yo, label: { position: yo >= otro ? "right" : "left" } };
-        }),
-        label: { show: true, distance: 8, formatter: (p) => etiqueta(cat[2], p.value), ...txt({ color: C.texto, fontWeight: 700 }) },
-      })),
-    ],
-  }, true);
-  el.setAttribute("aria-label", `${IND[ind].corto} por ${PARES[g].nombre.toLowerCase()}: ` +
-    filas.map((f) => `${f.c ? `${f.c}, ` : ""}${c1[1].toLowerCase()} ${fmt(ind, f.a)} y ${c2[1].toLowerCase()} ${fmt(ind, f.b)}`).join("; "));
-}
-
-/* ---------------------------------------------------------
    Cifras clave y resumen
    --------------------------------------------------------- */
 function cifraClave(ind, curso = "", lugarFijo = null) {
@@ -726,8 +630,8 @@ function sincronizarControles() {
   const disponibles = NIVELES_MOD(estado.modulo);
   document.querySelectorAll("#f-nivel button").forEach((b) => {
     b.setAttribute("aria-pressed", b.dataset.nivel === estado.nivel);
-    b.disabled = !disponibles.includes(b.dataset.nivel);
-    b.title = b.disabled ? "Esta pestaña no tiene datos de inicial" : "";
+    // el nivel sin datos en la pestaña (inicial, fuera de Docentes) no se muestra
+    b.hidden = !disponibles.includes(b.dataset.nivel);
   });
   document.querySelectorAll(".modulos button").forEach((b) => {
     const activo = b.dataset.modulo === estado.modulo;
@@ -752,7 +656,6 @@ function actualizarURL() {
     grado: estado.grado === "4p" ? null : estado.grado,
     verpor: vp || null,
     mapa: mp.ind === dm.ind && mp.curso === dm.curso && mp.anio == null ? null : [mp.ind, mp.curso, mp.anio ?? ""].join("-").replace(/-+$/, ""),
-    diferencias: estado.dif[m] === DEFECTO.dif[m] ? null : estado.dif[m],
   });
 }
 
@@ -763,7 +666,6 @@ function render() {
   pintarCifras(m);
   for (const t of MOD[m].evol) (t.par ?? [t]).forEach((x) => pintarEvol(x.ind));
   pintarMapa(m);
-  pintarDiferencias(m);
   actualizarURL();
 }
 
@@ -771,18 +673,17 @@ function render() {
 function tarjetas() {
   for (const m of MODULOS) {
     const caja = document.getElementById(`c-${m}`);
-    caja.innerHTML = MOD[m].evol.map((t) => (t.par ? `<div class="par">${t.par.map(htmlEvol).join("")}</div>` : htmlEvol(t))).join("") + htmlMapa(m) + htmlDiferencias(m);
+    caja.innerHTML = MOD[m].evol.map((t) => (t.par ? `<div class="par">${t.par.map(htmlEvol).join("")}</div>` : htmlEvol(t))).join("") + htmlMapa(m);
     caja.addEventListener("click", (e) => {
       const vt = e.target.closest("button[data-tabla]");
       if (vt) { estado.tabla[vt.dataset.tabla] = !estado.tabla[vt.dataset.tabla]; render(); return; }
       const b = e.target.closest("button[data-valor]");
-      if (!b || b.disabled) return;
+      if (!b) return;
       const grupo = b.parentElement, v = b.dataset.valor;
       if (grupo.hasAttribute("data-grado")) estado.grado = v;
       else if (grupo.dataset.verpor) estado.verPor[grupo.dataset.verpor] = v;
       else if (grupo.hasAttribute("data-mapa-ind")) estado.mapa[m] = { ind: v, curso: IND[v].cursos ? "Lectura" : "", anio: null };
       else if (grupo.hasAttribute("data-mapa-curso")) estado.mapa[m] = { ...estado.mapa[m], curso: v };
-      else if (grupo.hasAttribute("data-dif-ind")) estado.dif[m] = v;
       else return;
       render();
     });
@@ -849,7 +750,6 @@ Obs.iniciar(TABLERO, async () => {
   }
   const [mi, mc, ma] = (q.get("mapa") || "").split("-");
   if (MOD[estado.modulo].indicadores.includes(mi)) estado.mapa[estado.modulo] = { ind: mi, curso: CURSOS.includes(mc) ? mc : IND[mi].cursos ? "Lectura" : "", anio: +(IND[mi].cursos ? ma : mc) || null };
-  if (MOD[estado.modulo].indicadores.includes(q.get("diferencias"))) estado.dif[estado.modulo] = q.get("diferencias");
   if (!NIVELES_MOD(estado.modulo).includes(estado.nivel)) estado.nivel = "Primaria";
 
   // Filtros comunes: región y comparación (Obs.controlesComunes) y nivel educativo
@@ -865,7 +765,7 @@ Obs.iniciar(TABLERO, async () => {
     <p class="viendo" id="viendo" aria-live="polite"></p>`);
   document.getElementById("f-nivel").onclick = (e) => {
     const b = e.target.closest("button[data-nivel]");
-    if (b && !b.disabled) actualizar({ nivel: b.dataset.nivel });
+    if (b && !b.hidden) actualizar({ nivel: b.dataset.nivel });
   };
   // Pista de uso al inicio de cada pestaña
   MODULOS.forEach((m) => document.getElementById(`r-${m}`).insertAdjacentHTML("beforebegin",

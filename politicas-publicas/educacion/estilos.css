@@ -13,7 +13,7 @@
   --curso-matematica: #c61c44;
   --curso-sociales: #c77700;
   --curso-ciencia: #00968f;
-  /* Desgloses (zona, gestión, sexo): primer y segundo grupo (validado, todos los pares) */
+  /* «Ver por» (zona, gestión, sexo): primer y segundo grupo (validado, todos los pares) */
   --par-1: #3a5fcd;
   --par-2: #c77700;
   /* Cambio de las cifras clave: mejora o empeora según el indicador (siempre con flecha y palabra) */
@@ -41,7 +41,6 @@
 .segmentado.claro button:hover:not([aria-pressed="true"]) { background: var(--fondo); color: var(--navy); }
 .segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
 .segmentado.claro button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
-.segmentado.claro button:disabled { color: #9aa3b0; cursor: default; background: var(--superficie); }
 .filtro-local select {
   height: 44px; padding: 0 36px 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); background: #fff; color: var(--texto);
   font: inherit; font-size: 15px; font-weight: 600; appearance: none; cursor: pointer;
@@ -66,8 +65,7 @@
 /* Cifras clave: etiqueta arriba, cifra grande y, al lado, el año o el valor del Perú */
 .kpis-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-/* Nivel educativo en la franja de filtros: el que no tiene datos en la pestaña queda apagado */
-.filtros .segmentado button:disabled { color: rgba(255, 255, 255, 0.35); cursor: not-allowed; }
+/* Nivel educativo en la franja de filtros: el que no tiene datos en la pestaña se oculta (tablero.js) */
 .kpi { min-height: 120px; justify-content: center; }
 .kpi .kpi-etiqueta { font-weight: 700; }
 .kpi-valor { font-size: 36px; }
@@ -141,14 +139,6 @@
 .celda-barra b { min-width: 56px; font-weight: 600; }
 .tabla tr.peru td { font-weight: 800; color: var(--navy); background: #eef7d9; }
 .tabla tr.peru .celda-barra i { background: var(--navy); }
-
-/* Diferencias: un bloque por indicador, un panel por desglose */
-.dif-bloque { margin-top: 14px; }
-.dif-bloque h4 { margin: 0; font-size: 17px; font-weight: 800; color: var(--navy); }
-.dif-anio { font-weight: 600; color: var(--texto-suave); font-size: 15px; }
-.dif-fila { display: grid; grid-template-columns: 1fr; gap: 2px; margin-top: 4px; max-width: 980px; }
-.dif-titulo { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: var(--texto-suave); }
-.dif-grafico { margin-top: 0; height: 80px; }
 
 @media (max-width: 560px) {
   .ver-tabla { margin-left: 0; width: 100%; }
