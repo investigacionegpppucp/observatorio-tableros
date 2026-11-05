@@ -13,6 +13,12 @@
   --curso-matematica: #c61c44;
   --curso-sociales: #c77700;
   --curso-ciencia: #00968f;
+  /* Desgloses (zona, gestión, sexo): primer y segundo grupo (validado, todos los pares) */
+  --par-1: #3a5fcd;
+  --par-2: #c77700;
+  /* Cambio de las cifras clave: mejora o empeora según el indicador (siempre con flecha y palabra) */
+  --mejora: #2f6f00;
+  --empeora: #b3173d;
   /* Años sin dato (promoción guiada) */
   --hueco: rgba(79, 90, 107, 0.08);
 }
@@ -22,7 +28,8 @@
 .par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: stretch; }
 .par > .tarjeta { margin-bottom: 0; display: flex; flex-direction: column; }
 .par > .tarjeta > header { min-height: 72px; }
-.par > .tarjeta > .grafico { flex: 1 1 auto; }
+/* El gráfico no se estira: si se estira, ECharts no se redibuja y los ejes quedan corridos */
+.par > .tarjeta > .grafico { flex: none; }
 
 /* Botones de cada tarjeta (nivel, grado, curso, indicador) */
 .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin: 16px 0 0; }
@@ -84,4 +91,69 @@
   .kpis-4 .kpi-valor { font-size: 26px; }
   .filtros .segmentado { width: 100%; }
   .filtros .segmentado button { flex: 1 1 0; min-width: 0; }
+}
+
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Qué se está viendo, al final de la franja de filtros */
+.viendo { flex-basis: 100%; margin: 2px 0 0; font-size: 15px; color: rgba(255, 255, 255, 0.85); }
+.viendo strong { color: #fff; }
+.pista-arriba { margin: 0 0 10px; font-size: 14px; color: var(--texto-suave); }
+
+/* Cifras clave: cifra y su línea, cambio frente a la medición anterior y pie */
+.kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi { gap: 6px; }
+.kpi-cuerpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.chispa { width: 120px; height: 36px; flex: none; }
+.kpi-cambio { font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.kpi-cambio.mejora { color: var(--mejora); }
+.kpi-cambio.empeora { color: var(--empeora); }
+
+/* Ver como tabla */
+.ver-tabla { margin-left: auto; min-height: 44px; padding: 8px 14px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie);
+  color: var(--navy); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.ver-tabla:hover { background: var(--fondo); }
+.ver-tabla[aria-expanded="true"] { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ver-tabla:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+/* Tablas ordenables, con buscador */
+.tabla-caja { max-height: none; overflow: visible; }
+.tabla-desliza { max-height: 560px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); }
+.buscador-tabla { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+.buscador-tabla label { font-weight: 700; color: var(--navy); }
+.buscador-tabla input { flex: 1 1 auto; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); font: inherit; font-size: 15px; }
+.buscador-tabla input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.tabla.ordenable th { padding: 0; white-space: nowrap; }
+.tabla.ordenable th button { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; background: none;
+  color: #fff; font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
+.tabla.ordenable th.num button { justify-content: flex-end; }
+.tabla.ordenable th button:hover { background: rgba(255, 255, 255, 0.1); }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.6; }
+.tabla.ordenable th[aria-sort="ascending"] .flecha, .tabla.ordenable th[aria-sort="descending"] .flecha { opacity: 1; color: var(--lima); }
+.tabla.ordenable tbody tr:hover td { background: var(--fondo); }
+.tabla.ordenable tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.mapa-y-tabla .tabla.ordenable tbody tr { cursor: pointer; }
+.tabla-vacia { margin: 12px; font-size: 15px; color: var(--texto-suave); }
+.celda-barra { display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; width: 100%; min-width: 150px; }
+.celda-barra i { display: block; height: 10px; max-width: 90px; flex: 0 1 90px; background: var(--azul-claro); border-radius: 2px; }
+.celda-barra b { min-width: 56px; font-weight: 600; }
+.tabla tr.peru td { font-weight: 800; color: var(--navy); background: #eef7d9; }
+.tabla tr.peru .celda-barra i { background: var(--navy); }
+
+/* Diferencias: un bloque por indicador, un panel por desglose */
+.dif-bloque { margin-top: 14px; }
+.dif-bloque h4 { margin: 0; font-size: 17px; font-weight: 800; color: var(--navy); }
+.dif-anio { font-weight: 600; color: var(--texto-suave); font-size: 15px; }
+.dif-fila { display: grid; grid-template-columns: 1fr; gap: 2px; margin-top: 4px; max-width: 980px; }
+.dif-titulo { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.dif-grafico { margin-top: 0; height: 80px; }
+
+@media (max-width: 560px) {
+  .ver-tabla { margin-left: 0; width: 100%; }
+  .kpi { min-width: 0; }
+  .kpi-cuerpo { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .chispa { width: 100%; max-width: 140px; height: 30px; }
+  .kpis-3 { grid-template-columns: 1fr; }
 }

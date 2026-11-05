@@ -11,18 +11,22 @@
    Porcentajes de 0 a 1; alumnos por docente, en número de alumnos.
 
    Tres módulos (pestañas): Estudiantes, Docentes y Escuelas. Filtros
-   comunes arriba: región y nivel educativo (como en Looker). En logros
-   de aprendizaje cada línea es un curso; en primaria se elige el grado
-   evaluado (4.º desde 2016, 2.º de 2007 a 2023). Patrón: un objeto
-   `estado`, funciones puras para leer los datos y una sola `render()`.
+   comunes arriba: región, «Comparar con» y nivel educativo. En cada
+   pestaña: resumen dinámico, cifras clave (con su cambio y su línea),
+   evolución de cada indicador (con «Ver por» zona, sexo o gestión y
+   «Ver como tabla»), mapa con ranking y diferencias por zona, escuela
+   y sexo de un indicador elegido (puntos unidos, los tres a la vez). Patrón: un objeto `estado`, funciones puras
+   para leer los datos y una sola `render()`.
 
    Parámetros de URL:
      ?modulo=estudiantes|docentes|escuelas
      &region=CUSCO            región elegida (código en mayúsculas)
+     &comparar=NACIONAL       Perú (NACIONAL) u otra región; vacío = sin comparación
      &nivel=Secundaria        Inicial, Primaria (por defecto) o Secundaria
      &grado=2p                grado de primaria en logros de aprendizaje (4p por defecto)
+     &verpor=atraso:Área      desglose de los gráficos de evolución (indicador:grupo, separados por «-»)
      &mapa=aprendizajes-Matemática-2019   indicador, curso y año del mapa de la pestaña
-     &brecha=atraso           indicador de la tarjeta de diferencias
+     &diferencias=atraso      indicador de la tarjeta de diferencias
      &embed=1                 oculta título y pie (para un iframe)
    ========================================================= */
 
@@ -47,22 +51,22 @@ const GRADO = {
 };
 const GRADO_A_SERIE = { "2.º de primaria": "2p", "4.º de primaria": "4p", "2.º de secundaria": "2s" };
 
-/* Indicadores: qué niveles tienen y cómo se dicen */
+/* Indicadores: qué niveles tienen, si es mejor que suba o que baje, y cómo se dicen */
 const IND = {
-  aprendizajes: { corto: "Logros de aprendizaje", niveles: ["Primaria", "Secundaria"], formato: pct, cursos: true },
-  atraso: { corto: "Atraso escolar", niveles: ["Primaria", "Secundaria"], formato: pct,
+  aprendizajes: { corto: "Logros de aprendizaje", niveles: ["Primaria", "Secundaria"], formato: pct, cursos: true, mejor: "alto" },
+  atraso: { corto: "Atraso escolar", niveles: ["Primaria", "Secundaria"], formato: pct, mejor: "bajo",
     frase: (n) => `de los alumnos de ${n} tenía atraso escolar` },
-  desaprobados: { corto: "Desaprobados", niveles: ["Primaria", "Secundaria"], formato: pct, hueco: [2020, 2022],
+  desaprobados: { corto: "Desaprobados", niveles: ["Primaria", "Secundaria"], formato: pct, hueco: [2020, 2022], mejor: "bajo",
     frase: (n) => `de los alumnos de ${n} desaprobó el año` },
-  titulados: { corto: "Docentes titulados", niveles: NIVELES, formato: pct,
+  titulados: { corto: "Docentes titulados", niveles: NIVELES, formato: pct, mejor: "alto",
     frase: (n) => `de los docentes de ${n} tenía título pedagógico` },
-  alumnos_docente: { corto: "Alumnos por docente", niveles: NIVELES, formato: num1, numero: true,
+  alumnos_docente: { corto: "Alumnos por docente", niveles: NIVELES, formato: num1, numero: true, mejor: "bajo",
     frase: (n) => `alumnos por docente en ${n}` },
-  internet: { corto: "Escuelas con internet", niveles: ["Primaria", "Secundaria"], formato: pct,
+  internet: { corto: "Escuelas con internet", niveles: ["Primaria", "Secundaria"], formato: pct, mejor: "alto",
     frase: (n) => `de las escuelas de ${n} tenía acceso a internet` },
 };
 
-/* Tarjetas de cada pestaña */
+/* Tarjetas de cada pestaña y qué dice su resumen */
 const MOD = {
   estudiantes: {
     evol: [
@@ -75,6 +79,7 @@ const MOD = {
     ],
     indicadores: ["aprendizajes", "atraso", "desaprobados"],
     kpis: [["aprendizajes", "Lectura"], ["aprendizajes", "Matemática"], ["atraso"], ["desaprobados"]],
+    resumen: { principal: ["aprendizajes", "Lectura"], tendencia: "atraso", brecha: ["aprendizajes", "Lectura"] },
   },
   docentes: {
     evol: [{ par: [
@@ -83,11 +88,13 @@ const MOD = {
     ] }],
     indicadores: ["titulados", "alumnos_docente"],
     kpis: [["titulados"], ["alumnos_docente"]],
+    resumen: { principal: ["titulados"], tendencia: "alumnos_docente", brecha: ["titulados"] },
   },
   escuelas: {
     evol: [{ ind: "internet", titulo: "¿Cuántas escuelas tienen internet?", desc: "Porcentaje de escuelas con acceso a internet." }],
     indicadores: ["internet"],
     kpis: [["internet"], ["internet", "", "Área:Urbana"], ["internet", "", "Área:Rural"]],
+    resumen: { principal: ["internet"], tendencia: "internet", brecha: ["internet"] },
   },
 };
 const NIVELES_MOD = (m) => NIVELES.filter((n) => MOD[m].indicadores.some((i) => IND[i].niveles.includes(n)));
@@ -102,28 +109,31 @@ const OCULTOS = [
   ["titulados", "Secundaria", "", "Área y sexo:Rural Femenino", 2022],
 ];
 
-/* Orden y nombres de los desgloses */
-const DESGLOSES = [
-  ["Área", "Urbana", "Zona urbana"], ["Área", "Rural", "Zona rural"],
-  ["Gestión", "Pública", "Escuela pública"], ["Gestión", "Privada", "Escuela privada"],
-  ["Sexo", "Femenino", "Mujeres"], ["Sexo", "Masculino", "Hombres"],
-];
+/* Desgloses: cada uno es un par de categorías. El primer color va a la primera. */
+const PARES = {
+  Área: { nombre: "Zona", boton: "Zona", cats: [["Urbana", "Zona urbana", "Urbana"], ["Rural", "Zona rural", "Rural"]] },
+  Gestión: { nombre: "Tipo de escuela", boton: "Gestión", cats: [["Pública", "Escuela pública", "Pública"], ["Privada", "Escuela privada", "Privada"]] },
+  Sexo: { nombre: "Sexo", boton: "Sexo", cats: [["Femenino", "Mujeres", "Mujeres"], ["Masculino", "Hombres", "Hombres"]] },
+};
+const GRUPOS = Object.keys(PARES);
 
 const estado = {
   modulo: "estudiantes",
   ambito: "nacional",
   region: NACIONAL,
+  comparar: "",           // "", NACIONAL o un código de región
   nivel: "Primaria",
   grado: "4p",            // grado de primaria en logros de aprendizaje
-  // mapa de cada pestaña: indicador, curso y año (null = el último con datos)
+  verPor: {},             // indicador -> "Total" o un grupo de PARES
+  tabla: {},              // id de tarjeta -> true si se ve como tabla
+  dif: { estudiantes: "aprendizajes", docentes: "titulados", escuelas: "internet" }, // indicador de la tarjeta de diferencias
   mapa: {
     estudiantes: { ind: "aprendizajes", curso: "Lectura", anio: null },
     docentes: { ind: "titulados", curso: "", anio: null },
     escuelas: { ind: "internet", curso: "", anio: null },
   },
-  brecha: { estudiantes: "aprendizajes", docentes: "titulados", escuelas: "internet" },
 };
-const DEFECTO = JSON.parse(JSON.stringify({ mapa: estado.mapa, brecha: estado.brecha }));
+const DEFECTO = JSON.parse(JSON.stringify({ mapa: estado.mapa, dif: estado.dif }));
 
 let C, GEO, controles;
 const V = new Map();          // "ind|serie|curso|lugar|anio" -> valor (lugar: código de región, NACIONAL o "Área:Rural")
@@ -131,6 +141,8 @@ const ANIOS = new Map();      // "ind|serie|curso|lugar" -> años con dato, orde
 const NOMBRE_REGION = new Map([[NACIONAL, "Perú"]]);
 let REGIONES = [];
 const mapas = {};
+const ORDEN = {};             // id de tabla -> { clave, dir }
+const BUSCAR = {};            // id de tabla -> texto buscado
 
 /* ---------------------------------------------------------
    Lectura de los datos
@@ -147,6 +159,7 @@ const serieDe = (ind) => {
   return estado.nivel === "Primaria" ? estado.grado : "2s";
 };
 const cursosDe = (s) => CURSOS.filter((c) => aniosDe("aprendizajes", s, c, NACIONAL).length);
+const gruposDe = (ind, s, curso = "") => GRUPOS.filter((g) => PARES[g].cats.every(([c]) => aniosDe(ind, s, curso, `${g}:${c}`).length));
 const nivelMin = () => estado.nivel.toLowerCase();
 const nombreRegion = (c) => NOMBRE_REGION.get(c) ?? c;
 const enLugar = (c) => (c === NACIONAL ? "en el Perú" : `en ${nombreRegion(c)}`);
@@ -154,18 +167,92 @@ const EnLugar = (c) => (c === NACIONAL ? "En el Perú" : `En ${nombreRegion(c)}`
 const fmt = (ind, v) => IND[ind].formato(v);
 const cifra = (ind, v) => (IND[ind].numero ? `<strong>${num1(v)}</strong>` : `el <strong>${pct(v)}</strong>`);
 const sinNivel = (ind) => `${IND[ind].corto} no tiene datos de ${nivelMin()}.`;
+// Lugar de comparación: el elegido en «Comparar con», si no es el mismo que el principal
+const lugarComp = () => (estado.comparar && estado.comparar !== estado.region ? estado.comparar : null);
+// Diferencia legible: puntos porcentuales o alumnos
+const dif = (ind, d) => (IND[ind].numero ? `${num1(Math.abs(d))} ${Math.abs(d) === 1 ? "alumno" : "alumnos"}` : `${Obs.fmtN(Math.abs(d) * 100, 1)} ${Math.abs(d * 100) === 1 ? "punto" : "puntos"}`);
+// Puesto de una región entre las 26 (1 = valor más alto)
+function puesto(ind, s, curso, region, a) {
+  const v = val(ind, s, curso, region, a);
+  if (v == null) return null;
+  const lista = REGIONES.map((r) => val(ind, s, curso, r.region, a)).filter((x) => x != null);
+  return { n: lista.filter((x) => x > v).length + 1, de: lista.length };
+}
 
 /* ---------------------------------------------------------
    Piezas compartidas
    --------------------------------------------------------- */
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
 const $ = (s, raiz = document) => raiz.querySelector(s);
+const destacar = (s) => `<strong>${s}</strong>`;
 
 // Botones de una sola opción
 const botones = (opciones, elegida) => opciones.map((o) =>
   `<button type="button" data-valor="${Obs.escapar(o.valor)}" aria-pressed="${o.valor === elegida}"${o.desactivado ? " disabled" : ""}>${Obs.escapar(o.etiqueta)}</button>`).join("");
 
-// Líneas por año. series: [{ nombre, color, valores (uno por año de `anios`), punteada }]
+// Línea pequeña (SVG) para las cifras clave
+function chispa(valores, color) {
+  const pts = valores.filter((p) => p[1] != null);
+  if (pts.length < 2) return "";
+  const W = 120, H = 36, a0 = pts[0][0], a1 = pts.at(-1)[0];
+  const vs = pts.map((p) => p[1]), lo = Math.min(...vs), hi = Math.max(...vs), r = hi - lo || 1;
+  const x = (a) => 3 + ((a - a0) / (a1 - a0 || 1)) * (W - 6), y = (v) => H - 4 - ((v - lo) / r) * (H - 8);
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+  const [ua, uv] = pts.at(-1);
+  return `<svg class="chispa" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>` +
+    `<circle cx="${x(ua).toFixed(1)}" cy="${y(uv).toFixed(1)}" r="3" fill="${color}"/></svg>`;
+}
+
+/* Tabla ordenable por cualquier columna, con buscador opcional (filtra filas por texto).
+   columnas: [{ clave, titulo, num, valor(f), html(f) }]; filas: objetos */
+function tablaOrdenable(id, columnas, filas, { inicial, claveFila, elegida = null, alClic = null, descripcion, buscar = null, claseFila = () => "" }) {
+  const el = document.getElementById(id);
+  const orden = (ORDEN[id] ??= { ...inicial });
+  const col = columnas.find((c) => c.clave === orden.clave) ?? columnas[0];
+  const cmp = (a, b) => {
+    const x = col.valor(a), y = col.valor(b);
+    if (x == null || y == null) return (x == null) - (y == null);
+    return (typeof x === "string" ? x.localeCompare(y, "es") : x - y) * orden.dir;
+  };
+  const datos = [...filas].sort(cmp);
+  const th = columnas.map((c) => {
+    const activo = c.clave === col.clave;
+    const sentido = activo ? (orden.dir === 1 ? "ascending" : "descending") : "none";
+    return `<th class="${c.num ? "num" : ""}" aria-sort="${sentido}"><button type="button" data-orden="${c.clave}">${c.titulo}<span class="flecha" aria-hidden="true">${activo ? (orden.dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
+  }).join("");
+  const tr = datos.map((f) => {
+    const k = claveFila(f);
+    const clases = [claseFila(f), k === elegida ? "elegida" : ""].filter(Boolean).join(" ");
+    return `<tr tabindex="0" data-k="${Obs.escapar(String(k))}" data-texto="${Obs.escapar(columnas.filter((c) => !c.num).map((c) => String(c.valor(f) ?? "")).join(" ").toLowerCase())}"${clases ? ` class="${clases}"` : ""}>` +
+      columnas.map((c) => `<td class="${c.num ? "num" : ""}">${c.html(f)}</td>`).join("") + "</tr>";
+  }).join("");
+  const caja = buscar ? `<div class="buscador-tabla"><label for="${id}-buscar">Buscar</label><input id="${id}-buscar" type="search" placeholder="${buscar}" autocomplete="off" value="${Obs.escapar(BUSCAR[id] ?? "")}"></div>` : "";
+  el.innerHTML = caja + `<div class="tabla-desliza"><table class="tabla ordenable"><caption class="solo-lectores">${descripcion}. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>` +
+    `<p class="tabla-vacia" hidden>Ninguna fila coincide con la búsqueda.</p></div>`;
+  const filtrar = () => {
+    const q = (BUSCAR[id] ?? "").trim().toLowerCase();
+    let visibles = 0;
+    el.querySelectorAll("tbody tr").forEach((r) => { const ok = !q || r.dataset.texto.includes(q); r.hidden = !ok; visibles += ok; });
+    el.querySelector(".tabla-vacia").hidden = visibles > 0;
+  };
+  filtrar();
+  const input = el.querySelector("input[type=search]");
+  if (input) input.oninput = () => { BUSCAR[id] = input.value; filtrar(); };
+  el.querySelector("thead").onclick = (e) => {
+    const b = e.target.closest("button[data-orden]");
+    if (!b) return;
+    const c = columnas.find((x) => x.clave === b.dataset.orden);
+    ORDEN[id] = orden.clave === c.clave ? { clave: c.clave, dir: -orden.dir } : { clave: c.clave, dir: c.num ? -1 : 1 };
+    tablaOrdenable(id, columnas, filas, { inicial, claveFila, elegida, alClic, descripcion, buscar, claseFila });
+    el.querySelector(`button[data-orden="${c.clave}"]`)?.focus();
+  };
+  if (alClic) {
+    el.querySelector("tbody").onclick = (e) => { const r = e.target.closest("tr[data-k]"); if (r) alClic(r.dataset.k); };
+    el.querySelector("tbody").onkeydown = (e) => { if (e.key === "Enter" && e.target.matches("tr[data-k]")) alClic(e.target.dataset.k); };
+  }
+}
+
+// Líneas por año. series: [{ nombre, color, valores (uno por año de `anios`), punteada, gris }]
 function lineas(id, ind, anios, series, aria) {
   const todos = series.flatMap((s) => s.valores).filter((v) => v != null);
   if (!todos.length) return Obs.vacio(id);
@@ -177,6 +264,9 @@ function lineas(id, ind, anios, series, aria) {
   const tope = IND[ind].numero ? Math.ceil(maximo / paso) * paso : Math.min(1, Math.ceil(maximo / paso - 1e-9) * paso);
   const cada = ancho < 420 ? 5 : ancho < 760 ? 3 : 2;
   const hueco = IND[ind].hueco;
+  // Valor al final de cada línea (solo con pocas líneas y espacio)
+  const rotular = series.length <= 4 && ancho >= 520;
+  const ultimoIdx = (vals) => { for (let i = vals.length - 1; i >= 0; i--) if (vals[i] != null) return i; return -1; };
   const g = Obs.grafico(id);
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
@@ -184,30 +274,35 @@ function lineas(id, ind, anios, series, aria) {
       formatter: (ps) => {
         const a = +ps[0].axisValue;
         if (hueco && a >= hueco[0] && a <= hueco[1]) return `<strong>${a}</strong><br>No aplica: promoción guiada`;
-        const filas = ps.filter((p) => p.value != null);
+        const filas = ps.filter((p) => p.value != null).sort((x, y) => y.value - x.value);
         return `<strong>${a}</strong>` + (filas.length ? filas.map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${fmt(ind, p.value)}</strong>`).join("") : "<br>Sin dato");
       } },
-    grid: { left: IND[ind].numero ? 40 : 52, right: 18, top: 16, bottom: 30 },
+    grid: { left: IND[ind].numero ? 40 : 52, right: rotular ? 64 : 18, top: 16, bottom: 30 },
     xAxis: { type: "category", data: anios.map(String), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: (i) => (anios.length - 1 - i) % cada === 0 }) },
     yAxis: { type: "value", min: 0, max: tope, interval: paso, splitLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ formatter: (v) => (IND[ind].numero ? Obs.fmtN(v) : `${Math.round(v * 100)} %`) }) },
-    series: series.map((s, i) => ({
-      name: s.nombre, type: "line", data: s.valores, connectNulls: true, symbol: "circle", symbolSize: s.punteada ? 6 : 8, z: s.punteada ? 2 : 3,
-      lineStyle: { width: s.punteada ? 2 : 2.5, color: s.color, type: s.punteada ? [6, 4] : "solid" },
-      itemStyle: { color: s.punteada ? "#fff" : s.color, borderColor: s.color, borderWidth: s.punteada ? 2 : 1.5 },
-      emphasis: { focus: "series" },
-      markArea: i === 0 && hueco ? { silent: true, itemStyle: { color: C.hueco },
-        label: { show: ancho >= 420, position: "insideTop", distance: 6, ...txt(), formatter: "Promoción guiada" },
-        data: [[{ xAxis: String(hueco[0]) }, { xAxis: String(hueco[1]) }]] } : undefined,
-    })),
+    series: series.map((s, i) => {
+      const u = ultimoIdx(s.valores);
+      return {
+        name: s.nombre, type: "line", connectNulls: true, symbol: "circle", symbolSize: s.punteada ? 6 : 8, z: s.gris ? 1 : s.punteada ? 2 : 3,
+        data: s.valores.map((v, j) => (j === u && rotular ? { value: v, label: { show: true, position: "right", distance: 8, formatter: () => fmt(ind, v), ...txt({ color: C.texto, fontWeight: 700 }) } } : v)),
+        lineStyle: { width: s.punteada ? 2 : 2.5, color: s.color, type: s.punteada ? [6, 4] : "solid" },
+        itemStyle: { color: s.punteada ? "#fff" : s.color, borderColor: s.color, borderWidth: s.punteada ? 2 : 1.5 },
+        emphasis: { focus: "series" },
+        markArea: i === 0 && hueco ? { silent: true, itemStyle: { color: C.hueco },
+          label: { show: ancho >= 420, position: "insideTop", distance: 6, ...txt(), formatter: "Promoción guiada" },
+          data: [[{ xAxis: String(hueco[0]) }, { xAxis: String(hueco[1]) }]] } : undefined,
+      };
+    }),
   }, true);
   el.setAttribute("aria-label", aria);
 }
 
-function leyenda(id, entradas, { hueco = false, regional = false } = {}) {
+function leyenda(id, entradas, { hueco = false, comparacion = null, referencia = null } = {}) {
   const partes = entradas.map(([nombre, color]) => `<span><i class="l" style="border-color:${color}"></i>${Obs.escapar(nombre)}</span>`);
-  if (regional) partes.push(`<span><i class="l punteada" style="border-color:${C.textoSuave}"></i>Perú (línea punteada)</span>`);
+  if (comparacion) partes.push(`<span><i class="l punteada" style="border-color:${C.textoSuave}"></i>${Obs.escapar(comparacion)} (línea punteada)</span>`);
+  if (referencia) partes.push(`<span><i class="l punteada" style="border-color:${C.otros}"></i>${Obs.escapar(referencia)}</span>`);
   if (hueco) partes.push(`<span><i class="hueco"></i>Promoción guiada (no aplica)</span>`);
   document.getElementById(id).innerHTML = partes.join("");
 }
@@ -216,21 +311,30 @@ function leyenda(id, entradas, { hueco = false, regional = false } = {}) {
    Tarjeta de evolución (una por indicador)
    --------------------------------------------------------- */
 function htmlEvol({ ind, titulo, desc }) {
+  const info = IND[ind];
   return `<article class="tarjeta" id="c-${ind}">
     <header><h3>${titulo}</h3><p>${desc}</p></header>
-    ${IND[ind].cursos ? `<div class="controles" data-grado-caja><div class="filtro-local" role="group" aria-labelledby="lbl-grado"><span id="lbl-grado">Grado evaluado</span><div class="segmentado claro" data-grado></div></div></div>` : ""}
+    <div class="controles">
+      ${info.cursos ? `<div class="filtro-local" data-grado-caja role="group" aria-labelledby="lbl-grado"><span id="lbl-grado">Grado evaluado</span><div class="segmentado claro" data-grado></div></div>`
+        : `<div class="filtro-local" role="group" aria-labelledby="lbl-vp-${ind}"><span id="lbl-vp-${ind}">Ver por</span><div class="segmentado claro" data-verpor="${ind}"></div></div>`}
+      <button type="button" class="ver-tabla" data-tabla="${ind}" aria-controls="tb-${ind}">Ver como tabla</button>
+    </div>
     <p class="lectura" id="l-${ind}" aria-live="polite"></p>
     <div class="ley" id="ley-${ind}"></div>
     <div class="grafico" id="g-${ind}"></div>
+    <div class="tabla-caja" id="tb-${ind}" hidden></div>
     <p class="nota-tarjeta" id="n-${ind}"></p>
   </article>`;
 }
 
 function pintarEvol(ind) {
-  const info = IND[ind], lugar = estado.region, regional = lugar !== NACIONAL;
+  const info = IND[ind], lugar = estado.region, comp = lugarComp();
   const s = serieDe(ind);
   const card = document.getElementById(`c-${ind}`);
   const lectura = document.getElementById(`l-${ind}`), nota = document.getElementById(`n-${ind}`);
+  const verTabla = !!estado.tabla[ind];
+  $(`[data-tabla="${ind}"]`, card).textContent = verTabla ? "Ocultar tabla" : "Ver como tabla";
+  $(`[data-tabla="${ind}"]`, card).setAttribute("aria-expanded", verTabla);
   nota.textContent = "";
   if (info.cursos) {
     $("[data-grado-caja]", card).hidden = estado.nivel !== "Primaria";
@@ -240,49 +344,91 @@ function pintarEvol(ind) {
   if (!s) {
     lectura.textContent = sinNivel(ind);
     leyenda(`ley-${ind}`, []);
+    document.getElementById(`tb-${ind}`).hidden = true;
     return Obs.vacio(`g-${ind}`, `Sin datos de ${nivelMin()}`);
   }
-  // Líneas: un curso cada una (logros de aprendizaje) o el nivel elegido; con región, el Perú punteado
-  const grupos = info.cursos
-    ? cursosDe(s).map((c) => ({ curso: c, nombre: c, color: C.cursos[c] }))
-    : [{ curso: "", nombre: estado.nivel, color: C.niveles[estado.nivel] }];
-  const todos = grupos.flatMap((x) => [...aniosDe(ind, s, x.curso, NACIONAL), ...aniosDe(ind, s, x.curso, lugar)]);
+  // «Ver por»: total o un desglose (solo para el Perú)
+  const grupos = info.cursos ? [] : gruposDe(ind, s);
+  let vp = estado.verPor[ind] ?? "Total";
+  if (vp !== "Total" && !grupos.includes(vp)) vp = "Total";
+  if (!info.cursos) {
+    $(`[data-verpor="${ind}"]`, card).innerHTML = botones([{ valor: "Total", etiqueta: "Total" },
+      ...GRUPOS.map((g) => ({ valor: g, etiqueta: PARES[g].boton, desactivado: !grupos.includes(g) }))], vp);
+  }
+
+  // Líneas
+  let lineasDef, conComp = null, referencia = null;
+  if (vp !== "Total") {
+    lineasDef = PARES[vp].cats.map(([c, nombre], i) => ({ curso: "", lugar: `${vp}:${c}`, nombre, color: C.pares[i] }));
+    lineasDef.push({ curso: "", lugar: NACIONAL, nombre: "Perú, total", color: C.otros, punteada: true, gris: true });
+    referencia = "Perú, total";
+  } else {
+    const base = info.cursos ? cursosDe(s).map((c) => ({ curso: c, nombre: c, color: C.cursos[c] })) : [{ curso: "", nombre: estado.nivel, color: C.niveles[estado.nivel] }];
+    lineasDef = [];
+    for (const x of base) {
+      lineasDef.push({ ...x, lugar, nombre: comp ? `${x.nombre} (${nombreRegion(lugar)})` : x.nombre, corto: x.nombre });
+      if (comp) lineasDef.push({ ...x, lugar: comp, nombre: `${x.nombre} (${nombreRegion(comp)})`, punteada: true });
+    }
+    if (comp) conComp = nombreRegion(comp);
+  }
+  const todos = lineasDef.flatMap((x) => aniosDe(ind, s, x.curso, x.lugar));
+  if (!todos.length) {
+    lectura.textContent = `${EnLugar(lugar)} no hay datos para esta selección.`;
+    leyenda(`ley-${ind}`, []);
+    return Obs.vacio(`g-${ind}`);
+  }
   const a0 = Math.min(...todos), a1 = Math.max(...todos);
   const anios = Array.from({ length: a1 - a0 + 1 }, (_, i) => a0 + i);
-  const series = [];
-  for (const x of grupos) {
-    series.push({ nombre: regional ? `${x.nombre} (${nombreRegion(lugar)})` : x.nombre, color: x.color, valores: anios.map((a) => val(ind, s, x.curso, lugar, a)) });
-    if (regional) series.push({ nombre: `${x.nombre} (Perú)`, color: x.color, punteada: true, valores: anios.map((a) => val(ind, s, x.curso, NACIONAL, a)) });
+  const series = lineasDef.map((x) => ({ ...x, valores: anios.map((a) => val(ind, s, x.curso, x.lugar, a)) }));
+  leyenda(`ley-${ind}`, series.filter((x) => !x.punteada).map((x) => [x.nombre, x.color]), { hueco: !!info.hueco, comparacion: conComp, referencia });
+  lineas(`g-${ind}`, ind, anios, series, `${info.corto}, ${info.cursos ? GRADO[s].nombre : nivelMin()}, ${vp !== "Total" ? `por ${PARES[vp].nombre.toLowerCase()}, Perú` : enLugar(lugar)}, ${a0}-${a1}`);
+
+  // Ver como tabla: un año por fila, una columna por línea
+  const caja = document.getElementById(`tb-${ind}`);
+  caja.hidden = !verTabla;
+  if (verTabla) {
+    const filas = anios.map((a, i) => ({ a, vals: series.map((x) => x.valores[i]) })).filter((f) => f.vals.some((v) => v != null));
+    tablaOrdenable(`tb-${ind}`, [{ clave: "anio", titulo: "Año", num: true, valor: (f) => f.a, html: (f) => String(f.a) },
+      ...series.map((x, j) => ({ clave: `s${j}`, titulo: Obs.escapar(x.nombre), num: true, valor: (f) => f.vals[j], html: (f) => fmt(ind, f.vals[j]) }))],
+    filas, { inicial: { clave: "anio", dir: -1 }, claveFila: (f) => f.a, descripcion: `${info.corto}: valores de cada año` });
   }
-  leyenda(`ley-${ind}`, grupos.map((x) => [x.nombre, x.color]), { hueco: !!info.hueco, regional });
-  lineas(`g-${ind}`, ind, anios, series, `${info.corto}, ${info.cursos ? GRADO[s].nombre : nivelMin()}, ${enLugar(lugar)}, ${a0}-${a1}`);
 
   // Lectura
+  if (vp !== "Total") {
+    const [c1, c2] = PARES[vp].cats;
+    const a = Math.min(ultimo(ind, s, "", `${vp}:${c1[0]}`), ultimo(ind, s, "", `${vp}:${c2[0]}`));
+    const v1 = val(ind, s, "", `${vp}:${c1[0]}`, a), v2 = val(ind, s, "", `${vp}:${c2[0]}`, a);
+    const p1 = aniosDe(ind, s, "", `${vp}:${c1[0]}`)[0];
+    const d0 = val(ind, s, "", `${vp}:${c1[0]}`, p1) - val(ind, s, "", `${vp}:${c2[0]}`, p1);
+    lectura.innerHTML = `En el Perú, en ${a}: ${c1[1].toLowerCase()}, ${destacar(fmt(ind, v1))}; ${c2[1].toLowerCase()}, ${destacar(fmt(ind, v2))}. ` +
+      `La diferencia es de ${destacar(dif(ind, v1 - v2))}` + (p1 !== a && !Number.isNaN(d0) ? `, frente a ${dif(ind, d0)} en ${p1}.` : ".");
+    nota.textContent = `Los desgloses son del Perú: ESCALE no los publica por región.${ind === "titulados" && vp === "Sexo" ? " En docentes titulados, el sexo es el de los docentes." : ""}`;
+    return;
+  }
   if (info.cursos) {
-    const conDato = grupos.filter((x) => aniosDe(ind, s, x.curso, lugar).length);
+    const base = cursosDe(s);
+    const conDato = base.filter((c) => aniosDe(ind, s, c, lugar).length);
     if (!conDato.length) { lectura.textContent = `${EnLugar(lugar)} no hay resultados regionales de ${GRADO[s].nombre}.`; return; }
-    const a = Math.max(...conDato.map((x) => ultimo(ind, s, x.curso, lugar)));
-    const en = conDato.filter((x) => val(ind, s, x.curso, lugar, a) != null).slice(0, 2);
-    const [p, q] = en.map((x) => ({ c: x.curso, v: val(ind, s, x.curso, lugar, a), peru: val(ind, s, x.curso, NACIONAL, a) }));
-    let t = `${EnLugar(lugar)}, en ${a}, el <strong>${pct(p.v)}</strong> de los alumnos de ${GRADO[s].nombre} logró los aprendizajes esperados en ${p.c}`;
-    if (q) t += ` y el <strong>${pct(q.v)}</strong> en ${q.c}`;
-    if (regional && p.peru != null) t += `; en el Perú, ${pct(p.peru)}${q?.peru != null ? ` y ${pct(q.peru)}` : ""}`;
+    const a = Math.max(...conDato.map((c) => ultimo(ind, s, c, lugar)));
+    const [p, q] = conDato.filter((c) => val(ind, s, c, lugar, a) != null).slice(0, 2).map((c) => ({ c, v: val(ind, s, c, lugar, a), k: comp ? val(ind, s, c, comp, a) : null }));
+    let t = `${EnLugar(lugar)}, en ${a}, el ${destacar(pct(p.v))} de los alumnos de ${GRADO[s].nombre} logró los aprendizajes esperados en ${p.c}`;
+    if (q) t += ` y el ${destacar(pct(q.v))} en ${q.c}`;
+    if (comp && p.k != null) t += `; ${enLugar(comp)}, ${pct(p.k)}${q?.k != null ? ` y ${pct(q.k)}` : ""}`;
     lectura.innerHTML = `${t}.`;
     const notas = [];
     if (s === "2p") notas.push("Desde 2024 ya no se evalúa el 2.º grado de primaria. 2.º y 4.º grado son pruebas distintas: no se comparan entre sí.");
     if (s === "4p") notas.push("4.º y 2.º grado son pruebas distintas: no se comparan entre sí.");
-    if (regional && conDato.length < grupos.length) notas.push(`Algunos cursos no tienen resultados para ${nombreRegion(lugar)}.`);
+    if (lugar !== NACIONAL && conDato.length < base.length) notas.push(`Algunos cursos no tienen resultados para ${nombreRegion(lugar)}.`);
     nota.textContent = notas.join(" ");
     return;
   }
   const a = ultimo(ind, s, "", lugar);
   if (!a) { lectura.textContent = `${EnLugar(lugar)} no hay datos de ${nivelMin()}.`; return; }
   const v = val(ind, s, "", lugar, a);
-  let t = info.numero ? `${EnLugar(lugar)} había <strong>${num1(v)}</strong> ${info.frase(nivelMin())} en ${a}` : `${EnLugar(lugar)}, ${cifra(ind, v)} ${info.frase(nivelMin())} en ${a}`;
-  if (regional) {
-    const p = val(ind, s, "", NACIONAL, a);
-    if (p != null) t += `; en el Perú, ${fmt(ind, p)}`;
-  } else {
+  let t = info.numero ? `${EnLugar(lugar)} había ${destacar(num1(v))} ${info.frase(nivelMin())} en ${a}` : `${EnLugar(lugar)}, ${cifra(ind, v)} ${info.frase(nivelMin())} en ${a}`;
+  const k = comp ? val(ind, s, "", comp, a) : null;
+  if (k != null) t += `; ${enLugar(comp)}, ${fmt(ind, k)}`;
+  else {
     const a0d = aniosDe(ind, s, "", lugar)[0];
     if (a0d !== a) t += `, frente ${info.numero ? `a ${num1(val(ind, s, "", lugar, a0d))}` : `al ${pct(val(ind, s, "", lugar, a0d))}`} en ${a0d}`;
   }
@@ -295,7 +441,7 @@ function pintarEvol(ind) {
 function htmlMapa(m) {
   return `<article class="tarjeta" id="c-mapa-${m}">
     <header><h3>¿Cómo está cada región?</h3>
-      <p>Valor de cada región en el año elegido, para el nivel elegido arriba. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para elegirla en todo el tablero.</p></header>
+      <p>Valor de cada región en el año elegido, para el nivel elegido arriba. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región del mapa o de la tabla para elegirla en todo el tablero.</p></header>
     <div class="controles">
       ${MOD[m].indicadores.length > 1 ? `<div class="filtro-local" role="group" aria-labelledby="lbl-mi-${m}"><span id="lbl-mi-${m}">Indicador</span><div class="segmentado claro" data-mapa-ind></div></div>` : ""}
       <div class="filtro-local" data-mapa-curso-caja role="group" aria-labelledby="lbl-mc-${m}"><span id="lbl-mc-${m}">Curso</span><div class="segmentado claro" data-mapa-curso></div></div>
@@ -304,7 +450,7 @@ function htmlMapa(m) {
     <p class="lectura" id="l-mapa-${m}" aria-live="polite"></p>
     <div class="mapa-y-tabla" id="mt-${m}">
       <div><div id="mapa-${m}"></div><div class="leyenda-mapa" id="ley-mapa-${m}"></div></div>
-      <div class="tabla-caja" id="t-mapa-${m}"></div>
+      <div id="t-mapa-${m}"></div>
     </div>
   </article>`;
 }
@@ -345,77 +491,130 @@ function pintarMapa(m) {
   const peru = val(ind, s, curso, NACIONAL, anio);
   const alto = filas[0], bajo = filas.at(-1);
   const que = info.cursos ? `logros de aprendizaje en ${curso}, ${GRADO[s].nombre}` : `${info.corto.toLowerCase()}, ${nivelMin()}`;
-  lectura.innerHTML = `En ${anio} (${que}), <strong>${nombreRegion(alto.region)}</strong> tiene el valor más alto (${fmt(ind, alto.v)}) y ` +
-    `<strong>${nombreRegion(bajo.region)}</strong> el más bajo (${fmt(ind, bajo.v)})` + (peru != null ? `; el Perú, ${fmt(ind, peru)}.` : ".");
+  let t = `En ${anio} (${que}), ${destacar(nombreRegion(alto.region))} tiene el valor más alto (${fmt(ind, alto.v)}) y ` +
+    `${destacar(nombreRegion(bajo.region))} el más bajo (${fmt(ind, bajo.v)})` + (peru != null ? `; el Perú, ${fmt(ind, peru)}` : "");
+  if (estado.region !== NACIONAL) {
+    const p = puesto(ind, s, curso, estado.region, anio);
+    if (p) t += `. ${nombreRegion(estado.region)} está en el puesto ${destacar(`${p.n} de ${p.de}`)}`;
+  }
+  lectura.innerHTML = `${t}.`;
 
-  Obs.tabla(`t-mapa-${m}`, [{ titulo: "#", campo: "pos" }, { titulo: "Región", campo: "nombre" }, { titulo: info.numero ? "Alumnos por docente" : "Porcentaje", campo: "valor", num: true }],
-    filas.map((f, i) => ({ pos: String(i + 1), region: f.region, nombre: nombreRegion(f.region), valor: fmt(ind, f.v) })),
-    { alClic: elegirRegion, elegida: estado.region });
-  if (peru != null) $(`#t-mapa-${m} tbody`).insertAdjacentHTML("beforeend", `<tr class="peru"><td></td><td>Perú</td><td class="num">${fmt(ind, peru)}</td></tr>`);
-  document.getElementById(`t-mapa-${m}`).setAttribute("aria-label", `${info.corto} por región, ${anio}`);
+  // Ranking: barra en cada fila y el Perú en su puesto
+  const max = Math.max(...filas.map((f) => f.v), peru ?? 0);
+  const lista = filas.map((f, i) => ({ region: f.region, nombre: nombreRegion(f.region), v: f.v, pos: i + 1 }));
+  if (peru != null) lista.push({ region: NACIONAL, nombre: "Perú", v: peru, pos: null });
+  tablaOrdenable(`t-mapa-${m}`, [
+    { clave: "pos", titulo: "#", num: true, valor: (f) => (f.pos ?? filas.filter((x) => x.v > f.v).length + 0.5), html: (f) => (f.pos ? String(f.pos) : "") },
+    { clave: "nombre", titulo: "Región", valor: (f) => f.nombre, html: (f) => Obs.escapar(f.nombre) },
+    { clave: "v", titulo: info.numero ? "Alumnos por docente" : "Porcentaje", num: true, valor: (f) => f.v,
+      html: (f) => `<span class="celda-barra"><i style="width:${Math.max(3, (f.v / max) * 100)}%"></i><b>${fmt(ind, f.v)}</b></span>` },
+  ], lista, { inicial: { clave: "v", dir: -1 }, claveFila: (f) => f.region, elegida: estado.region, alClic: elegirRegion, buscar: "Nombre de la región",
+    claseFila: (f) => (f.region === NACIONAL ? "peru" : ""), descripcion: `${info.corto} por región, ${anio}` });
 }
 
 /* ---------------------------------------------------------
-   Diferencias por zona, gestión y sexo (Perú, último año)
+   Diferencias por zona, gestión y sexo (Perú, último año): puntos unidos,
+   todas a la vez. Un bloque por indicador; dentro, un gráfico por desglose.
    --------------------------------------------------------- */
-function htmlBrecha(m) {
-  return `<article class="tarjeta" id="c-brecha-${m}">
+function htmlDiferencias(m) {
+  const bloques = MOD[m].indicadores.map((ind) => `
+    <section class="dif-bloque" id="db-${m}-${ind}">
+      <h4>${IND[ind].corto} <span class="dif-anio" id="da-${m}-${ind}"></span></h4>
+      <div class="dif-fila">${GRUPOS.map((g) => `
+        <div class="dif-panel" id="dp-${m}-${ind}-${g}">
+          <p class="dif-titulo">${PARES[g].nombre}</p>
+          <div class="grafico dif-grafico" id="dg-${m}-${ind}-${g}"></div>
+        </div>`).join("")}</div>
+    </section>`).join("");
+  return `<article class="tarjeta" id="c-dif-${m}">
     <header><h3>¿Qué diferencias hay entre zonas, escuelas y sexos?</h3>
-      <p>Último año con datos, para todo el Perú y el nivel elegido arriba: zona urbana y rural, escuela pública y privada, y mujeres y hombres. Los desgloses no están por región.</p></header>
-    ${MOD[m].indicadores.length > 1 ? `<div class="controles"><div class="filtro-local" role="group" aria-labelledby="lbl-bi-${m}"><span id="lbl-bi-${m}">Indicador</span><div class="segmentado claro" data-brecha-ind></div></div></div>` : ""}
-    <p class="lectura" id="l-brecha-${m}" aria-live="polite"></p>
-    <div class="ley" id="ley-brecha-${m}"></div>
-    <div class="grafico" id="g-brecha-${m}"></div>
+      <p>Último año con datos, para todo el Perú y el nivel elegido arriba. Cada línea une los dos grupos: cuanto más larga, más grande la diferencia. ESCALE no publica estos desgloses por región.</p></header>
+    ${MOD[m].indicadores.length > 1 ? `<div class="controles"><div class="filtro-local" role="group" aria-labelledby="lbl-di-${m}"><span id="lbl-di-${m}">Indicador</span><div class="segmentado claro" data-dif-ind></div></div></div>` : ""}
+    <p class="lectura" id="l-dif-${m}" aria-live="polite"></p>
+    ${bloques}
   </article>`;
 }
 
-function pintarBrecha(m) {
-  const ind = estado.brecha[m], info = IND[ind];
-  const card = document.getElementById(`c-brecha-${m}`);
-  if ($("[data-brecha-ind]", card)) $("[data-brecha-ind]", card).innerHTML = botones(MOD[m].indicadores.map((i) => ({ valor: i, etiqueta: IND[i].corto })), ind);
-  const lectura = document.getElementById(`l-brecha-${m}`), ley = document.getElementById(`ley-brecha-${m}`);
-  const s = serieDe(ind);
-  if (!s) { lectura.textContent = sinNivel(ind); ley.innerHTML = ""; return Obs.vacio(`g-brecha-${m}`, `Sin datos de ${nivelMin()}`); }
+function pintarDiferencias(m) {
+  const lectura = document.getElementById(`l-dif-${m}`), card = document.getElementById(`c-dif-${m}`);
+  const elegido = estado.dif[m];
+  if ($("[data-dif-ind]", card)) $("[data-dif-ind]", card).innerHTML = botones(MOD[m].indicadores.map((i) => ({ valor: i, etiqueta: IND[i].corto })), elegido);
+  let mayor = null;
+  for (const ind of MOD[m].indicadores) {
+    const info = IND[ind], s = ind === elegido ? serieDe(ind) : null, bloque = document.getElementById(`db-${m}-${ind}`);
+    const cursos = s ? (info.cursos ? cursosDe(s) : [""]) : [];
+    // último año con todos los desgloses disponibles en algún curso
+    const anio = s ? Math.max(0, ...cursos.flatMap((c) => GRUPOS.flatMap((g) => PARES[g].cats.map(([k]) => ultimo(ind, s, c, `${g}:${k}`) ?? 0)))) : 0;
+    const filasDe = (g) => cursos.map((c) => {
+      const [a, b] = PARES[g].cats.map(([k]) => val(ind, s, c, `${g}:${k}`, anio));
+      return a != null && b != null ? { c, a, b } : null;
+    }).filter(Boolean);
+    const presentes = GRUPOS.filter((g) => filasDe(g).length);
+    bloque.hidden = !s || !presentes.length;
+    if (bloque.hidden) continue;
+    document.getElementById(`da-${m}-${ind}`).textContent = `(${info.cursos ? `${GRADO[s].nombre}, ` : ""}${anio})`;
+    const todos = presentes.flatMap((g) => filasDe(g).flatMap((f) => [f.a, f.b]));
+    const max = Math.max(...todos) * 1.02;
+    for (const g of GRUPOS) {
+      const panel = document.getElementById(`dp-${m}-${ind}-${g}`), filas = filasDe(g);
+      panel.hidden = !filas.length;
+      if (!filas.length) continue;
+      for (const f of filas) {
+        const d = Math.abs(f.a - f.b);
+        if (!mayor || d > mayor.d) mayor = { ind, s, g, ...f, d, anio };
+      }
+      dumbbell(`dg-${m}-${ind}-${g}`, ind, g, filas, max);
+    }
+  }
+  if (mayor) {
+    const [c1, c2] = PARES[mayor.g].cats;
+    const que = IND[mayor.ind].cursos ? `logros de aprendizaje en ${mayor.c} (${GRADO[mayor.s].nombre})` : IND[mayor.ind].corto.toLowerCase();
+    const entre = `${c1[1].toLowerCase()} (${fmt(mayor.ind, mayor.a)}) y ${c2[1].toLowerCase()} (${fmt(mayor.ind, mayor.b)})`;
+    lectura.innerHTML = IND[mayor.ind].cursos
+      ? `La mayor diferencia está en ${destacar(que)}, entre ${entre}: ${destacar(dif(mayor.ind, mayor.a - mayor.b))} en ${mayor.anio}.`
+      : `En ${destacar(que)}, la mayor diferencia es entre ${entre}: ${destacar(dif(mayor.ind, mayor.a - mayor.b))} en ${mayor.anio}.`;
+  } else lectura.textContent = serieDe(elegido) ? "No hay desgloses para esta selección." : sinNivel(elegido);
+}
 
-  // Barras: un curso cada una (logros de aprendizaje) o el nivel elegido, en su último año con desgloses
-  const grupos = (info.cursos ? cursosDe(s).map((c) => ({ curso: c, nombre: c, color: C.cursos[c] })) : [{ curso: "", nombre: estado.nivel, color: C.niveles[estado.nivel] }])
-    .map((x) => ({ ...x, anio: Math.max(0, ...DESGLOSES.flatMap(([g, c]) => aniosDe(ind, s, x.curso, `${g}:${c}`))) })).filter((x) => x.anio);
-  const anio = Math.max(0, ...grupos.map((x) => x.anio));
-  const series = grupos.filter((x) => x.anio === anio);
-  const cats = DESGLOSES.filter(([g, c]) => series.some((x) => val(ind, s, x.curso, `${g}:${c}`, anio) != null));
-  if (!series.length || !cats.length) { lectura.textContent = "No hay desgloses para esta selección."; ley.innerHTML = ""; return Obs.vacio(`g-brecha-${m}`); }
-
-  ley.innerHTML = series.length > 1 ? series.map((x) => `<span><i style="background:${x.color}"></i>${Obs.escapar(x.nombre)}</span>`).join("") : "";
-  const el = document.getElementById(`g-brecha-${m}`);
-  const angosto = el.clientWidth < 520;
-  el.style.height = `${cats.length * (series.length * (angosto ? 26 : 22) + 24) + 20}px`;
-  const g = Obs.grafico(`g-brecha-${m}`);
-  g.resize();
-  const todos = series.flatMap((x) => cats.map(([gr, c]) => val(ind, s, x.curso, `${gr}:${c}`, anio))).filter((v) => v != null);
-  g.setOption({
+// Puntos unidos: una fila por curso (o una sola), dos puntos por fila, con su nombre y valor
+function dumbbell(id, ind, g, filas, max) {
+  const el = document.getElementById(id);
+  el.style.height = `${filas.length * 46 + 34}px`;
+  const g2 = Obs.grafico(id);
+  g2.resize();
+  const [c1, c2] = PARES[g].cats;
+  const conCurso = filas.length > 1 || filas[0].c;
+  const angosto = el.clientWidth < 300;
+  const izq = conCurso ? (angosto ? 84 : 100) : 0;
+  const etiqueta = (nombre, valor) => `${nombre} ${fmt(ind, valor)}`;
+  g2.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
-      formatter: (ps) => `<strong>${ps[0].axisValue}, ${anio}</strong>` + ps.filter((p) => p.value != null).map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${fmt(ind, p.value)}</strong>`).join("") },
-    grid: { left: angosto ? 118 : 140, right: 64, top: 4, bottom: 4 },
-    xAxis: { type: "value", show: false, max: Math.max(...todos) * 1.15 },
-    yAxis: { type: "category", inverse: true, data: cats.map(([, , n]) => n), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ color: C.texto }) },
-    series: series.map((x) => ({
-      name: x.nombre, type: "bar", barMaxWidth: 16, barGap: "20%", barCategoryGap: "28%",
-      itemStyle: { color: x.color, borderRadius: [0, 3, 3, 0] },
-      label: { show: true, position: "right", distance: 6, formatter: (p) => fmt(ind, p.value), ...txt({ color: C.texto, fontWeight: 700 }) },
-      data: cats.map(([gr, c]) => val(ind, s, x.curso, `${gr}:${c}`, anio)),
-    })),
+      formatter: (ps) => { const f = filas[ps[0].dataIndex];
+        return `<strong>${f.c ? `${Obs.escapar(f.c)}, ` : ""}${PARES[g].nombre.toLowerCase()}</strong><br>${c1[1]}: <strong>${fmt(ind, f.a)}</strong><br>${c2[1]}: <strong>${fmt(ind, f.b)}</strong><br>Diferencia: ${dif(ind, f.a - f.b)}`; } },
+    // margen a los costados para el nombre y el valor de cada punto
+    grid: { left: izq + 96, right: 116, top: 6, bottom: 26 },
+    xAxis: { type: "value", min: 0, max, splitNumber: 3, splitLine: { lineStyle: { color: C.linea } },
+      axisLabel: txt({ formatter: (v) => (IND[ind].numero ? Obs.fmtN(v) : `${Math.round(v * 100)} %`), hideOverlap: true, showMaxLabel: false }) },
+    yAxis: { type: "category", inverse: true, data: filas.map((f) => f.c || " "), axisTick: { show: false }, axisLine: { show: false },
+      axisLabel: txt({ color: C.texto, show: !!conCurso, width: izq - 10, overflow: "break", margin: 96 + 10 }) },
+    series: [
+      { type: "custom", silent: true, z: 1, renderItem: (p, api) => {
+          const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]);
+          return { type: "line", shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: { stroke: "#c9d1dc", lineWidth: 6, lineCap: "round" } };
+        }, data: filas.map((f, i) => [f.a, f.b, i]), encode: { x: [0, 1], y: 2 } },
+      ...[["a", c1, 0], ["b", c2, 1]].map(([k, cat, i]) => ({
+        name: cat[1], type: "scatter", symbolSize: 15, z: 3, itemStyle: { color: C.pares[i], borderColor: "#fff", borderWidth: 2 },
+        data: filas.map((f) => {
+          const otro = k === "a" ? f.b : f.a, yo = f[k];
+          return { value: yo, label: { position: yo >= otro ? "right" : "left" } };
+        }),
+        label: { show: true, distance: 8, formatter: (p) => etiqueta(cat[2], p.value), ...txt({ color: C.texto, fontWeight: 700 }) },
+      })),
+    ],
   }, true);
-  el.setAttribute("aria-label", `${info.corto} por zona, tipo de escuela y sexo en el Perú, ${anio}`);
-
-  // Lectura: la diferencia entre zona rural y urbana del primer curso o del nivel
-  const x = series[0];
-  const u = val(ind, s, x.curso, "Área:Urbana", anio), r = val(ind, s, x.curso, "Área:Rural", anio);
-  const que = info.cursos ? `${GRADO[s].nombre}, ${x.curso}` : nivelMin();
-  if (u != null && r != null) {
-    const dif = info.numero ? `${num1(Math.abs(u - r))} alumnos por docente` : `${Obs.fmtN(Math.abs(u - r) * 100, 1)} puntos`;
-    lectura.innerHTML = `En ${anio} (${que}), la zona rural tiene ${fmt(ind, r)} y la urbana ${fmt(ind, u)}: una diferencia de <strong>${dif}</strong>.`;
-  } else lectura.textContent = `Datos de ${anio} (${que}).`;
+  el.setAttribute("aria-label", `${IND[ind].corto} por ${PARES[g].nombre.toLowerCase()}: ` +
+    filas.map((f) => `${f.c ? `${f.c}, ` : ""}${c1[1].toLowerCase()} ${fmt(ind, f.a)} y ${c2[1].toLowerCase()} ${fmt(ind, f.b)}`).join("; "));
 }
 
 /* ---------------------------------------------------------
@@ -425,54 +624,100 @@ function cifraClave(ind, curso = "", lugarFijo = null) {
   const s = serieDe(ind);
   const lugar = lugarFijo ?? estado.region;
   if (!s) return null;
-  const a = ultimo(ind, s, curso, lugar);
-  return a ? { ind, s, curso, lugar, a, v: val(ind, s, curso, lugar, a) } : { ind, s, curso, lugar, a: null, v: null };
+  const anios = aniosDe(ind, s, curso, lugar);
+  const a = anios.at(-1) ?? null;
+  return { ind, s, curso, lugar, a, v: a ? val(ind, s, curso, lugar, a) : null, previo: anios.at(-2) ?? null, anios };
 }
 
 function pintarCifras(m) {
-  const regional = estado.region !== NACIONAL;
+  const comp = lugarComp();
   const caja = document.getElementById(`k-${m}`);
   const kpis = MOD[m].kpis;
   caja.className = `kpis kpis-${kpis.length}`;
-  caja.innerHTML = kpis.map((_, i) => `<div class="kpi" id="k-${m}-${i}"></div>`).join("");
-  kpis.forEach(([ind, curso = "", lugarFijo = null], i) => {
+  caja.innerHTML = kpis.map(([ind, curso = "", lugarFijo = null]) => {
     const info = IND[ind], x = cifraClave(ind, curso, lugarFijo);
-    const zona = lugarFijo ? ` en zona ${lugarFijo.split(":")[1].toLowerCase()} (Perú)` : "";
+    const zona = lugarFijo ? ` en zona ${lugarFijo.split(":")[1].toLowerCase()}, Perú` : "";
     const etiqueta = info.cursos ? `Logran los aprendizajes en ${curso}${x?.s ? ` (${GRADO[x.s].nombre})` : ""}` : `${info.corto} (${nivelMin()})${zona}`;
-    if (!x || !x.a) return Obs.kpi(`k-${m}-${i}`, { etiqueta, valor: "—", pie: x ? "Sin datos" : `Sin datos de ${nivelMin()}` });
-    const p = regional && !lugarFijo ? val(ind, x.s, curso, NACIONAL, x.a) : null;
-    Obs.kpi(`k-${m}-${i}`, { etiqueta, valor: fmt(ind, x.v), pie: `${x.a}${p != null ? `. Perú: ${fmt(ind, p)}` : ""}` });
-  });
+    if (!x || !x.a) return `<div class="kpi"><span class="kpi-etiqueta">${etiqueta}</span><span class="kpi-valor">—</span><span class="kpi-pie">${x ? "Sin datos" : `Sin datos de ${nivelMin()}`}</span></div>`;
+    // Cambio frente a la medición anterior, con su sentido (mejora o empeora según el indicador)
+    let cambio = "";
+    if (x.previo) {
+      const d = x.v - val(ind, x.s, curso, x.lugar, x.previo);
+      const quieto = Math.abs(d) < (info.numero ? 0.05 : 0.0005);
+      const mejora = info.mejor === "alto" ? d > 0 : d < 0;
+      const clase = quieto ? "igual" : mejora ? "mejora" : "empeora";
+      const flecha = quieto ? "=" : d > 0 ? "▲" : "▼";
+      const palabra = quieto ? "sin cambio" : mejora ? "mejora" : "empeora";
+      cambio = `<span class="kpi-cambio ${clase}"><span aria-hidden="true">${flecha}</span> ${quieto ? "Igual" : dif(ind, d)} frente a ${x.previo}<span class="solo-lectores"> (${palabra})</span></span>`;
+    }
+    const k = comp && !lugarFijo ? val(ind, x.s, curso, comp, x.a) : null;
+    const color = info.cursos ? C.cursos[curso] : C.niveles[estado.nivel];
+    return `<div class="kpi">
+      <span class="kpi-etiqueta">${etiqueta}</span>
+      <div class="kpi-cuerpo"><span class="kpi-valor">${fmt(ind, x.v)}</span>${chispa(x.anios.map((a) => [a, val(ind, x.s, curso, x.lugar, a)]), color)}</div>
+      ${cambio}
+      <span class="kpi-pie">${x.a}${x.lugar !== NACIONAL && !lugarFijo ? `, ${nombreRegion(x.lugar)}` : ""}${k != null ? `. ${nombreRegion(comp)}: ${fmt(ind, k)}` : ""}</span>
+    </div>`;
+  }).join("");
 }
 
+/* Resumen dinámico de la pestaña: la cifra principal, la tendencia, la mayor diferencia y, con una región, su puesto */
 function pintarResumen(m) {
-  const lugar = estado.region, el = document.getElementById(`r-${m}`);
-  // Dos cifras de indicadores distintos (la del primer gráfico ya la dice su propia lectura)
-  const vistos = new Set();
-  const partes = MOD[m].kpis.filter(([ind, , fijo]) => !fijo && !vistos.has(ind) && vistos.add(ind))
-    .map(([ind, curso = ""]) => cifraClave(ind, curso)).filter((x) => x && x.a).slice(0, 2);
-  if (!partes.length) { el.textContent = `${EnLugar(lugar)} no hay datos de ${nivelMin()} en esta pestaña.`; return; }
-  const [x, y] = partes;
-  const parte = (z) => (IND[z.ind].cursos
-    ? `el <strong>${pct(z.v)}</strong> de los alumnos de ${GRADO[z.s].nombre} logró los aprendizajes esperados en ${z.curso}`
-    : IND[z.ind].numero ? `había <strong>${num1(z.v)}</strong> ${IND[z.ind].frase(nivelMin())}` : `${cifra(z.ind, z.v)} ${IND[z.ind].frase(nivelMin())}`);
-  let t = `${EnLugar(lugar)}, en ${x.a}, ${parte(x)}`;
-  if (y) t += y.ind === x.ind ? ` y el <strong>${pct(y.v)}</strong> en ${y.curso}${y.a !== x.a ? ` (${y.a})` : ""}` : `, y ${parte(y)}${y.a !== x.a ? ` en ${y.a}` : ""}`;
-  el.innerHTML = `${t}.`;
+  const lugar = estado.region, comp = lugarComp(), el = document.getElementById(`r-${m}`), R = MOD[m].resumen;
+  const frases = [];
+  const [ip, cp = ""] = R.principal, sp = serieDe(ip);
+  if (sp) {
+    const a = ultimo(ip, sp, cp, lugar);
+    if (a) {
+      const v = val(ip, sp, cp, lugar, a);
+      let t = IND[ip].cursos ? `${EnLugar(lugar)}, en ${a}, el ${destacar(pct(v))} de los alumnos de ${GRADO[sp].nombre} logró los aprendizajes esperados en ${cp}`
+        : IND[ip].numero ? `${EnLugar(lugar)}, en ${a}, había ${destacar(num1(v))} ${IND[ip].frase(nivelMin())}` : `${EnLugar(lugar)}, en ${a}, ${cifra(ip, v)} ${IND[ip].frase(nivelMin())}`;
+      const k = comp ? val(ip, sp, cp, comp, a) : null;
+      if (k != null) t += `, frente a ${fmt(ip, k)} ${enLugar(comp)}`;
+      frases.push(`${t}.`);
+      if (lugar !== NACIONAL) {
+        const p = puesto(ip, sp, cp, lugar, a);
+        if (p) frases.push(`Está en el puesto ${destacar(`${p.n} de ${p.de}`)} entre las regiones.`);
+      }
+    }
+  }
+  const it = R.tendencia, st = serieDe(it);
+  if (st && !IND[it].cursos) {
+    const anios = aniosDe(it, st, "", lugar);
+    if (anios.length > 1) {
+      const a0 = anios[0], a1 = anios.at(-1), v0 = val(it, st, "", lugar, a0), v1 = val(it, st, "", lugar, a1);
+      const verbo = Math.abs(v1 - v0) < 0.0005 ? "se mantuvo en" : v1 > v0 ? "subió de" : "bajó de";
+      frases.push(`${IND[it].corto} ${verbo === "se mantuvo en" ? `se mantuvo en ${fmt(it, v1)}` : `${verbo} ${fmt(it, v0)} en ${a0} a ${destacar(fmt(it, v1))} en ${a1}`}.`);
+    }
+  }
+  const [ib, cb = ""] = R.brecha, sb = serieDe(ib);
+  if (sb) {
+    const a = Math.min(ultimo(ib, sb, cb, "Área:Urbana") ?? 0, ultimo(ib, sb, cb, "Área:Rural") ?? 0);
+    const u = val(ib, sb, cb, "Área:Urbana", a), r = val(ib, sb, cb, "Área:Rural", a);
+    if (u != null && r != null) {
+      const que = IND[ib].cursos ? `logró los aprendizajes en ${cb}` : IND[ib].frase(nivelMin()).replace(/^de (los|las) \S+ de \S+ /, "");
+      frases.push(`En zona rural, ${IND[ib].numero ? "" : "el "}${destacar(fmt(ib, r))} ${que}, frente ${IND[ib].numero ? "a" : "al"} ${fmt(ib, u)} en la urbana (Perú, ${a}).`);
+    }
+  }
+  el.innerHTML = frases.length ? frases.join(" ") : `${EnLugar(lugar)} no hay datos de ${nivelMin()} en esta pestaña.`;
 }
 
 /* ---------------------------------------------------------
    Estado y render
    --------------------------------------------------------- */
 function actualizar(parche) {
+  const antes = estado.ambito;
   Object.assign(estado, parche);
   if (estado.ambito === "nacional") estado.region = NACIONAL;
+  // Al elegir una región, se compara con el Perú si no había otra comparación
+  if (antes === "nacional" && estado.ambito === "regional" && !("comparar" in parche) && !estado.comparar) estado.comparar = NACIONAL;
+  if (estado.ambito === "nacional" && estado.comparar === NACIONAL) estado.comparar = "";
   // Si la pestaña no tiene el nivel elegido (inicial en Estudiantes o Escuelas), se pasa a primaria
   if (!NIVELES_MOD(estado.modulo).includes(estado.nivel)) estado.nivel = "Primaria";
   render();
 }
 function elegirRegion(cod) {
-  if (cod === estado.region) actualizar({ ambito: "nacional", region: NACIONAL });
+  if (cod === NACIONAL || cod === estado.region) actualizar({ ambito: "nacional", region: NACIONAL });
   else actualizar({ ambito: "regional", region: cod });
 }
 
@@ -490,17 +735,24 @@ function sincronizarControles() {
     b.tabIndex = activo ? 0 : -1;
   });
   MODULOS.forEach((m) => (document.getElementById(`m-${m}`).hidden = m !== estado.modulo));
+  // Qué se está viendo, en una línea
+  const partes = [estado.nivel, estado.region === NACIONAL ? "Perú" : nombreRegion(estado.region)];
+  const comp = lugarComp();
+  document.getElementById("viendo").innerHTML = `Mostrando: ${destacar(partes.join(", "))}${comp ? ` frente a ${destacar(nombreRegion(comp))}` : ""}`;
 }
 
 function actualizarURL() {
   const m = estado.modulo, mp = estado.mapa[m], dm = DEFECTO.mapa[m];
+  const vp = Object.entries(estado.verPor).filter(([, g]) => g !== "Total").map(([i, g]) => `${i}:${g}`).join("-");
   Obs.escribirURL({
     modulo: m === "estudiantes" ? null : m,
     region: estado.region === NACIONAL ? null : estado.region,
+    comparar: (estado.region === NACIONAL ? estado.comparar : estado.comparar === NACIONAL ? null : estado.comparar || "ninguna") || null,
     nivel: estado.nivel === "Primaria" ? null : estado.nivel,
     grado: estado.grado === "4p" ? null : estado.grado,
+    verpor: vp || null,
     mapa: mp.ind === dm.ind && mp.curso === dm.curso && mp.anio == null ? null : [mp.ind, mp.curso, mp.anio ?? ""].join("-").replace(/-+$/, ""),
-    brecha: estado.brecha[m] === DEFECTO.brecha[m] ? null : estado.brecha[m],
+    diferencias: estado.dif[m] === DEFECTO.dif[m] ? null : estado.dif[m],
   });
 }
 
@@ -511,7 +763,7 @@ function render() {
   pintarCifras(m);
   for (const t of MOD[m].evol) (t.par ?? [t]).forEach((x) => pintarEvol(x.ind));
   pintarMapa(m);
-  pintarBrecha(m);
+  pintarDiferencias(m);
   actualizarURL();
 }
 
@@ -519,15 +771,19 @@ function render() {
 function tarjetas() {
   for (const m of MODULOS) {
     const caja = document.getElementById(`c-${m}`);
-    caja.innerHTML = MOD[m].evol.map((t) => (t.par ? `<div class="par">${t.par.map(htmlEvol).join("")}</div>` : htmlEvol(t))).join("") + htmlMapa(m) + htmlBrecha(m);
+    caja.innerHTML = MOD[m].evol.map((t) => (t.par ? `<div class="par">${t.par.map(htmlEvol).join("")}</div>` : htmlEvol(t))).join("") + htmlMapa(m) + htmlDiferencias(m);
     caja.addEventListener("click", (e) => {
+      const vt = e.target.closest("button[data-tabla]");
+      if (vt) { estado.tabla[vt.dataset.tabla] = !estado.tabla[vt.dataset.tabla]; render(); return; }
       const b = e.target.closest("button[data-valor]");
       if (!b || b.disabled) return;
       const grupo = b.parentElement, v = b.dataset.valor;
       if (grupo.hasAttribute("data-grado")) estado.grado = v;
+      else if (grupo.dataset.verpor) estado.verPor[grupo.dataset.verpor] = v;
       else if (grupo.hasAttribute("data-mapa-ind")) estado.mapa[m] = { ind: v, curso: IND[v].cursos ? "Lectura" : "", anio: null };
       else if (grupo.hasAttribute("data-mapa-curso")) estado.mapa[m] = { ...estado.mapa[m], curso: v };
-      else if (grupo.hasAttribute("data-brecha-ind")) estado.brecha[m] = v;
+      else if (grupo.hasAttribute("data-dif-ind")) estado.dif[m] = v;
+      else return;
       render();
     });
     caja.addEventListener("change", (e) => {
@@ -544,7 +800,7 @@ Obs.iniciar(TABLERO, async () => {
   GEO = geo;
   const css = getComputedStyle(document.documentElement);
   const token = (n) => css.getPropertyValue(n).trim();
-  C = { ...Obs.tema(), hueco: token("--hueco"),
+  C = { ...Obs.tema(), hueco: token("--hueco"), pares: [token("--par-1"), token("--par-2")],
     cursos: Object.fromEntries(Object.entries(COLOR_CURSO).map(([k, v]) => [k, token(v)])),
     niveles: Object.fromEntries(Object.entries(COLOR_NIVEL).map(([k, v]) => [k, token(v)])) };
 
@@ -581,28 +837,39 @@ Obs.iniciar(TABLERO, async () => {
   const q = Obs.parametros();
   if (MODULOS.includes(q.get("modulo"))) estado.modulo = q.get("modulo");
   const reg = (q.get("region") || "").toUpperCase();
-  if (NOMBRE_REGION.has(reg) && reg !== NACIONAL) Object.assign(estado, { ambito: "regional", region: reg });
+  if (NOMBRE_REGION.has(reg) && reg !== NACIONAL) Object.assign(estado, { ambito: "regional", region: reg, comparar: NACIONAL });
+  const cmpq = (q.get("comparar") || "").toUpperCase();
+  if (cmpq === "NINGUNA") estado.comparar = "";
+  else if (NOMBRE_REGION.has(cmpq)) estado.comparar = cmpq;
   if (NIVELES.includes(q.get("nivel"))) estado.nivel = q.get("nivel");
   if (["4p", "2p"].includes(q.get("grado"))) estado.grado = q.get("grado");
+  for (const par of (q.get("verpor") || "").split("-")) {
+    const [i, g] = par.split(":");
+    if (IND[i] && GRUPOS.includes(g)) estado.verPor[i] = g;
+  }
   const [mi, mc, ma] = (q.get("mapa") || "").split("-");
   if (MOD[estado.modulo].indicadores.includes(mi)) estado.mapa[estado.modulo] = { ind: mi, curso: CURSOS.includes(mc) ? mc : IND[mi].cursos ? "Lectura" : "", anio: +(IND[mi].cursos ? ma : mc) || null };
-  if (MOD[estado.modulo].indicadores.includes(q.get("brecha"))) estado.brecha[estado.modulo] = q.get("brecha");
+  if (MOD[estado.modulo].indicadores.includes(q.get("diferencias"))) estado.dif[estado.modulo] = q.get("diferencias");
   if (!NIVELES_MOD(estado.modulo).includes(estado.nivel)) estado.nivel = "Primaria";
 
-  // Filtros comunes: región (Obs.controlesComunes) y nivel educativo
+  // Filtros comunes: región y comparación (Obs.controlesComunes) y nivel educativo
   const filtros = document.getElementById("filtros");
-  controles = Obs.controlesComunes(filtros, { regiones: REGIONES, anios: [2000, 2025], alCambiar: actualizar, comparar: false, periodo: false });
+  controles = Obs.controlesComunes(filtros, { regiones: REGIONES, anios: [2000, 2025], alCambiar: actualizar, comparar: true, periodo: false });
   filtros.insertAdjacentHTML("beforeend", `
     <div class="filtro">
       <span class="etiqueta" id="lbl-nivel">Nivel educativo</span>
       <div class="segmentado" id="f-nivel" role="group" aria-labelledby="lbl-nivel">
         ${NIVELES.map((n) => `<button type="button" data-nivel="${n}">${n}</button>`).join("")}
       </div>
-    </div>`);
+    </div>
+    <p class="viendo" id="viendo" aria-live="polite"></p>`);
   document.getElementById("f-nivel").onclick = (e) => {
     const b = e.target.closest("button[data-nivel]");
     if (b && !b.disabled) actualizar({ nivel: b.dataset.nivel });
   };
+  // Pista de uso al inicio de cada pestaña
+  MODULOS.forEach((m) => document.getElementById(`r-${m}`).insertAdjacentHTML("beforebegin",
+    `<p class="pista-arriba">Elige el nivel y la región arriba. Haz clic en una región del mapa o de la tabla para elegirla en todo el tablero.</p>`));
   tarjetas();
 
   const pestanas = [...document.querySelectorAll(".modulos button")];
