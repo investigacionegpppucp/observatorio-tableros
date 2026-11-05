@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Educación | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=9e8e78d">
+  <link rel="stylesheet" href="../../comun/tema.css?v=9e8e78d">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=9e8e78d">
+  <link rel="stylesheet" href="estilos.css?v=9e8e78d">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Educación</h1>
+        <p class="subtitulo" id="subtitulo">Estudiantes, docentes y escuelas de la educación básica regular, en el Perú y en cada región.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtro de región: lo arma tablero.js (Obs.controlesComunes) -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-estudiantes" aria-controls="m-estudiantes" data-modulo="estudiantes">Estudiantes</button>
+    <button role="tab" id="tab-docentes" aria-controls="m-docentes" data-modulo="docentes">Docentes</button>
+    <button role="tab" id="tab-escuelas" aria-controls="m-escuelas" data-modulo="escuelas">Escuelas</button>
+  </nav>
+
+  <!-- Las tarjetas de cada pestaña las arma tablero.js (función tarjetas) -->
+  <main>
+    <section class="modulo" id="m-estudiantes" role="tabpanel" aria-labelledby="tab-estudiantes">
+      <p class="resumen" id="r-estudiantes" aria-live="polite">Cargando datos…</p>
+      <div class="kpis" id="k-estudiantes"></div>
+      <div id="c-estudiantes"></div>
+    </section>
+    <section class="modulo" id="m-docentes" role="tabpanel" aria-labelledby="tab-docentes" hidden>
+      <p class="resumen" id="r-docentes" aria-live="polite"></p>
+      <div class="kpis" id="k-docentes"></div>
+      <div id="c-docentes"></div>
+    </section>
+    <section class="modulo" id="m-escuelas" role="tabpanel" aria-labelledby="tab-escuelas" hidden>
+      <p class="resumen" id="r-escuelas" aria-live="polite"></p>
+      <div class="kpis" id="k-escuelas"></div>
+      <div id="c-escuelas"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Ministerio de Educación, Estadística de la Calidad Educativa (ESCALE): Censo Educativo, Sistema de Información de Apoyo a la Gestión de la Institución Educativa (SIAGIE) y evaluaciones de logros de aprendizaje (Evaluación Censal de Estudiantes hasta 2019, Evaluación Muestral en 2022 y Evaluación Nacional de Logros de Aprendizaje desde 2023).</p>
+    <p><strong>Logros de aprendizaje:</strong> porcentaje de alumnos que alcanzan el nivel satisfactorio. En primaria se evaluó el 2.º grado de 2007 a 2023 y el 4.º grado desde 2016; desde 2024 solo se evalúa el 4.º grado. Son pruebas distintas y no se comparan entre sí. No hubo evaluación en 2017, 2020 ni 2021. 2.º de primaria no tiene resultados regionales en 2018 ni en 2023. Ciencias Sociales y Ciencia y Tecnología solo se evaluaron algunos años en secundaria. En 2008-2011 no hay datos de 2.º de primaria para algunas regiones (Ayacucho, Cajamarca, Huancavelica y Puno). En el cuadro de ESCALE, Lima Metropolitana tiene en Matemática 2007 (2.º de primaria) la misma cifra que Lambayeque: es un error de copia y no se muestra.</p>
+    <p><strong>Atraso escolar:</strong> alumnos con dos o más años más que la edad que corresponde a su grado. <strong>Desaprobados:</strong> alumnos que llegaron a la evaluación final y no aprobaron, respecto de la matrícula de fin de año. Entre 2020 y 2022 no aplica, porque se implementó la promoción guiada.</p>
+    <p><strong>Docentes titulados:</strong> docentes con título pedagógico en la especialidad del nivel que enseñan. <strong>Alumnos por docente:</strong> en inicial, excluye los programas no escolarizados.</p>
+    <p><strong>Internet:</strong> hasta 2015, porcentaje de escuelas con acceso a internet; desde 2016, de servicios educativos. Los datos de 2019 son de la Oficina de Tecnologías de la Información y Comunicación del Minedu.</p>
+    <p>Los valores del Perú son los del total nacional, no un promedio de las regiones. Los desgloses por área, sexo y tipo de gestión solo están para el Perú. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Educación</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=9e8e78d"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=9e8e78d"></script>
+  <script src="../../comun/config.js?v=9e8e78d"></script>
+  <script src="../../comun/base.js?v=9e8e78d"></script>
+  <script src="../../comun/graficos.js?v=9e8e78d"></script>
+  <script src="../../comun/mapa.js?v=9e8e78d"></script>
+  <script src="../../comun/filtros.js?v=9e8e78d"></script>
+  <script src="../../comun/descarga.js?v=9e8e78d"></script>
+  <script src="tablero.js?v=9e8e78d"></script>
+</body>
+</html>
