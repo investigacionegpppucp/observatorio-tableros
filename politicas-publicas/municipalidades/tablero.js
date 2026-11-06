@@ -15,6 +15,15 @@
        Vecinales), P102_1_T (miembros) y P102_2 (en actividad o inactiva).
    Departamento ya trae los códigos del mapa (Lima Metropolitana y Lima
    Provincias por separado).
+     - «Recursos v3»: si la municipalidad tiene internet (formato largo).
+     - «Servicios Sociales v2»: beneficiarios del Vaso de Leche por
+       perfil (formato largo: variable = perfil, value = beneficiarios).
+     - «Seguridad Ciudadana»: P69_1_T (efectivos de serenazgo), P71A_1 a
+       P71A_12 y P71A_T (intervenciones del serenazgo por motivo y total)
+       y organizaciones de seguridad (Rondas Urbanas, Rondas Campesinas,
+       Comités de Autodefensa).
+   Las pestañas de formato largo no traen idmunici: sus filas van en el
+   mismo orden que «Gestión de residuos», y se unen por esa posición.
 
    Patrón: un objeto `estado`, funciones puras para agregar y una sola
    `render()`. Cada municipalidad cuenta una vez.
@@ -27,7 +36,7 @@
    ========================================================= */
 
 const TABLERO = "municipalidades";
-const MODULOS = ["residuos", "participacion"];
+const MODULOS = ["residuos", "participacion", "recursos", "sociales", "seguridad"];
 const ARCHIVOS = [{ clave: "municipalidades_base", etiqueta: "Registro Nacional de Municipalidades 2025 (selección de preguntas)" }];
 const NACIONAL = "NACIONAL";
 const TIPOS = ["Todas", "Provincial", "Distrital"];
@@ -50,6 +59,17 @@ const ESPACIOS = [
   ["P100_9", "Comités de ejecución de obras", "organizacion"], ["P100_10", "Juntas vecinales", "organizacion"],
   ["P100_11", "Otros espacios", "organizacion"],
 ];
+// Beneficiarios del Vaso de Leche, por perfil (variable de «Servicios Sociales v2»)
+const PERFILES = ["Niños de 0 a 6", "Niños de 7 a 13", "Madres gestantes", "Madres en período de lactancia", "Adultos mayores",
+  "Personas con alguna discapacidad", "Personas afectadas con tuberculosis"];
+const ETIQ_PERFIL = { "Niños de 0 a 6": "Niños de 0 a 6 años", "Niños de 7 a 13": "Niños de 7 a 13 años",
+  "Personas con alguna discapacidad": "Personas con discapacidad", "Personas afectadas con tuberculosis": "Personas con tuberculosis",
+  "Madres en período de lactancia": "Madres que dan de lactar" };
+// Motivos de las intervenciones del serenazgo (P71A). P71A_4 y P71A_5 no tienen nombre en la base: solo cuentan en el total.
+const MOTIVOS = [["P71A_6", "Consumo de alcohol en la vía pública"], ["P71A_7", "Consumo de drogas"], ["P71A_9", "Comercio informal"],
+  ["P71A_8", "Accidentes de tránsito"], ["P71A_10", "Violencia familiar"], ["P71A_1", "Robo a transeúntes"], ["P71A_11", "Pandillaje"],
+  ["P71A_2", "Robo a domicilio"], ["P71A_3", "Robo de vehículos"], ["P71A_12", "Otro"]];
+const ORGS = [["rondasCampesinas", "Rondas campesinas"], ["rondasUrbanas", "Rondas urbanas"], ["comites", "Comités de autodefensa"]];
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* Indicadores del mapa por pestaña. tipo: "pct" (municipalidades que cumplen / todas),
@@ -60,14 +80,29 @@ const IND = {
     { id: "diario", nombre: "Recogen la basura todos los días", tipo: "pct", cumple: (m) => m.frecuencia === "Diaria" },
     { id: "cobertura", nombre: "El recojo cubre el 75 % o más del territorio", tipo: "pct", cumple: (m) => m.cobertura === "De 75% a 100%" },
     { id: "operativos", nombre: "Camiones que funcionan (del total de camiones)", tipo: "razon", num: (m) => m.operativos, den: (m) => m.operativos + m.noOperativos },
-    { id: "toneladas", nombre: "Basura recogida por día (toneladas)", tipo: "suma", campo: (m) => (m.kilos ?? 0) / 1000 },
+    { id: "toneladas", nombre: "Basura recogida por día (toneladas)", tipo: "suma", unidad: "t", campo: (m) => (m.kilos ?? 0) / 1000 },
+  ],
+  recursos: [
+    { id: "internet", nombre: "Tienen servicio de internet", tipo: "pct", cumple: (m) => m.internet },
+  ],
+  sociales: [
+    { id: "beneficiarios", nombre: "Beneficiarios del Vaso de Leche", tipo: "suma", unidad: "personas", campo: (m) => m.vasoTotal },
+    ...PERFILES.map((p, i) => ({ id: `perfil${i}`, nombre: `Beneficiarios: ${(ETIQ_PERFIL[p] ?? p).toLowerCase()}`, tipo: "suma", unidad: "personas", campo: (m) => m.vaso[p] })),
+    { id: "adultos", nombre: "Atienden a adultos mayores", tipo: "pct", cumple: (m) => m.vaso["Adultos mayores"] > 0 },
+  ],
+  seguridad: [
+    { id: "serenazgo", nombre: "Tienen serenazgo", tipo: "pct", cumple: (m) => m.serenos > 0 },
+    { id: "serenos", nombre: "Efectivos de serenazgo", tipo: "suma", unidad: "efectivos", campo: (m) => m.serenos },
+    { id: "intervenciones", nombre: "Intervenciones del serenazgo", tipo: "suma", unidad: "intervenciones", campo: (m) => m.intervenciones },
+    { id: "organizacion", nombre: "Tienen alguna organización de seguridad vecinal o comunal", tipo: "pct", cumple: (m) => m.orgs > 0 },
+    ...ORGS.map(([k, nombre]) => ({ id: k, nombre: `${nombre} (número)`, tipo: "suma", unidad: "organizaciones", campo: (m) => m[k] })),
   ],
   participacion: [
     ...ESPACIOS.map(([c, nombre]) => ({ id: c.toLowerCase(), nombre: `Participación en: ${nombre.toLowerCase()}`, tipo: "pct", cumple: (m) => m.espacios[c] })),
     { id: "junta", nombre: "Tienen Junta de Delegados Vecinales", tipo: "pct", cumple: (m) => m.junta },
   ],
 };
-const DEFECTO_MAPA = { residuos: "camion", participacion: "p100_4" };
+const DEFECTO_MAPA = { residuos: "camion", participacion: "p100_4", recursos: "internet", sociales: "beneficiarios", seguridad: "serenazgo" };
 
 const estado = { modulo: "residuos", ambito: "nacional", region: NACIONAL, tipo: "Todas", mapa: { ...DEFECTO_MAPA } };
 
@@ -97,7 +132,7 @@ function valor(ind, munis) {
   const v = munis.reduce((s, m) => s + ind.campo(m), 0);
   return { v: munis.length ? v : null, num: v, den: munis.length };
 }
-const fmtInd = (ind, v) => (v == null ? "—" : ind.tipo === "suma" ? `${Obs.fmtN(v, 0)} t` : pct(v));
+const fmtInd = (ind, v) => (v == null ? "—" : ind.tipo === "suma" ? `${Obs.fmtN(v, 0)}${ind.unidad === "t" ? " t" : ""}` : pct(v));
 // Porcentaje de un grupo que cumple una condición
 const parte = (munis, f) => (munis.length ? munis.filter(f).length / munis.length : 0);
 
@@ -106,6 +141,16 @@ function barras(id, categorias, munis, peru, { ordenar = false } = {}) {
   const comp = estado.region !== NACIONAL;
   Obs.barras(id, categorias.map(([clave, etiqueta, f]) => ({ clave, etiqueta, valor: parte(munis, f), comp: comp ? parte(peru, f) : null })), {
     formato: pct, nombre: nombreRegion(estado.region), comparacion: comp ? "Perú" : null, ordenar,
+  });
+}
+
+/* Barras de la parte de un total (por ejemplo, intervenciones por motivo), con la marca del Perú */
+function barrasParte(id, categorias, munis, peru, total) {
+  const comp = estado.region !== NACIONAL;
+  const suma = (lista, f) => lista.reduce((s, m) => s + (f(m) ?? 0), 0);
+  const tm = suma(munis, total), tp = suma(peru, total);
+  Obs.barras(id, categorias.map(([clave, etiqueta, f]) => ({ clave, etiqueta, valor: tm ? suma(munis, f) / tm : 0, comp: comp && tp ? suma(peru, f) / tp : null })), {
+    formato: pct, nombre: nombreRegion(estado.region), comparacion: comp ? "Perú" : null, ordenar: true,
   });
 }
 
@@ -187,6 +232,69 @@ function pintarParticipacion() {
 }
 
 /* ---------------------------------------------------------
+   Pestaña: Recursos
+   --------------------------------------------------------- */
+function pintarRecursos() {
+  const munis = filtrar(estado.region), peru = filtrar(NACIONAL), total = munis.length;
+  const con = munis.filter((m) => m.internet).length;
+  document.getElementById("r-recursos").innerHTML = !total ? "No hay municipalidades para esta selección." :
+    `${EnLugar(estado.region)}, ${destacar(`${n0(con)} de ${n0(total)}`)} ${delTipo()} (${pct(con / total)}) tiene servicio de internet` +
+    (total - con ? `; ${n0(total - con)} no lo tiene${total - con === 1 ? "" : "n"}.` : ".");
+  kpis("k-recursos", [
+    { etiqueta: "Tienen servicio de internet", valor: pct(total ? con / total : null), pie: `${n0(con)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => m.internet))}` },
+    { etiqueta: "Sin servicio de internet", valor: n0(total - con), pie: `${pct(total ? (total - con) / total : null)} de las ${delTipo()}` },
+  ]);
+}
+
+/* ---------------------------------------------------------
+   Pestaña: Servicios sociales (Vaso de Leche)
+   --------------------------------------------------------- */
+function pintarSociales() {
+  const munis = filtrar(estado.region), peru = filtrar(NACIONAL), total = munis.length;
+  const ben = munis.reduce((s, m) => s + m.vasoTotal, 0);
+  const atienden = munis.filter((m) => m.vasoTotal > 0).length;
+  const ninos = munis.reduce((s, m) => s + m.vaso["Niños de 0 a 6"], 0), mayores = munis.reduce((s, m) => s + m.vaso["Adultos mayores"], 0);
+  document.getElementById("r-sociales").innerHTML = !total ? "No hay municipalidades para esta selección." :
+    `${EnLugar(estado.region)}, las ${delTipo()} reportan ${destacar(n0(ben))} beneficiarios del Vaso de Leche` +
+    (ben ? `. Los niños de 0 a 6 años son el ${destacar(pct(ninos / ben))}, y los adultos mayores, el ${pct(mayores / ben)}` : "") +
+    (atienden === total ? ". Todas reportan beneficiarios." : `. ${n0(atienden)} de ${n0(total)} reportan beneficiarios.`);
+  const pPeru = (p) => { const b = peru.reduce((s, m) => s + m.vasoTotal, 0); return b ? peru.reduce((s, m) => s + m.vaso[p], 0) / b : null; };
+  kpis("k-sociales", [
+    { etiqueta: "Beneficiarios del Vaso de Leche", valor: n0(ben), pie: `${n0(atienden)} municipalidades reportan beneficiarios` },
+    { etiqueta: "Niños de 0 a 6 años", valor: ben ? pct(ninos / ben) : "—", pie: `${n0(ninos)} beneficiarios. ${pieComp(pct, pPeru("Niños de 0 a 6"))}` },
+    { etiqueta: "Adultos mayores", valor: ben ? pct(mayores / ben) : "—", pie: `${n0(mayores)} beneficiarios. ${pieComp(pct, pPeru("Adultos mayores"))}` },
+    { etiqueta: "Beneficiarios por municipalidad", valor: atienden ? n0(ben / atienden) : "—", pie: "Promedio, entre las que reportan beneficiarios" },
+  ]);
+  barrasParte("g-perfiles", PERFILES.map((p) => [p, ETIQ_PERFIL[p] ?? p, (m) => m.vaso[p]]), munis, peru, (m) => m.vasoTotal);
+  barras("g-atienden", PERFILES.map((p) => [p, ETIQ_PERFIL[p] ?? p, (m) => m.vaso[p] > 0]), munis, peru, { ordenar: true });
+}
+
+/* ---------------------------------------------------------
+   Pestaña: Vigilancia y seguridad
+   --------------------------------------------------------- */
+function pintarSeguridad() {
+  const munis = filtrar(estado.region), peru = filtrar(NACIONAL), total = munis.length;
+  const conSerenazgo = munis.filter((m) => m.serenos > 0).length;
+  const serenos = munis.reduce((s, m) => s + m.serenos, 0), interv = munis.reduce((s, m) => s + m.intervenciones, 0);
+  const conOrg = munis.filter((m) => m.orgs > 0).length;
+  const motivos = MOTIVOS.map(([k, nombre]) => [nombre, munis.reduce((s, m) => s + m.motivos[k], 0)]).sort((a, b) => b[1] - a[1]);
+  document.getElementById("r-seguridad").innerHTML = !total ? "No hay municipalidades para esta selección." :
+    `${EnLugar(estado.region)}, ${destacar(`${n0(conSerenazgo)} de ${n0(total)}`)} ${delTipo()} (${pct(conSerenazgo / total)}) tiene serenazgo, con ${destacar(n0(serenos))} efectivos en total. ` +
+    (interv ? `El serenazgo hizo ${n0(interv)} intervenciones; el motivo más frecuente fue ${destacar(motivos[0][0].toLowerCase())} (${pct(motivos[0][1] / interv)}). ` : "") +
+    `${n0(conOrg)} (${pct(conOrg / total)}) tiene alguna ronda o comité de autodefensa.`;
+  kpis("k-seguridad", [
+    { etiqueta: "Tienen serenazgo", valor: pct(total ? conSerenazgo / total : null), pie: `${n0(conSerenazgo)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => m.serenos > 0))}` },
+    { etiqueta: "Efectivos de serenazgo", valor: n0(serenos), pie: conSerenazgo ? `${n0(serenos / conSerenazgo)} por municipalidad con serenazgo` : "" },
+    { etiqueta: "Intervenciones del serenazgo", valor: n0(interv), pie: "Suma de lo que reporta cada municipalidad" },
+    { etiqueta: "Con rondas o comités de autodefensa", valor: pct(total ? conOrg / total : null), pie: `${n0(conOrg)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => m.orgs > 0))}` },
+  ]);
+  barrasParte("g-motivos", MOTIVOS.map(([k, nombre]) => [k, nombre, (m) => m.motivos[k]]), munis, peru, (m) => m.intervenciones);
+  barras("g-orgs", ORGS.map(([k, nombre]) => [k, nombre, (m) => m[k] > 0]), munis, peru, { ordenar: true });
+  const tot = ORGS.map(([k, nombre]) => `${n0(munis.reduce((s, m) => s + m[k], 0))} ${nombre.toLowerCase()}`);
+  document.getElementById("l-orgs").innerHTML = `En total, ${tot.slice(0, -1).join(", ")} y ${tot.at(-1)}.`;
+}
+
+/* ---------------------------------------------------------
    Mapa y ranking de regiones
    --------------------------------------------------------- */
 function pintarMapa() {
@@ -201,7 +309,7 @@ function pintarMapa() {
   if (!mapa) mapa = new Obs.Mapa("mapa", GEO, { alClic: elegirRegion, nombre: nombreRegion });
   const cortes = Obs.cortesCuantiles([...valores.values()]);
   mapa.pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => fmtInd(ind, v / escala), elegida: estado.region });
-  Obs.leyendaTramos("ley-mapa", cortes, C.escala, (v) => (ind.tipo === "suma" ? `${Obs.fmtN(v, 0)} t` : `${Obs.fmtN(v, 0)} %`));
+  Obs.leyendaTramos("ley-mapa", cortes, C.escala, (v) => (ind.tipo === "suma" ? fmtInd(ind, v) : `${Obs.fmtN(v, 0)} %`));
 
   const alto = filas[0], bajo = filas.at(-1);
   let t = `${ind.nombre} (${delTipo()}): ${destacar(nombreRegion(alto.region))} tiene el valor más alto (${fmtInd(ind, alto.v)}) y ${destacar(nombreRegion(bajo.region))} el más bajo (${fmtInd(ind, bajo.v)})`;
@@ -223,7 +331,7 @@ function pintarMapa() {
     cuerpo.splice(pos, 0, fila({ region: NACIONAL, ...peru }, null, "peru"));
   }
   const caja = document.getElementById("t-regiones");
-  caja.innerHTML = `<table class="tabla"><caption class="solo-lectores">${Obs.escapar(ind.nombre)} por región</caption><thead><tr><th class="num">#</th><th>Región</th><th class="num">Municipalidades</th><th class="num">${ind.tipo === "suma" ? "Toneladas por día" : "Porcentaje"}</th></tr></thead><tbody>${cuerpo.join("")}</tbody></table>`;
+  caja.innerHTML = `<table class="tabla"><caption class="solo-lectores">${Obs.escapar(ind.nombre)} por región</caption><thead><tr><th class="num">#</th><th>Región</th><th class="num">Municipalidades</th><th class="num">${ind.tipo === "suma" ? (ind.unidad === "t" ? "Toneladas por día" : ind.unidad[0].toUpperCase() + ind.unidad.slice(1)) : "Porcentaje"}</th></tr></thead><tbody>${cuerpo.join("")}</tbody></table>`;
   const ir = (e) => { const r = e.target.closest("tr[data-k]"); if (r && (e.type === "click" || e.key === "Enter")) elegirRegion(r.dataset.k); };
   caja.querySelector("tbody").onclick = ir;
   caja.querySelector("tbody").onkeydown = ir;
@@ -241,7 +349,17 @@ function pintarMunicipalidades() {
   const filas = visibles.slice(0, LIMITE);
   const base = (m) => `<td><strong>${Obs.escapar(m.nombre)}</strong></td><td>${Obs.escapar(m.provincia)}${estado.region === NACIONAL ? `, ${Obs.escapar(nombreRegion(m.region))}` : ""}</td><td>${m.tipo}</td>`;
   let cabeza, cuerpo;
-  if (estado.modulo === "residuos") {
+  if (estado.modulo === "recursos") {
+    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th>Servicio de internet</th>";
+    cuerpo = filas.map((m) => `<tr>${base(m)}<td>${sino(m.internet)}</td></tr>`);
+  } else if (estado.modulo === "sociales") {
+    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th class=\"num\">Beneficiarios del Vaso de Leche</th><th class=\"num\">Niños de 0 a 6</th><th class=\"num\">Adultos mayores</th><th class=\"num\">Otros</th>";
+    cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num"><strong>${n0(m.vasoTotal)}</strong></td><td class="num">${n0(m.vaso["Niños de 0 a 6"])}</td><td class="num">${n0(m.vaso["Adultos mayores"])}</td>` +
+      `<td class="num">${n0(m.vasoTotal - m.vaso["Niños de 0 a 6"] - m.vaso["Adultos mayores"])}</td></tr>`);
+  } else if (estado.modulo === "seguridad") {
+    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th class=\"num\">Efectivos de serenazgo</th><th class=\"num\">Intervenciones</th><th class=\"num\">Rondas campesinas</th><th class=\"num\">Rondas urbanas</th><th class=\"num\">Comités de autodefensa</th>";
+    cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num">${n0(m.serenos)}</td><td class="num">${n0(m.intervenciones)}</td><td class="num">${n0(m.rondasCampesinas)}</td><td class="num">${n0(m.rondasUrbanas)}</td><td class="num">${n0(m.comites)}</td></tr>`);
+  } else if (estado.modulo === "residuos") {
     cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th class=\"num\">Camiones (funcionan)</th><th>Frecuencia del recojo</th><th>Cobertura</th><th class=\"num\">Kilos por día</th>";
     cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num">${m.camion ? `${n0(m.camiones)} (${n0(m.operativos)})` : "0"}</td><td>${Obs.escapar(m.frecuencia ?? "—")}</td><td>${m.cobertura ? ETIQ_COBERTURA[m.cobertura] : "—"}</td><td class="num">${m.kilos != null ? n0(m.kilos) : "—"}</td></tr>`);
   } else {
@@ -278,7 +396,7 @@ function render() {
     b.tabIndex = activo ? 0 : -1;
   });
   MODULOS.forEach((m) => (document.getElementById(`m-${m}`).hidden = m !== estado.modulo));
-  if (estado.modulo === "residuos") pintarResiduos(); else pintarParticipacion();
+  ({ residuos: pintarResiduos, participacion: pintarParticipacion, recursos: pintarRecursos, sociales: pintarSociales, seguridad: pintarSeguridad })[estado.modulo]();
   pintarMapa();
   pintarMunicipalidades();
   Obs.escribirURL({
@@ -322,7 +440,24 @@ Obs.iniciar(TABLERO, async () => {
     for (const [k] of ESPACIOS) m.espacios[k] = si(f[k]);
     Object.assign(m, { junta: si(f.P102), miembros: num(f.P102_1_T), juntaActiva: limpio(f.P102_2) === "En actividad" });
   }
-  MUNIS = [...porId.values()].filter((m) => NOMBRES[m.region]);
+  // Pestañas sin idmunici: van en el mismo orden que «Gestión de residuos»
+  const orden = [...porId.values()];
+  const rec = Obs.expandir(datos.tablas["Recursos v3"] ?? { value: [] });
+  orden.forEach((m, i) => (m.internet = limpio(rec[i]?.value) === "Sí"));
+  const vistos = {};
+  orden.forEach((m) => (m.vaso = Object.fromEntries(PERFILES.map((p) => [p, 0]))));
+  for (const f of Obs.expandir(datos.tablas["Servicios Sociales v2"] ?? { variable: [] })) {
+    const p = limpio(f.variable), i = (vistos[p] = (vistos[p] ?? -1) + 1);
+    if (orden[i] && p in orden[i].vaso) orden[i].vaso[p] = num(f.value) ?? 0;
+  }
+  orden.forEach((m) => (m.vasoTotal = PERFILES.reduce((s, p) => s + m.vaso[p], 0)));
+  for (const f of Obs.expandir(datos.tablas["Seguridad Ciudadana"])) {
+    const m = base(f);
+    Object.assign(m, { serenos: num(f.P69_1_T) ?? 0, intervenciones: num(f.P71A_T) ?? 0, motivos: Object.fromEntries(MOTIVOS.map(([k]) => [k, num(f[k]) ?? 0])),
+      rondasUrbanas: num(f["Rondas Urbanas"]) ?? 0, rondasCampesinas: num(f["Rondas Campesinas"]) ?? 0, comites: num(f["Comités de Autodefensa"]) ?? 0 });
+    m.orgs = m.rondasUrbanas + m.rondasCampesinas + m.comites;
+  }
+  MUNIS = orden.filter((m) => NOMBRES[m.region]);
 
   // Estado inicial desde la URL
   const q = Obs.parametros();

@@ -8,17 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=0ab3158">
-  <link rel="stylesheet" href="../../comun/tema.css?v=0ab3158">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=0ab3158">
-  <link rel="stylesheet" href="estilos.css?v=0ab3158">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=23c8d2e">
+  <link rel="stylesheet" href="../../comun/tema.css?v=23c8d2e">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=23c8d2e">
+  <link rel="stylesheet" href="estilos.css?v=23c8d2e">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Gestión municipal</h1>
-        <p class="subtitulo">Qué servicios dan y cómo involucran a sus vecinos las 1891 municipalidades provinciales y distritales del Perú, según el Registro Nacional de Municipalidades 2025.</p>
+        <p class="subtitulo">Qué servicios dan, con qué recursos y cómo involucran a sus vecinos las 1891 municipalidades provinciales y distritales del Perú, según el Registro Nacional de Municipalidades 2025.</p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -33,6 +33,9 @@
   <nav class="modulos" role="tablist" aria-label="Temas">
     <button role="tab" id="tab-residuos" aria-controls="m-residuos" data-modulo="residuos">Gestión de residuos</button>
     <button role="tab" id="tab-participacion" aria-controls="m-participacion" data-modulo="participacion">Participación vecinal</button>
+    <button role="tab" id="tab-recursos" aria-controls="m-recursos" data-modulo="recursos">Recursos</button>
+    <button role="tab" id="tab-sociales" aria-controls="m-sociales" data-modulo="sociales">Servicios sociales</button>
+    <button role="tab" id="tab-seguridad" aria-controls="m-seguridad" data-modulo="seguridad">Vigilancia y seguridad</button>
   </nav>
 
   <main>
@@ -80,6 +83,47 @@
       </article>
     </section>
 
+    <!-- ================= RECURSOS ================= -->
+    <section class="modulo" id="m-recursos" role="tabpanel" aria-labelledby="tab-recursos" hidden>
+      <p class="resumen" id="r-recursos" aria-live="polite"></p>
+      <div class="kpis kpis-2" id="k-recursos"></div>
+      <p class="aviso">Por ahora, la base del tablero solo trae el acceso a internet. El personal de las municipalidades y su maquinaria y vehículos se sumarán cuando estén en el Sheet.</p>
+    </section>
+
+    <!-- ================= SERVICIOS SOCIALES ================= -->
+    <section class="modulo" id="m-sociales" role="tabpanel" aria-labelledby="tab-sociales" hidden>
+      <p class="resumen" id="r-sociales" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-sociales"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Quiénes reciben el Vaso de Leche?</h3><p>Porcentaje de los beneficiarios del programa, según su perfil.</p></header>
+          <div class="grafico" id="g-perfiles"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿A quiénes atiende cada municipalidad?</h3><p>Porcentaje de municipalidades que reporta beneficiarios de cada perfil.</p></header>
+          <div class="grafico" id="g-atienden"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= VIGILANCIA Y SEGURIDAD ================= -->
+    <section class="modulo" id="m-seguridad" role="tabpanel" aria-labelledby="tab-seguridad" hidden>
+      <p class="resumen" id="r-seguridad" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-seguridad"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Por qué interviene el serenazgo?</h3><p>Porcentaje de las intervenciones del serenazgo, según el motivo.</p></header>
+          <div class="grafico" id="g-motivos"></div>
+          <p class="nota-tarjeta">Dos motivos de la pregunta no tienen nombre en la base: solo cuentan en el total de intervenciones (menos del 1 %).</p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Hay rondas o comités de autodefensa?</h3><p>Porcentaje de municipalidades con al menos una organización de seguridad vecinal o comunal de cada tipo.</p></header>
+          <p class="lectura" id="l-orgs"></p>
+          <div class="grafico bajo" id="g-orgs"></div>
+        </article>
+      </div>
+    </section>
+
     <!-- Mapa y tabla de municipalidades: una sola tarjeta, cambia con la pestaña -->
     <article class="tarjeta">
       <header><h3>¿Cómo está cada región?</h3><p>Valor de cada región para el indicador elegido. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región del mapa o de la tabla para elegirla en todo el tablero.</p></header>
@@ -103,18 +147,19 @@
     <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Registro Nacional de Municipalidades (RENAMU) 2025.</p>
     <p><strong>Notas:</strong> Cada municipalidad cuenta una vez, sea provincial o distrital; los porcentajes son sobre el total de municipalidades de la selección. Las cifras son las que reporta cada municipalidad.
       <strong>Gestión de residuos:</strong> camiones recolectores de basura y su estado, frecuencia del recojo, parte del territorio que cubre y cantidad promedio diaria recogida (en kilos, sumada por región).
-      <strong>Participación vecinal:</strong> espacios de concertación y actividades en los que participó la población, y Junta de Delegados Vecinales Comunales. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.</p>
+      <strong>Participación vecinal:</strong> espacios de concertación y actividades en los que participó la población, y Junta de Delegados Vecinales Comunales.
+      <strong>Recursos:</strong> acceso de la municipalidad a internet. <strong>Servicios sociales:</strong> beneficiarios del Programa del Vaso de Leche según su perfil. <strong>Vigilancia y seguridad:</strong> efectivos e intervenciones del serenazgo, y rondas urbanas, rondas campesinas y comités de autodefensa. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Gestión municipal</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=0ab3158"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=0ab3158"></script>
-  <script src="../../comun/config.js?v=0ab3158"></script>
-  <script src="../../comun/base.js?v=0ab3158"></script>
-  <script src="../../comun/graficos.js?v=0ab3158"></script>
-  <script src="../../comun/mapa.js?v=0ab3158"></script>
-  <script src="../../comun/filtros.js?v=0ab3158"></script>
-  <script src="../../comun/descarga.js?v=0ab3158"></script>
-  <script src="tablero.js?v=0ab3158"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=23c8d2e"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=23c8d2e"></script>
+  <script src="../../comun/config.js?v=23c8d2e"></script>
+  <script src="../../comun/base.js?v=23c8d2e"></script>
+  <script src="../../comun/graficos.js?v=23c8d2e"></script>
+  <script src="../../comun/mapa.js?v=23c8d2e"></script>
+  <script src="../../comun/filtros.js?v=23c8d2e"></script>
+  <script src="../../comun/descarga.js?v=23c8d2e"></script>
+  <script src="tablero.js?v=23c8d2e"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@
 .par > .tarjeta { margin-bottom: 0; }
 
 .kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpis-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .kpi { min-height: 120px; justify-content: center; }
 .kpi .kpi-etiqueta { font-weight: 700; }
 .kpi-valor { font-size: 36px; }
