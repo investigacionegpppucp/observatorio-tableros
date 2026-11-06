@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión municipal | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=0ab3158">
+  <link rel="stylesheet" href="../../comun/tema.css?v=0ab3158">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=0ab3158">
+  <link rel="stylesheet" href="estilos.css?v=0ab3158">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Gestión municipal</h1>
+        <p class="subtitulo">Qué servicios dan y cómo involucran a sus vecinos las 1891 municipalidades provinciales y distritales del Perú, según el Registro Nacional de Municipalidades 2025.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtros de región y tipo de municipalidad: los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-residuos" aria-controls="m-residuos" data-modulo="residuos">Gestión de residuos</button>
+    <button role="tab" id="tab-participacion" aria-controls="m-participacion" data-modulo="participacion">Participación vecinal</button>
+  </nav>
+
+  <main>
+    <!-- ================= GESTIÓN DE RESIDUOS ================= -->
+    <section class="modulo" id="m-residuos" role="tabpanel" aria-labelledby="tab-residuos">
+      <p class="resumen" id="r-residuos" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-residuos"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Con qué frecuencia recogen la basura?</h3><p>Porcentaje de municipalidades según la frecuencia del recojo de residuos sólidos.</p></header>
+          <div class="grafico bajo" id="g-frecuencia"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Qué parte del distrito cubre el recojo?</h3><p>Porcentaje de municipalidades según la parte del territorio que cubre el servicio. No incluye a las que no hicieron recojo.</p></header>
+          <div class="grafico bajo" id="g-cobertura"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>¿Cuántos camiones recolectores tienen?</h3><p>Porcentaje de municipalidades según el número de camiones recolectores de basura. Al lado, cuántos de esos camiones funcionan.</p></header>
+        <div class="camiones">
+          <div class="grafico bajo" id="g-camiones"></div>
+          <div class="estado-camiones" id="e-camiones"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= PARTICIPACIÓN VECINAL ================= -->
+    <section class="modulo" id="m-participacion" role="tabpanel" aria-labelledby="tab-participacion" hidden>
+      <p class="resumen" id="r-participacion" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-participacion"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿En qué decisiones de la gestión participa la población?</h3><p>Porcentaje de municipalidades en las que la población participó en cada espacio de concertación.</p></header>
+          <div class="grafico" id="g-gestion"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿En qué otras actividades participa?</h3><p>Porcentaje de municipalidades en las que la población participó en cada tipo de actividad u organización.</p></header>
+          <div class="grafico" id="g-organizacion"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>¿Tienen Junta de Delegados Vecinales?</h3><p>Porcentaje de municipalidades según si constituyeron la junta y si está en actividad.</p></header>
+        <p class="lectura" id="l-junta"></p>
+        <div class="grafico bajo" id="g-junta"></div>
+      </article>
+    </section>
+
+    <!-- Mapa y tabla de municipalidades: una sola tarjeta, cambia con la pestaña -->
+    <article class="tarjeta">
+      <header><h3>¿Cómo está cada región?</h3><p>Valor de cada región para el indicador elegido. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región del mapa o de la tabla para elegirla en todo el tablero.</p></header>
+      <div class="controles"><div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div></div>
+      <p class="lectura" id="l-mapa" aria-live="polite"></p>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+        <div class="tabla-caja" id="t-regiones"></div>
+      </div>
+    </article>
+
+    <article class="tarjeta">
+      <header><h3 id="t-munis">Busca tu municipalidad</h3><p id="d-munis"></p></header>
+      <div class="buscador-tabla"><label for="f-buscar">Buscar</label><input id="f-buscar" type="search" placeholder="Nombre de la municipalidad o de la provincia" autocomplete="off"></div>
+      <div class="tabla-caja" id="t-munis-caja"></div>
+      <p class="nota-tarjeta" id="n-munis"></p>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Registro Nacional de Municipalidades (RENAMU) 2025.</p>
+    <p><strong>Notas:</strong> Cada municipalidad cuenta una vez, sea provincial o distrital; los porcentajes son sobre el total de municipalidades de la selección. Las cifras son las que reporta cada municipalidad.
+      <strong>Gestión de residuos:</strong> camiones recolectores de basura y su estado, frecuencia del recojo, parte del territorio que cubre y cantidad promedio diaria recogida (en kilos, sumada por región).
+      <strong>Participación vecinal:</strong> espacios de concertación y actividades en los que participó la población, y Junta de Delegados Vecinales Comunales. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Gestión municipal</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=0ab3158"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=0ab3158"></script>
+  <script src="../../comun/config.js?v=0ab3158"></script>
+  <script src="../../comun/base.js?v=0ab3158"></script>
+  <script src="../../comun/graficos.js?v=0ab3158"></script>
+  <script src="../../comun/mapa.js?v=0ab3158"></script>
+  <script src="../../comun/filtros.js?v=0ab3158"></script>
+  <script src="../../comun/descarga.js?v=0ab3158"></script>
+  <script src="tablero.js?v=0ab3158"></script>
+</body>
+</html>
