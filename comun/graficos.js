@@ -74,10 +74,11 @@ window.Obs = window.Obs || {};
        seleccion   Set de claves resaltadas; las demás se atenúan
        alClic      función(clave) al hacer clic en una barra
        color       color de las barras (cada ítem puede traer el suyo en `color`)
-       limite      número máximo de filas (el resto se omite) */
+       limite      número máximo de filas (el resto se omite)
+       detalle     función(item) con una línea más para el tooltip (por ejemplo, el número de casos) */
   Obs.barras = (id, items, opciones = {}) => {
     const t = Obs.tema();
-    const { formato = (v) => Obs.fmtN(v), nombre = "", comparacion = null, seleccion = null, alClic = null, color = t.unica, limite = null, ordenar = true } = opciones;
+    const { formato = (v) => Obs.fmtN(v), nombre = "", comparacion = null, seleccion = null, alClic = null, color = t.unica, limite = null, ordenar = true, detalle = null } = opciones;
     let datos = items.filter((d) => d.valor != null && (d.valor > 0 || d.comp > 0));
     if (ordenar) datos.sort((a, b) => b.valor - a.valor);
     if (limite) datos = datos.slice(0, limite);
@@ -100,7 +101,7 @@ window.Obs = window.Obs || {};
         formatter: (ps) => {
           const d = datos[ps[0].dataIndex];
           return `<strong>${Obs.escapar(d.etiqueta)}</strong><br>${nombre ? nombre + ": " : ""}<strong>${formato(d.valor)}</strong>` +
-            (comparacion && d.comp != null ? `<br>${comparacion}: ${formato(d.comp)}` : "");
+            (detalle ? `<br>${detalle(d)}` : "") + (comparacion && d.comp != null ? `<br>${comparacion}: ${formato(d.comp)}` : "");
         },
       },
       grid: { left: ancho, right: 70, top: 4, bottom: 4 },

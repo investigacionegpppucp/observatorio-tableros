@@ -72,3 +72,27 @@
   .filtro-local select { width: 100%; }
   .kpi-valor { font-size: 30px; }
 }
+
+/* Tablas ordenables: cada título de columna es un botón */
+.tabla.ordenable th { padding: 0; }
+.tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
+.tabla.ordenable th.num button { justify-content: flex-end; text-align: right; }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.75; }
+.tabla.ordenable th[aria-sort="none"] .flecha { opacity: 0.4; }
+.tabla tfoot tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
+.tipo-muni { display: block; font-size: 13px; font-weight: 400; color: var(--texto-suave); }
+.mapa-y-tabla .filtros-tabla { margin: 0 0 8px; }
+.mapa-y-tabla .filtro-local select { max-width: 220px; }
+.filtro-local > span { font-size: 15px; font-weight: 700; color: var(--navy); }
+.segmentado.claro { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); overflow: hidden; }
+.segmentado.claro button { border: 0; border-right: 1px solid var(--linea); border-radius: 0; min-height: 44px; padding: 8px 14px; font: inherit; font-size: 15px; font-weight: 600; color: var(--texto-suave); background: none; cursor: pointer; }
+.segmentado.claro button:last-child { border-right: 0; }
+.segmentado.claro button:hover:not([aria-pressed="true"]) { background: var(--fondo); color: var(--navy); }
+.segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.segmentado.claro button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.mapa-y-tabla > div { min-width: 0; }
+@media (max-width: 560px) {
+  .filtros-tabla .buscador-tabla { min-width: 0; width: 100%; }
+  .mapa-y-tabla .filtro-local select { max-width: none; }
+}

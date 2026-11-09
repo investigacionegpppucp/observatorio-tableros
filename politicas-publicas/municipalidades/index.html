@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=97331aa">
-  <link rel="stylesheet" href="../../comun/tema.css?v=97331aa">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=97331aa">
-  <link rel="stylesheet" href="estilos.css?v=97331aa">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=2774fdb">
+  <link rel="stylesheet" href="../../comun/tema.css?v=2774fdb">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=2774fdb">
+  <link rel="stylesheet" href="estilos.css?v=2774fdb">
 </head>
 <body>
   <header class="cabecera">
@@ -114,7 +114,6 @@
         <article class="tarjeta">
           <header><h3>¿Por qué interviene el serenazgo?</h3><p>Porcentaje de las intervenciones del serenazgo, según el motivo.</p></header>
           <div class="grafico" id="g-motivos"></div>
-          <p class="nota-tarjeta">Dos motivos de la pregunta no tienen nombre en la base: solo cuentan en el total de intervenciones (menos del 1 %).</p>
         </article>
         <article class="tarjeta">
           <header><h3>¿Hay rondas o comités de autodefensa?</h3><p>Porcentaje de municipalidades con al menos una organización de seguridad vecinal o comunal de cada tipo.</p></header>
@@ -126,12 +125,27 @@
 
     <!-- Mapa y tabla de municipalidades: una sola tarjeta, cambia con la pestaña -->
     <article class="tarjeta">
-      <header><h3>¿Cómo está cada región?</h3><p>Valor de cada región para el indicador elegido. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región del mapa o de la tabla para elegirla en todo el tablero.</p></header>
-      <div class="controles"><div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div></div>
+      <header><h3>¿Cómo está cada región?</h3><p>Valor de cada región, provincia o distrito para el indicador elegido. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. En la vista regional, un clic en una región la elige en todo el tablero; en la provincial y la distrital, la resalta en el mapa y en la tabla. Los títulos de columna ordenan la tabla.</p></header>
+      <div class="controles">
+        <div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div>
+        <div class="filtro-local" role="group" aria-labelledby="lbl-nivel-mapa"><span id="lbl-nivel-mapa">Ver por</span><div class="segmentado claro" id="f-nivel-mapa"></div></div>
+      </div>
       <p class="lectura" id="l-mapa" aria-live="polite"></p>
       <div class="mapa-y-tabla">
-        <div><div id="mapa"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
-        <div class="tabla-caja" id="t-regiones"></div>
+        <div>
+          <div id="mapa-regional"></div><div id="mapa-provincial" hidden></div><div id="mapa-distrital" hidden></div>
+          <div class="leyenda-mapa" id="ley-mapa"></div>
+          <p class="nota-tarjeta" id="n-mapa"></p>
+        </div>
+        <div>
+          <div class="controles filtros-tabla">
+            <div class="filtro-local"><label for="f-mt-region">Región</label><select id="f-mt-region"></select></div>
+            <div class="filtro-local"><label for="f-mt-provincia">Provincia</label><select id="f-mt-provincia"></select></div>
+            <div class="buscador-tabla"><label for="f-mt-buscar">Buscar</label><input id="f-mt-buscar" type="search" placeholder="Nombre" autocomplete="off"></div>
+          </div>
+          <p class="nota-tarjeta" id="d-mt"></p>
+          <div class="tabla-caja" id="t-regiones"></div>
+        </div>
       </div>
     </article>
 
@@ -148,7 +162,7 @@
   </main>
 
   <footer class="pie">
-    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Registro Nacional de Municipalidades (RENAMU) 2025.</p>
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Registro Nacional de Municipalidades (RENAMU) 2025. Límites de provincias y distritos: INEI, en la versión de <a href="https://github.com/juaneladio/peru-geojson">peru-geojson</a>.</p>
     <p><strong>Notas:</strong> Cada municipalidad cuenta una vez, sea provincial o distrital; los porcentajes son sobre el total de municipalidades de la selección. Las cifras son las que reporta cada municipalidad.
       <strong>Gestión de residuos:</strong> camiones recolectores de basura y su estado, frecuencia del recojo, parte del territorio que cubre y cantidad promedio diaria recogida (en kilos, sumada por región).
       <strong>Participación vecinal:</strong> espacios de concertación y actividades en los que participó la población, y Junta de Delegados Vecinales Comunales.
@@ -156,14 +170,14 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Gestión municipal</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=97331aa"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=97331aa"></script>
-  <script src="../../comun/config.js?v=97331aa"></script>
-  <script src="../../comun/base.js?v=97331aa"></script>
-  <script src="../../comun/graficos.js?v=97331aa"></script>
-  <script src="../../comun/mapa.js?v=97331aa"></script>
-  <script src="../../comun/filtros.js?v=97331aa"></script>
-  <script src="../../comun/descarga.js?v=97331aa"></script>
-  <script src="tablero.js?v=97331aa"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=2774fdb"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=2774fdb"></script>
+  <script src="../../comun/config.js?v=2774fdb"></script>
+  <script src="../../comun/base.js?v=2774fdb"></script>
+  <script src="../../comun/graficos.js?v=2774fdb"></script>
+  <script src="../../comun/mapa.js?v=2774fdb"></script>
+  <script src="../../comun/filtros.js?v=2774fdb"></script>
+  <script src="../../comun/descarga.js?v=2774fdb"></script>
+  <script src="tablero.js?v=2774fdb"></script>
 </body>
 </html>
