@@ -97,3 +97,7 @@
   .filtros-tabla .buscador-tabla { min-width: 0; width: 100%; }
   .mapa-y-tabla .filtro-local select { max-width: none; }
 }
+
+/* Mensajes a la nación: palabras y mapa de calor */
+.par-discursos { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+@media (max-width: 900px) { .par-discursos { grid-template-columns: 1fr; } }

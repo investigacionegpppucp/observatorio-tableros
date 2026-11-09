@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=3343f92">
-  <link rel="stylesheet" href="../../comun/tema.css?v=3343f92">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=3343f92">
-  <link rel="stylesheet" href="estilos.css?v=3343f92">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=5507090">
+  <link rel="stylesheet" href="../../comun/tema.css?v=5507090">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=5507090">
+  <link rel="stylesheet" href="estilos.css?v=5507090">
 </head>
 <body>
   <header class="cabecera">
@@ -34,7 +34,7 @@
     <button role="tab" id="tab-victimas" aria-controls="m-victimas" data-modulo="victimas">Fallecidos y heridos</button>
     <button role="tab" id="tab-protestas" aria-controls="m-protestas" data-modulo="protestas">Movilizaciones y paros</button>
     <button role="tab" id="tab-bloqueos" aria-controls="m-bloqueos" data-modulo="bloqueos">Bloqueos y violencia</button>
-    <button role="tab" id="tab-estado" aria-controls="m-estado" data-modulo="estado">Estados de emergencia</button>
+    <button role="tab" id="tab-estado" aria-controls="m-estado" data-modulo="estado">Emergencia y discursos</button>
   </nav>
 
   <main>
@@ -128,7 +128,19 @@
         <div class="controles"><div class="buscador-tabla"><label for="f-buscar-e">Buscar</label><input id="f-buscar-e" type="search" placeholder="Provincia o región" autocomplete="off"></div></div>
         <div class="tabla-caja" id="t-medidas-tabla"></div>
       </article>
-      <p class="aviso">Los discursos de Dina Boluarte aún no están en la base del tablero: se sumarán cuando estén en el Sheet.</p>
+      <div class="par par-discursos">
+        <article class="tarjeta">
+          <header><h3>¿De qué habló Dina Boluarte en sus mensajes a la nación?</h3><p id="d-palabras"></p></header>
+          <div class="controles"><div class="filtro-local"><label for="f-mensaje">Mensaje</label><select id="f-mensaje"></select></div></div>
+          <div class="grafico alto" id="g-palabras"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Cómo cambiaron sus palabras de un mensaje a otro?</h3><p>Veces que dijo cada palabra en cada mensaje. El color muestra su peso dentro del mensaje, porque no todos tienen el mismo largo: el del 13 de enero de 2023 triplica a los demás. Busca una palabra para sumarla arriba, o haz clic en una barra de la izquierda.</p></header>
+          <div class="controles"><div class="buscador-tabla"><label for="f-palabra">Palabra</label><input id="f-palabra" type="search" placeholder="Por ejemplo, diálogo" list="lista-palabras" autocomplete="off"><datalist id="lista-palabras"></datalist></div></div>
+          <p class="lectura" id="l-palabra" aria-live="polite"></p>
+          <div class="grafico alto" id="g-calor"></div>
+        </article>
+      </div>
     </section>
 
     <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
@@ -147,21 +159,21 @@
   </main>
 
   <footer class="pie">
-    <p><strong>Fuente:</strong> Observatorio para la Democracia y Gobernabilidad, con base en los reportes diarios de la Defensoría del Pueblo, los comunicados del Ministerio de Salud, los decretos supremos que declararon los estados de emergencia y la prensa nacional y regional.</p>
+    <p><strong>Fuente:</strong> Observatorio para la Democracia y Gobernabilidad, con base en los reportes diarios de la Defensoría del Pueblo, los mensajes a la nación de la presidenta Dina Boluarte, los comunicados del Ministerio de Salud, los decretos supremos que declararon los estados de emergencia y la prensa nacional y regional.</p>
     <p><strong>Notas:</strong> El período va del 7 de diciembre de 2022 a mayo de 2024. <strong>Fallecidos:</strong> la lista suma 76 personas: 56 en enfrentamientos y represión, y 20 a consecuencia del bloqueo de vías. La Defensoría del Pueblo cuenta 67 (56 y 11): las otras nueve muertes vinculadas a los bloqueos salen de la prensa.
       <strong>Acciones de protesta:</strong> una acción por día, lugar y tipo. <strong>Bloqueos:</strong> «provincias con bloqueos» cuenta cada día que una provincia tuvo al menos una vía bloqueada; los «puntos de bloqueo» son los que reporta la Defensoría cada día.
-      <strong>Estados de emergencia:</strong> declaratorias y prórrogas no nacionales, por provincia. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
+      <strong>Estados de emergencia:</strong> declaratorias y prórrogas no nacionales, por provincia. <strong>Mensajes a la nación:</strong> palabras de los mensajes de Dina Boluarte contadas con ATLAS.ti, sin artículos, preposiciones ni otras palabras de uso general; los mensajes no cambian con la región elegida. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Estallido social</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=3343f92"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=3343f92"></script>
-  <script src="../../comun/config.js?v=3343f92"></script>
-  <script src="../../comun/base.js?v=3343f92"></script>
-  <script src="../../comun/graficos.js?v=3343f92"></script>
-  <script src="../../comun/mapa.js?v=3343f92"></script>
-  <script src="../../comun/filtros.js?v=3343f92"></script>
-  <script src="../../comun/descarga.js?v=3343f92"></script>
-  <script src="tablero.js?v=3343f92"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=5507090"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=5507090"></script>
+  <script src="../../comun/config.js?v=5507090"></script>
+  <script src="../../comun/base.js?v=5507090"></script>
+  <script src="../../comun/graficos.js?v=5507090"></script>
+  <script src="../../comun/mapa.js?v=5507090"></script>
+  <script src="../../comun/filtros.js?v=5507090"></script>
+  <script src="../../comun/descarga.js?v=5507090"></script>
+  <script src="tablero.js?v=5507090"></script>
 </body>
 </html>

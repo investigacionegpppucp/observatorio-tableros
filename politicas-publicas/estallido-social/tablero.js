@@ -47,7 +47,7 @@ const GRUPOS_EDAD = ["Menor de edad", "Entre 18 y 24 años", "Entre 25 y 34 año
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const DIA = 86400000;
 
-const estado = { modulo: "victimas", ambito: "nacional", region: NACIONAL, desde: null, hasta: null, mapa: {}, nivelMapa: "regional", bloqueo: "provincias" };
+const estado = { modulo: "victimas", ambito: "nacional", region: NACIONAL, desde: null, hasta: null, mapa: {}, nivelMapa: "regional", bloqueo: "provincias", mensaje: "", palabra: "" };
 const buscar = { f: "", v: "", e: "" };
 let D, C, GEO, controles, MESES_LISTA = [];
 
@@ -283,7 +283,8 @@ function pintarEstado() {
   document.getElementById("r-estado").innerHTML = (ee.length
     ? `${EnLugar(estado.region)}, ${periodoTxt()}, ${destacar(`${n0(provEE.size)} provincias`)} de ${n0(regEE.size)} ${regEE.size === 1 ? "región" : "regiones"} estuvieron en estado de emergencia, con ${n0(ee.length)} declaratorias y prórrogas.`
     : `${EnLugar(estado.region)} no hubo estados de emergencia vigentes ${periodoTxt()}.`) +
-    (im.length ? ` En ${destacar(`${n0(provIM.size)} provincias`)} se dispuso la inmovilización social obligatoria.` : "");
+    (im.length ? ` En ${destacar(`${n0(provIM.size)} provincias`)} se dispuso la inmovilización social obligatoria.` : "") +
+    (mensajesPeriodo().length ? ` Dina Boluarte dio ${n0(mensajesPeriodo().length)} ${mensajesPeriodo().length === 1 ? "mensaje" : "mensajes"} a la nación en ese período.` : "");
   const largo = ee.length ? Math.max(...ee.map((x) => x.dias ?? 0)) : 0;
   kpis("k-estado", [
     { etiqueta: "Provincias en estado de emergencia", valor: n0(provEE.size), pie: `De ${n0(regEE.size)} ${regEE.size === 1 ? "región" : "regiones"}` },
@@ -326,6 +327,83 @@ function pintarEstado() {
     { clave: "dias", titulo: "Días", num: true, valor: (x) => x.dias, html: (x) => (x.dias == null ? "—" : n0(x.dias)) },
   ], filas, { inicial: { clave: "inicio", dir: 1 }, claveFila: (x) => `${x.tipo}${x.inicio}${x.lugar}`, descripcion: `Medidas de excepción ${enLugar(estado.region)}` });
   document.getElementById("t-medidas").textContent = `Las ${n0(filas.length)} medidas, una por una`;
+  pintarDiscursos();
+}
+
+/* Mensajes a la nación de Dina Boluarte (no cambian con la región) */
+const mensajesPeriodo = () => D.mensajes.filter((m) => enPeriodo(m.fecha));
+const fmtMensaje = (f) => fmtFecha(f);
+function pintarDiscursos() {
+  const ms = mensajesPeriodo();
+  const sel = document.getElementById("f-mensaje");
+  if (estado.mensaje && !ms.some((m) => m.fecha === estado.mensaje)) estado.mensaje = "";
+  sel.innerHTML = `<option value="">Todos (${n0(ms.length)})</option>` + ms.map((m) => `<option value="${m.fecha}">${fmtMensaje(m.fecha)}</option>`).join("");
+  sel.value = estado.mensaje;
+  const lPal = document.getElementById("l-palabra");
+  if (!ms.length) {
+    document.getElementById("d-palabras").textContent = "Los mensajes registrados van del 7 de diciembre de 2022 al 29 de enero de 2023.";
+    Obs.vacio("g-palabras", "No hubo mensajes a la nación en el período elegido");
+    Obs.vacio("g-calor", "No hubo mensajes a la nación en el período elegido");
+    lPal.textContent = "";
+    return;
+  }
+  // Palabras más dichas en el mensaje elegido (o en todos)
+  const elegidos = estado.mensaje ? ms.filter((m) => m.fecha === estado.mensaje) : ms;
+  const fechas = new Set(elegidos.map((m) => m.fecha));
+  const total = elegidos.reduce((s, m) => s + m.palabras, 0);
+  const suma = new Map();
+  D.palabras.forEach((p) => { if (fechas.has(p.fecha)) suma.set(p.palabra, (suma.get(p.palabra) ?? 0) + p.n); });
+  const top = [...suma].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es")).slice(0, 15);
+  document.getElementById("d-palabras").textContent = estado.mensaje
+    ? `Las 15 palabras que más dijo en el mensaje del ${fmtMensaje(estado.mensaje)}, de ${n0(total)} palabras con contenido.`
+    : `Las 15 palabras que más dijo en sus ${n0(ms.length)} mensajes ${periodoTxt()}, de ${n0(total)} palabras con contenido.`;
+  Obs.barras("g-palabras", top.map(([p, v]) => ({ clave: p, etiqueta: p, valor: v })), {
+    formato: n0, nombre: "Veces", detalle: (d) => `${pct(d.valor / total)} de las palabras`,
+    alClic: (p) => { estado.palabra = p; document.getElementById("f-palabra").value = p; render(); },
+  });
+
+  // Mapa de calor: palabras más dichas en todo el período, por mensaje
+  const fms = ms.map((m) => m.fecha);
+  const porPal = new Map();
+  D.palabras.forEach((p) => { if (fms.includes(p.fecha)) { if (!porPal.has(p.palabra)) porPal.set(p.palabra, new Map()); porPal.get(p.palabra).set(p.fecha, p.n); } });
+  const totalPal = (w) => [...(porPal.get(w)?.values() ?? [])].reduce((a, b) => a + b, 0);
+  const q = sinTildeTxt(estado.palabra.trim());
+  const buscada = q ? [...porPal.keys()].find((w) => sinTildeTxt(w) === q) : null;
+  const filas = [...porPal.keys()].sort((a, b) => totalPal(b) - totalPal(a) || a.localeCompare(b, "es")).filter((w) => w !== buscada).slice(0, buscada ? 14 : 15);
+  if (buscada) filas.unshift(buscada);
+  if (q && !buscada) lPal.innerHTML = `No dijo «${Obs.escapar(estado.palabra.trim())}» en sus mensajes ${periodoTxt()}.`;
+  else if (buscada) {
+    const veces = fms.map((f) => [f, porPal.get(buscada).get(f) ?? 0]).filter(([, v]) => v);
+    lPal.innerHTML = `Dijo ${destacar(`«${Obs.escapar(buscada)}»`)} ${n0(totalPal(buscada))} ${totalPal(buscada) === 1 ? "vez" : "veces"}: ` + veces.map(([f, v]) => `${n0(v)} el ${fmtMensaje(f)}`).join(", ") + ".";
+  } else lPal.textContent = "";
+  document.getElementById("lista-palabras").innerHTML = [...porPal.keys()].sort((a, b) => a.localeCompare(b, "es")).map((w) => `<option value="${Obs.escapar(w)}">`).join("");
+
+  // El color es el peso de la palabra en el mensaje (veces por cada 100 palabras), porque los mensajes tienen largos distintos
+  const largo = new Map(ms.map((m) => [m.fecha, m.palabras]));
+  const datos = [], max = { v: 0.01 };
+  filas.forEach((w, y) => fms.forEach((f, x) => { const v = porPal.get(w).get(f) ?? 0; const r = (100 * v) / largo.get(f); max.v = Math.max(max.v, r); datos.push([x, y, r, v]); }));
+  const el = document.getElementById("g-calor");
+  el.style.height = `${Math.max(300, filas.length * 30 + 70)}px`;
+  const g = Obs.grafico("g-calor");
+  g.resize();
+  const angosto = el.clientWidth < 520;
+  g.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM,
+    tooltip: { ...Obs.tooltipBase(), formatter: (p) => `<strong>${Obs.escapar(filas[p.value[1]])}</strong><br>Mensaje del ${fmtMensaje(fms[p.value[0]])}: <strong>${n0(p.value[3])}</strong> ${p.value[3] === 1 ? "vez" : "veces"}<br>${Obs.fmtN(p.value[2], 1)} de cada 100 palabras del mensaje (${n0(largo.get(fms[p.value[0]]))})` },
+    grid: { left: angosto ? 100 : 110, right: angosto ? 4 : 12, top: 8, bottom: 40 },
+    xAxis: { type: "category", data: fms, position: "bottom", axisTick: { show: false }, axisLine: { show: false }, splitArea: { show: false },
+      axisLabel: txt({ interval: 0, formatter: (f) => { const t = angosto ? `${+f.slice(8)}/${+f.slice(5, 7)}\n’${f.slice(2, 4)}` : fmtMensaje(f).replace(" 20", "\n20"); return f === estado.mensaje ? `{b|${t}}` : t; },
+        rich: { b: { fontWeight: 800, color: C.texto, fontSize: 14, fontFamily: C.fuente } } }) },
+    yAxis: { type: "category", data: filas, inverse: true, axisTick: { show: false }, axisLine: { show: false },
+      axisLabel: txt({ color: C.texto, formatter: (w) => (w === buscada ? `{b|${w}}` : w), rich: { b: { fontWeight: 800, color: C.texto, fontSize: 14 } } }) },
+    visualMap: { show: false, min: 0, max: max.v, dimension: 2, inRange: { color: ["#f4f6fa", ...C.escala] } },
+    series: [{ type: "heatmap", cursor: "pointer",
+      data: datos.map((d) => ({ value: d, label: { color: d[2] > max.v * 0.6 ? "#fff" : C.texto } })), itemStyle: { borderColor: "#fff", borderWidth: 2 },
+      label: { show: true, fontFamily: C.fuente, fontSize: 13, formatter: (p) => (p.value[3] ? n0(p.value[3]) : "") },
+      emphasis: { itemStyle: { borderColor: C.texto, borderWidth: 1 } } }],
+  }, true);
+  g.off("click");
+  g.on("click", (p) => { const f = fms[p.value[0]]; estado.mensaje = estado.mensaje === f ? "" : f; render(); });
 }
 
 /* ---------------------------------------------------------
@@ -485,6 +563,8 @@ function render() {
     hasta: estado.hasta === MESES_LISTA.at(-1) ? null : estado.hasta,
     mapa: estado.mapa[estado.modulo] ?? null,
     nivel: estado.nivelMapa === "regional" ? null : estado.nivelMapa,
+    mensaje: estado.modulo === "estado" && estado.mensaje ? estado.mensaje : null,
+    palabra: estado.modulo === "estado" && estado.palabra ? estado.palabra : null,
   });
 }
 
@@ -514,6 +594,11 @@ Obs.iniciar(TABLERO, async () => {
   if (MESES_LISTA.includes(q.get("hasta"))) estado.hasta = q.get("hasta");
   if (IND[estado.modulo].some((i) => i.id === q.get("mapa"))) estado.mapa[estado.modulo] = q.get("mapa");
   if (q.get("nivel") === "provincial") estado.nivelMapa = "provincial";
+  if (D.mensajes.some((m) => m.fecha === q.get("mensaje"))) estado.mensaje = q.get("mensaje");
+  estado.palabra = (q.get("palabra") || "").slice(0, 40);
+  document.getElementById("f-palabra").value = estado.palabra;
+  document.getElementById("f-mensaje").onchange = (e) => { estado.mensaje = e.target.value; render(); };
+  document.getElementById("f-palabra").oninput = (e) => { estado.palabra = e.target.value; clearTimeout(window.__p); window.__p = setTimeout(render, 250); };
 
   // Filtros: región (Obs.controlesComunes) y período por meses
   const filtros = document.getElementById("filtros");
