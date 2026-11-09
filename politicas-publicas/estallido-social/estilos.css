@@ -1,0 +1,99 @@
+/* =========================================================
+   Estilos propios del tablero de Estallido social.
+   Lo compartido (franja, filtros, pestañas, tarjetas, tablas, mapa)
+   está en comun/estilos.css; los colores de marca, en comun/tema.css.
+   ========================================================= */
+.cabecera-interior { padding-bottom: 12px; }
+
+/* Pares de tarjetas: mismo ancho y mismo alto */
+.par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.par > .tarjeta { margin-bottom: 0; }
+
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpis-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kpi { min-height: 120px; justify-content: center; }
+.kpi .kpi-etiqueta { font-weight: 700; }
+.kpi-valor { font-size: 36px; }
+
+/* Controles de una tarjeta (indicador del mapa) */
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin: 16px 0 0; }
+.filtro-local { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.filtro-local > label { font-size: 15px; font-weight: 700; color: var(--navy); }
+.filtro-local select {
+  height: 44px; max-width: 100%; padding: 0 36px 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); background: #fff; color: var(--texto);
+  font: inherit; font-size: 15px; font-weight: 600; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+.filtro-local select:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.lectura { margin: 14px 0 0; font-size: 16px; line-height: 1.5; max-width: 900px; }
+.lectura:empty { display: none; }
+.nota-tarjeta { margin: 8px 0 0; font-size: 14px; color: var(--texto-suave); }
+.nota-tarjeta:empty { display: none; }
+
+/* Título de tarjeta con un control a la derecha */
+.cabeza-con-control { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 20px; flex-wrap: wrap; }
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.tabla .enlace { color: var(--azul); font-weight: 700; }
+.tabla td small { display: block; font-size: 13px; color: var(--texto-suave); }
+#t-violencia-tabla .tabla { min-width: 900px; }
+#t-fallecidos .tabla, #t-medidas-tabla .tabla { min-width: 760px; }
+.tabla-caja { max-height: 560px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; }
+
+
+/* Texto solo para lectores de pantalla (títulos de las tablas) */
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Tablas: región elegida y Perú resaltados; buscador */
+.mapa-y-tabla .tabla-caja { max-height: 600px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); }
+.tabla tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
+.tabla tbody tr[data-k] { cursor: pointer; }
+.tabla tbody tr[data-k]:hover td { background: var(--fondo); }
+.tabla tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.celda-barra i { display: block; height: 10px; border-radius: 2px; background: var(--escala-3); max-width: 90px; }
+.celda-barra b { font-weight: 700; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+.buscador-tabla { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; }
+.buscador-tabla label { font-size: 15px; font-weight: 700; color: var(--navy); }
+.buscador-tabla input { flex: 1; max-width: 420px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); font: inherit; font-size: 15px; }
+.buscador-tabla input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.filtros-tabla .buscador-tabla { margin: 0; flex: 1; min-width: 240px; }
+.si { color: #2f6f00; font-weight: 700; }
+.no { color: var(--texto-suave); }
+
+@media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .par { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .kpis-4 { grid-template-columns: 1fr; }
+  .controles, .filtro-local { width: 100%; min-width: 0; }
+  .filtro-local select { width: 100%; }
+  .kpi-valor { font-size: 30px; }
+}
+
+/* Tablas ordenables: cada título de columna es un botón */
+.tabla.ordenable th { padding: 0; }
+.tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
+.tabla.ordenable th.num button { justify-content: flex-end; text-align: right; }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.75; }
+.tabla.ordenable th[aria-sort="none"] .flecha { opacity: 0.4; }
+.tabla tfoot tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
+.tipo-muni { display: block; font-size: 13px; font-weight: 400; color: var(--texto-suave); }
+.mapa-y-tabla .filtros-tabla { margin: 0 0 8px; }
+.mapa-y-tabla .filtro-local select { max-width: 220px; }
+.filtro-local > span { font-size: 15px; font-weight: 700; color: var(--navy); }
+.segmentado.claro { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); overflow: hidden; }
+.segmentado.claro button { border: 0; border-right: 1px solid var(--linea); border-radius: 0; min-height: 44px; padding: 8px 14px; font: inherit; font-size: 15px; font-weight: 600; color: var(--texto-suave); background: none; cursor: pointer; }
+.segmentado.claro button:last-child { border-right: 0; }
+.segmentado.claro button:hover:not([aria-pressed="true"]) { background: var(--fondo); color: var(--navy); }
+.segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.segmentado.claro button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.mapa-y-tabla > div { min-width: 0; }
+@media (max-width: 560px) {
+  .filtros-tabla .buscador-tabla { min-width: 0; width: 100%; }
+  .mapa-y-tabla .filtro-local select { max-width: none; }
+}
