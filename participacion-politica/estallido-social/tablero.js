@@ -666,7 +666,7 @@ function render() {
    Inicio
    --------------------------------------------------------- */
 Obs.iniciar(TABLERO, async () => {
-  const [datos, geo, prov] = await Promise.all([Obs.cargarJSON("datos.json?v=20261109"), Obs.cargarGeo("../../mapas/peru_regiones.geojson"), Obs.cargarJSON("../../mapas/peru_provincias.geojson")]);
+  const [datos, geo, prov] = await Promise.all([Obs.cargarJSON("datos.json"), Obs.cargarGeo("../../mapas/peru_regiones.geojson"), Obs.cargarJSON("../../mapas/peru_provincias.geojson")]);
   GEO = geo;
   C = Obs.tema();
   D = Object.fromEntries(Object.entries(datos.tablas).map(([k, t]) => [k, Obs.expandir(t)]));
