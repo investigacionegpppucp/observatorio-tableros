@@ -98,6 +98,45 @@
   .mapa-y-tabla .filtro-local select { max-width: none; }
 }
 
-/* Mensajes a la nación: palabras y mapa de calor */
-.par-discursos { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
-@media (max-width: 900px) { .par-discursos { grid-template-columns: 1fr; } }
+/* Composición: barra al 100 % y sus partes */
+.composicion { margin-top: 14px; }
+.barra-comp { display: flex; height: 28px; border-radius: 4px; overflow: hidden; background: var(--fondo); }
+.barra-comp i { display: block; min-width: 3px; transition: opacity .2s; }
+.barra-comp i + i { border-left: 2px solid #fff; }
+.barra-comp i.tenue { opacity: .3; }
+.partes { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 6px 16px; }
+.partes button, .partes div { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 14px 1fr auto auto; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 10px; border-radius: var(--radio); font-size: 15px; color: var(--texto); }
+.partes button { cursor: pointer; border: 1px solid transparent; }
+.partes button:hover { background: var(--fondo); }
+.partes button[aria-pressed="true"] { border-color: var(--navy); background: rgba(0, 63, 163, 0.06); }
+.partes button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.partes b { width: 14px; height: 14px; border-radius: 3px; }
+.partes strong { font-size: 20px; font-variant-numeric: tabular-nums; color: var(--navy); }
+.partes em { font-style: normal; font-size: 14px; color: var(--texto-suave); min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+.vacio-comp { color: var(--texto-suave); margin: 8px 0 0; }
+
+/* Leyenda de las burbujas del mapa */
+.ley-burbujas { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 18px; margin-top: 10px; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley-burbujas span { display: inline-flex; align-items: flex-end; gap: 6px; }
+
+/* Mensajes a la nación: línea de tiempo, nube de palabras y temas */
+.linea-mensajes { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(120px, 1fr); gap: 10px; margin: 18px 0 0; padding: 4px 2px 8px; overflow-x: auto; }
+.linea-mensajes::before { content: ""; position: absolute; left: 0; right: 0; top: 33px; height: 2px; background: var(--linea); }
+.linea-mensajes button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 44px; padding: 4px 6px 8px; border: 1px solid transparent; border-radius: var(--radio); background: none; font: inherit; color: var(--texto); cursor: pointer; text-align: center; }
+.linea-mensajes button:hover { background: var(--fondo); }
+.linea-mensajes button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+.linea-mensajes .punto { width: 18px; height: 18px; margin: 12px 0 6px; border-radius: 50%; background: #fff; border: 3px solid var(--azul); }
+.linea-mensajes .todos .punto { border-style: dashed; border-color: var(--texto-suave); }
+.linea-mensajes button[aria-pressed="true"] { border-color: var(--navy); background: rgba(0, 63, 163, 0.06); }
+.linea-mensajes button[aria-pressed="true"] .punto { background: var(--azul); box-shadow: 0 0 0 4px rgba(0, 63, 163, 0.18); }
+.linea-mensajes strong { font-size: 15px; color: var(--navy); }
+.linea-mensajes span { font-size: 14px; color: var(--texto-suave); line-height: 1.35; }
+.linea-mensajes .muertes { color: #b0213b; font-weight: 700; }
+.discurso { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; margin-top: 16px; }
+.discurso h4 { margin: 0; font-size: 17px; color: var(--navy); }
+.nube { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 12px; min-height: 260px; margin-top: 10px; padding: 14px; border-radius: var(--radio); background: var(--fondo); line-height: 1.1; }
+.nube button { border: 0; background: none; padding: 2px 4px; border-radius: 4px; font-family: inherit; font-weight: 800; cursor: pointer; transition: transform .15s; }
+.nube button:hover { transform: scale(1.08); }
+.nube button:focus-visible { outline: 3px solid var(--azul); }
+.nube button[aria-pressed="true"] { background: #fff; box-shadow: 0 0 0 2px var(--navy); }
+@media (max-width: 900px) { .discurso { grid-template-columns: 1fr; } }

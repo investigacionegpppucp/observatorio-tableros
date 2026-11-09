@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estallido social | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=03a4038">
+  <link rel="stylesheet" href="../../comun/tema.css?v=03a4038">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=03a4038">
+  <link rel="stylesheet" href="estilos.css?v=03a4038">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Estallido social</h1>
+        <p class="subtitulo">Las protestas contra el gobierno de Dina Boluarte, desde diciembre de 2022: sus víctimas, las acciones de protesta, los bloqueos y la respuesta del Estado.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtros de región y período: los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-victimas" aria-controls="m-victimas" data-modulo="victimas">Fallecidos y heridos</button>
+    <button role="tab" id="tab-protestas" aria-controls="m-protestas" data-modulo="protestas">Movilizaciones y paros</button>
+    <button role="tab" id="tab-bloqueos" aria-controls="m-bloqueos" data-modulo="bloqueos">Bloqueos y violencia</button>
+    <button role="tab" id="tab-estado" aria-controls="m-estado" data-modulo="estado">Emergencia y discursos</button>
+  </nav>
+
+  <main>
+    <!-- ================= FALLECIDOS Y HERIDOS ================= -->
+    <section class="modulo" id="m-victimas" role="tabpanel" aria-labelledby="tab-victimas">
+      <p class="resumen" id="r-victimas" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-victimas"></div>
+      <article class="tarjeta">
+        <header><h3>¿Cuándo murieron?</h3><p>Personas fallecidas cada semana, según la circunstancia de su muerte.</p></header>
+        <div class="ley" id="ley-fallecidos"></div>
+        <div class="grafico" id="g-fallecidos"></div>
+      </article>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Quiénes eran?</h3><p>Personas fallecidas según su edad.</p></header>
+          <div class="grafico bajo" id="g-edad"></div>
+          <p class="lectura" id="l-sexo"></p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Cuántos heridos hubo?</h3><p>Heridos registrados entre el 7 de diciembre de 2022 y el 18 de agosto de 2023 (Defensoría del Pueblo).</p></header>
+          <div class="grafico bajo" id="g-heridos"></div>
+          <p class="nota-tarjeta">Por región, los comunicados del Minsa reportan los heridos atendidos en tres períodos: del 7 al 20 de diciembre de 2022, del 4 al 20 de enero y del 19 al 29 de enero de 2023. Se ven en el mapa (indicador «Heridos atendidos»).</p>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3 id="t-lista">Las personas fallecidas</h3><p>Fecha, lugar y circunstancia de cada muerte. Los menores de edad aparecen con sus iniciales, como en la fuente.</p></header>
+        <div class="controles"><div class="buscador-tabla"><label for="f-buscar-f">Buscar</label><input id="f-buscar-f" type="search" placeholder="Nombre, región o provincia" autocomplete="off"></div></div>
+        <div class="tabla-caja" id="t-fallecidos"></div>
+      </article>
+    </section>
+
+    <!-- ================= MOVILIZACIONES Y PAROS ================= -->
+    <section class="modulo" id="m-protestas" role="tabpanel" aria-labelledby="tab-protestas" hidden>
+      <p class="resumen" id="r-protestas" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-protestas"></div>
+      <article class="tarjeta">
+        <header><h3>¿Cuántas acciones de protesta hubo cada semana?</h3><p>Movilizaciones, paros y otras acciones registradas en cada provincia. Haz clic en un tipo de la leyenda para ocultarlo o mostrarlo.</p></header>
+        <div class="grafico" id="g-acp"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Qué tipo de acciones?</h3><p id="d-tipos"></p></header>
+        <div class="composicion" id="g-tipos"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-lugares">¿Dónde hubo más acciones?</h3><p id="d-lugares"></p></header>
+        <div class="grafico" id="g-lugares"></div>
+      </article>
+    </section>
+
+    <!-- ================= BLOQUEOS Y VIOLENCIA ================= -->
+    <section class="modulo" id="m-bloqueos" role="tabpanel" aria-labelledby="tab-bloqueos" hidden>
+      <p class="resumen" id="r-bloqueos" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-bloqueos"></div>
+      <article class="tarjeta">
+        <header class="cabeza-con-control">
+          <div><h3>¿Cuántas vías se bloquearon?</h3><p id="d-bloqueos"></p></div>
+          <div class="segmentado claro" id="f-bloqueo" role="group" aria-label="Qué contar"></div>
+        </header>
+        <div class="grafico" id="g-bloqueos"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Contra qué fueron los hechos de violencia?</h3><p>Hechos de violencia contra bienes públicos o privados.</p></header>
+        <div class="composicion" id="g-bien"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Dónde hubo hechos de violencia?</h3><p id="d-violencia-lugar"></p></header>
+        <div class="grafico" id="g-violencia-lugar"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-violencia">Los hechos de violencia</h3><p>Cada hecho registrado, con su lugar, el tipo de bien afectado y quién lo realizó, si se conoce.</p></header>
+        <div class="controles"><div class="buscador-tabla"><label for="f-buscar-v">Buscar</label><input id="f-buscar-v" type="search" placeholder="Hecho, lugar o actor" autocomplete="off"></div></div>
+        <div class="tabla-caja" id="t-violencia-tabla"></div>
+      </article>
+    </section>
+
+    <!-- ================= ESTADOS DE EMERGENCIA ================= -->
+    <section class="modulo" id="m-estado" role="tabpanel" aria-labelledby="tab-estado" hidden>
+      <p class="resumen" id="r-estado" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-estado"></div>
+      <article class="tarjeta">
+        <header><h3>¿Cuántas provincias estaban bajo medidas de excepción cada día?</h3><p>Provincias en estado de emergencia (no nacional) o con inmovilización social obligatoria.</p></header>
+        <div class="ley" id="ley-estado"></div>
+        <div class="grafico" id="g-estado"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-medidas">Las medidas, una por una</h3><p>Cada declaratoria o prórroga, con la provincia, el inicio, el fin y su duración.</p></header>
+        <div class="controles"><div class="buscador-tabla"><label for="f-buscar-e">Buscar</label><input id="f-buscar-e" type="search" placeholder="Provincia o región" autocomplete="off"></div></div>
+        <div class="tabla-caja" id="t-medidas-tabla"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Qué dijo Dina Boluarte en sus mensajes a la nación?</h3><p>Elige un mensaje en la línea de tiempo. Debajo de cada fecha, las personas fallecidas hasta ese día. En la nube, las palabras más grandes son las que más repitió y el color indica su tema; haz clic en una para seguirla en el gráfico de abajo.</p></header>
+        <div class="linea-mensajes" id="lm" role="group" aria-label="Mensajes a la nación"></div>
+        <div class="discurso">
+          <div>
+            <h4 id="t-nube">Sus palabras</h4>
+            <div class="nube" id="nube"></div>
+            <div class="ley" id="ley-temas"></div>
+          </div>
+          <div>
+            <h4 id="t-temas">¿De qué temas habló?</h4>
+            <p class="nota-tarjeta" id="d-temas"></p>
+            <div class="grafico bajo" id="g-temas"></div>
+          </div>
+        </div>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Cómo cambió su discurso de un mensaje a otro?</h3><p>Cuántas de cada 100 palabras de cada mensaje son de cada tema. Haz clic en un tema de la leyenda para ocultarlo o mostrarlo, en un punto para ver ese mensaje arriba, o busca una palabra para seguirla.</p></header>
+        <div class="controles"><div class="buscador-tabla"><label for="f-palabra">Seguir una palabra</label><input id="f-palabra" type="search" placeholder="Por ejemplo, diálogo" list="lista-palabras" autocomplete="off"><datalist id="lista-palabras"></datalist></div></div>
+        <p class="lectura" id="l-palabra" aria-live="polite"></p>
+        <div class="grafico" id="g-evolucion"></div>
+        <p class="nota-tarjeta">Los temas agrupan palabras afines según una clasificación del Observatorio para este tablero; las palabras de uso general no se cuentan.</p>
+      </article>
+    </section>
+
+    <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
+    <article class="tarjeta">
+      <header><h3>¿Dónde ocurrió?</h3><p>Cada burbuja es una región o provincia: cuanto más grande, más casos en el período elegido. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una burbuja o en una región para elegirla en todo el tablero.</p></header>
+      <div class="controles">
+        <div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div>
+        <div class="filtro-local" role="group" aria-labelledby="lbl-nivel-mapa"><span id="lbl-nivel-mapa">Ver por</span><div class="segmentado claro" id="f-nivel-mapa"></div></div>
+      </div>
+      <p class="lectura" id="l-mapa" aria-live="polite"></p>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa-regional"></div><div id="mapa-provincial" hidden></div><div class="leyenda-mapa" id="ley-mapa"></div><p class="nota-tarjeta" id="n-mapa"></p></div>
+        <div class="tabla-caja" id="t-mapa"></div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Observatorio para la Democracia y Gobernabilidad, con base en los reportes diarios de la Defensoría del Pueblo, los mensajes a la nación de la presidenta Dina Boluarte, los comunicados del Ministerio de Salud, los decretos supremos que declararon los estados de emergencia y la prensa nacional y regional.</p>
+    <p><strong>Notas:</strong> El período va del 7 de diciembre de 2022 a mayo de 2024. <strong>Fallecidos:</strong> la lista suma 76 personas: 56 en enfrentamientos y represión, y 20 a consecuencia del bloqueo de vías. La Defensoría del Pueblo cuenta 67 (56 y 11): las otras nueve muertes vinculadas a los bloqueos salen de la prensa.
+      <strong>Acciones de protesta:</strong> una acción por día, lugar y tipo. <strong>Bloqueos:</strong> «provincias con bloqueos» cuenta cada día que una provincia tuvo al menos una vía bloqueada; los «puntos de bloqueo» son los que reporta la Defensoría cada día.
+      <strong>Estados de emergencia:</strong> declaratorias y prórrogas no nacionales, por provincia. <strong>Mensajes a la nación:</strong> palabras de los mensajes de Dina Boluarte contadas con ATLAS.ti, sin artículos, preposiciones ni otras palabras de uso general; los mensajes no cambian con la región elegida. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Estallido social</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=03a4038"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=03a4038"></script>
+  <script src="../../comun/config.js?v=03a4038"></script>
+  <script src="../../comun/base.js?v=03a4038"></script>
+  <script src="../../comun/graficos.js?v=03a4038"></script>
+  <script src="../../comun/mapa.js?v=03a4038"></script>
+  <script src="../../comun/filtros.js?v=03a4038"></script>
+  <script src="../../comun/descarga.js?v=03a4038"></script>
+  <script src="tablero.js?v=03a4038"></script>
+</body>
+</html>

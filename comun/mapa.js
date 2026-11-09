@@ -58,6 +58,28 @@ window.Obs = window.Obs || {};
       `<span><i style="background:${color}"></i>${Obs.escapar(etiqueta)}</span>`).join("");
   };
 
+  /* Centro de cada región o provincia (centroide de su polígono más grande): Map(código -> [lat, lon]) */
+  Obs.centroides = (geo) => {
+    const area = (anillo) => { let a = 0; for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) a += anillo[j][0] * anillo[i][1] - anillo[i][0] * anillo[j][1]; return a / 2; };
+    const centro = (anillo) => {
+      let a = 0, x = 0, y = 0;
+      for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+        const f = anillo[j][0] * anillo[i][1] - anillo[i][0] * anillo[j][1];
+        a += f; x += (anillo[j][0] + anillo[i][0]) * f; y += (anillo[j][1] + anillo[i][1]) * f;
+      }
+      return a ? [y / (3 * a), x / (3 * a)] : [anillo[0][1], anillo[0][0]];
+    };
+    const m = new Map();
+    for (const f of geo.features) {
+      if (f.properties.tipo === "pais") continue;
+      const g = f.geometry;
+      const poligonos = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+      const mayor = poligonos.reduce((a, b) => (Math.abs(area(b[0])) > Math.abs(area(a[0])) ? b : a));
+      m.set(f.properties.region, centro(mayor[0]));
+    }
+    return m;
+  };
+
   Obs.Mapa = class {
     constructor(id, geo, { alClic = () => {}, nombre = (r) => r, globo = null } = {}) {
       this.id = id;
@@ -141,6 +163,23 @@ window.Obs = window.Obs || {};
       }
       this.principal.fitBounds(LIMITES_PERU, { padding: [8, 8] });
       this.lima.fitBounds(LIMITES_LIMA, { padding: [2, 2] });
+    }
+
+    /* Burbujas sobre el mapa (también en el recuadro de Lima).
+       lista: [{ lat, lon, radio, color, texto, alClic }]; se dibujan de la más grande a la más chica */
+    burbujas(lista = []) {
+      const orden = [...lista].sort((a, b) => b.radio - a.radio);
+      for (const [mapa, escala] of [[this.principal, 1], [this.lima, 0.8]]) {
+        if (mapa.capaBurbujas) mapa.removeLayer(mapa.capaBurbujas);
+        mapa.capaBurbujas = L.layerGroup(orden.map((b) => {
+          const c = L.circleMarker([b.lat, b.lon], { radius: Math.max(3, b.radio * escala), fillColor: b.color, fillOpacity: 0.6, color: "#ffffff", weight: 1, bubblingMouseEvents: false });
+          c.bindTooltip(b.texto, { direction: "top", className: "tip-mapa", offset: [0, -4] });
+          c.on("mouseover", () => c.setStyle({ weight: 2.5, color: Obs.tema().navy, fillOpacity: 0.85 }));
+          c.on("mouseout", () => c.setStyle({ weight: 1, color: "#ffffff", fillOpacity: 0.6 }));
+          if (b.alClic) c.on("click", b.alClic);
+          return c;
+        })).addTo(mapa);
+      }
     }
   };
 })();
