@@ -140,3 +140,8 @@
 .nube button:focus-visible { outline: 3px solid var(--azul); }
 .nube button[aria-pressed="true"] { background: #fff; box-shadow: 0 0 0 2px var(--navy); }
 @media (max-width: 900px) { .discurso { grid-template-columns: 1fr; } }
+
+/* Leyenda de escala continua */
+.ley-continua { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.ley-continua i { display: block; width: 180px; max-width: 50vw; height: 12px; border-radius: 3px; border: 1px solid var(--linea); }
+.abajo > .tarjeta { margin-top: 16px; }

@@ -47,8 +47,11 @@ const GRUPOS_EDAD = ["Menor de edad", "Entre 18 y 24 años", "Entre 25 y 34 año
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const DIA = 86400000;
 
-const estado = { modulo: "victimas", ambito: "nacional", region: NACIONAL, desde: null, hasta: null, mapa: {}, nivelMapa: "regional", bloqueo: "provincias", mensaje: "", palabra: "" };
+const estado = { modulo: "victimas", ambito: "nacional", region: NACIONAL, desde: null, hasta: null, mapa: {}, nivel: {}, bloqueo: "provincias", medida: "emergencia", mensaje: "", palabra: "" };
 const buscar = { f: "", v: "", e: "" };
+// Nivel del mapa por pestaña: los estados de emergencia se declaran por provincia
+const NIVEL_INICIAL = { victimas: "regional", protestas: "regional", bloqueos: "regional", estado: "provincial" };
+const nivelMapa = () => estado.nivel[estado.modulo] ?? NIVEL_INICIAL[estado.modulo];
 let D, C, GEO, controles, MESES_LISTA = [];
 
 /* ---------------------------------------------------------
@@ -103,14 +106,14 @@ const filtrar = (tabla, campo = "fecha", { region = true } = {}) => D[tabla].fil
 // Medidas de excepción: las que estuvieron vigentes en algún día del período
 const vigentes = (tabla) => D[tabla].filter((f) => f.inicio <= finPeriodo() && (f.fin ?? f.inicio) >= inicioPeriodo() && enRegion(f.region));
 
-/* Columnas por semana, apiladas por categoría (una sola escala) */
+/* Líneas por semana, una por categoría (una sola escala) */
 function columnasSemana(id, filas, campoFecha, categorias, claveCat) {
   let sem = semanas();
   const idx = new Map(sem.map((s, i) => [s, i]));
   const series = categorias.map(([cat, nombre, color]) => {
     const v = sem.map(() => 0);
     filas.filter((f) => claveCat(f) === cat).forEach((f) => { const i = idx.get(semana(f[campoFecha])); if (i != null) v[i] += 1; });
-    return { name: nombre, type: "bar", stack: "t", barCategoryGap: "18%", data: v.map((x) => x || null), itemStyle: { color, borderColor: "#fff", borderWidth: 0.5 } };
+    return { name: nombre, type: "line", data: v, symbol: "circle", symbolSize: 5, showSymbol: false, lineStyle: { width: 2.5, color }, itemStyle: { color }, emphasis: { focus: "series" } };
   });
   if (!filas.length) return Obs.vacio(id);
   const [ini, fin] = conDatos(sem.length, series.map((x) => x.data));
@@ -121,12 +124,12 @@ function columnasSemana(id, filas, campoFecha, categorias, claveCat) {
   const cada = Math.max(1, Math.ceil(sem.length / Math.max(4, Math.floor(ancho / 90))));
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 300,
-    legend: categorias.length > 1 ? { top: 0, left: 0, icon: "rect", itemWidth: 12, itemHeight: 12, textStyle: txt() } : undefined,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
+    legend: categorias.length > 1 ? { top: 0, left: 0, icon: "roundRect", itemWidth: 14, itemHeight: 4, textStyle: txt() } : undefined,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "line", lineStyle: { color: C.linea } },
       formatter: (ps) => { const tot = ps.reduce((s, p) => s + (p.value ?? 0), 0);
         return `<strong>Semana del ${fmtFecha(sem[ps[0].dataIndex])}</strong>` + ps.filter((p) => p.value).map((p) => `<br>${p.marker}${p.seriesName}: <strong>${n0(p.value)}</strong>`).join("") + (ps.length > 1 ? `<br>Total: <strong>${n0(tot)}</strong>` : ""); } },
     grid: { left: 40, right: 24, top: categorias.length > 1 ? (ancho < 600 ? 72 : 40) : 12, bottom: 44 },
-    xAxis: { type: "category", data: sem, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+    xAxis: { type: "category", data: sem, boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: (i) => i % cada === 0, formatter: etiquetaEje }) },
     yAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
     series,
@@ -140,6 +143,18 @@ function barrasConteo(id, pares, { ordenar = true, nombre = "", total = null } =
     formato: n0, nombre, ordenar, detalle: (d) => (t ? `${pct(d.valor / t)} del total` : ""),
   });
 }
+
+/* Escala continua (sin cortes): del celeste más claro al azul más oscuro */
+const escalaContinua = () => ["#f1f5fd", ...C.escala];
+const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+function colorContinuo(t) {
+  const cs = escalaContinua().map(hexRGB);
+  const x = Math.max(0, Math.min(1, t)) * (cs.length - 1);
+  const i = Math.min(cs.length - 2, Math.floor(x)), f = x - i;
+  return `rgb(${cs[i].map((c, k) => Math.round(c + (cs[i + 1][k] - c) * f)).join(",")})`;
+}
+const leyendaContinua = (max, unidad = "") =>
+  `<div class="ley-continua"><span>0</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${n0(max)}${unidad ? ` ${unidad}` : ""}</span></div>`;
 
 /* Composición: una barra al 100 % y, debajo, cada parte con su número y su porcentaje.
    items: [{ clave, etiqueta, valor, color }]; con alClic, cada parte es un botón */
@@ -329,31 +344,66 @@ function pintarEstado() {
     { etiqueta: "Provincias con inmovilización social", valor: n0(provIM.size), pie: `${n0(im.length)} medidas` },
     { etiqueta: "El estado de emergencia más largo", valor: largo ? `${n0(largo)} días` : "—", pie: "Contando las prórrogas" },
   ]);
-  // Provincias bajo cada medida, día a día
-  let dd = dias();
-  const activos = (lista) => dd.map((d) => new Set(lista.filter((x) => x.inicio <= d && (x.fin ?? x.inicio) >= d).map((x) => x.provincia ?? x.lugar)).size || null);
-  let sEE = activos(ee), sIM = activos(im);
-  const [ini, fin] = conDatos(dd.length, [sEE, sIM], 1);
-  dd = dd.slice(ini, fin); sEE = sEE.slice(ini, fin); sIM = sIM.slice(ini, fin);
-  const colores = [C.categorias[0], C.categorias[1]];
-  document.getElementById("ley-estado").innerHTML = [["Estado de emergencia", colores[0]], ["Inmovilización social obligatoria", colores[1]]]
-    .map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("");
-  if (!sEE.some((x) => x) && !sIM.some((x) => x)) Obs.vacio("g-estado");
-  else {
+  // ¿Cuándo y dónde? Semanas × regiones (o provincias de la región elegida); el color cuenta las provincias bajo la medida
+  document.getElementById("f-medida").innerHTML = [["emergencia", "Estado de emergencia"], ["inmovilizacion", "Inmovilización social"]]
+    .map(([k, e]) => `<button type="button" data-m="${k}" aria-pressed="${estado.medida === k}">${e}</button>`).join("");
+  const lista = estado.medida === "emergencia" ? ee : im;
+  const nombreMedida = estado.medida === "emergencia" ? "estado de emergencia" : "inmovilización social obligatoria";
+  const porRegion = estado.region === NACIONAL;
+  const claveFila = (x) => (porRegion ? x.region : x.provincia ?? x.lugar);
+  const etiquetaFila = (k) => (porRegion ? nombreRegion(k) : PROV.get(k) ?? k);
+  const provDe = (x) => x.provincia ?? x.lugar;
+  let sem = semanas();
+  const finSem = (s) => new Date(+aFecha(s) + 6 * DIA).toISOString().slice(0, 10);
+  const enSemana = (x, s) => x.inicio <= finSem(s) && (x.fin ?? x.inicio) >= s;
+  let claves = [...new Set(lista.map(claveFila))];
+  let conteo = claves.map((k) => sem.map((s) => new Set(lista.filter((x) => claveFila(x) === k && enSemana(x, s)).map(provDe)).size));
+  let totalSem = sem.map((s) => new Set(lista.filter((x) => enSemana(x, s)).map(provDe)).size);
+  document.getElementById("d-estado").textContent = porRegion
+    ? `Cada fila es una región y cada columna, una semana. El color indica cuántas de sus provincias estaban en ${nombreMedida}.`
+    : `Cada fila es una provincia de ${nombreRegion(estado.region)} y cada columna, una semana: el color marca las semanas en que rigió la medida.`;
+  const lEstado = document.getElementById("l-estado");
+  if (!lista.length) {
+    Obs.vacio("g-estado", `Sin ${nombreMedida} ${periodoTxt()}`);
+    document.getElementById("g-estado").style.height = "";
+    document.getElementById("ley-estado").innerHTML = ""; lEstado.textContent = "";
+  } else {
+    const [ini, fin] = conDatos(sem.length, [totalSem]);
+    sem = sem.slice(ini, fin); totalSem = totalSem.slice(ini, fin); conteo = conteo.map((c) => c.slice(ini, fin));
+    // Orden: primero las que entraron antes y, a igual fecha, las que sumaron más
+    const orden = claves.map((k, i) => ({ k, c: conteo[i], primera: conteo[i].findIndex((v) => v), suma: conteo[i].reduce((a, b) => a + b, 0) }))
+      .sort((a, b) => a.primera - b.primera || b.suma - a.suma);
+    claves = orden.map((o) => o.k); conteo = orden.map((o) => o.c);
+    const maxC = Math.max(1, ...conteo.flat());
+    const iPico = totalSem.indexOf(Math.max(...totalSem));
+    const regPico = new Set(lista.filter((x) => enSemana(x, sem[iPico])).map((x) => x.region)).size;
+    lEstado.innerHTML = `La medida alcanzó su mayor extensión la semana del ${destacar(fmtFecha(sem[iPico]))}, con ${destacar(`${n0(totalSem[iPico])} ${totalSem[iPico] === 1 ? "provincia" : "provincias"}`)}` +
+      (porRegion ? ` de ${n0(regPico)} ${regPico === 1 ? "región" : "regiones"}` : "") + ` en ${nombreMedida}.`;
+    const el = document.getElementById("g-estado");
+    el.style.height = `${Math.max(200, claves.length * 26 + 70)}px`;
     const g = Obs.grafico("g-estado");
-    const ancho = document.getElementById("g-estado").clientWidth;
-    const cada = Math.max(1, Math.ceil(dd.length / Math.max(4, Math.floor(ancho / 90))));
+    g.resize();
+    const ancho = el.clientWidth;
+    const cada = Math.max(1, Math.ceil(sem.length / Math.max(3, Math.floor((ancho - 140) / 80))));
+    const datos = [];
+    conteo.forEach((c, y) => c.forEach((v, x) => v && datos.push([x, y, v])));
     g.setOption({
       textStyle: { fontFamily: C.fuente }, animation: ANIM,
-      tooltip: { ...Obs.tooltipBase(), trigger: "axis",
-        formatter: (ps) => `<strong>${fmtFecha(dd[ps[0].dataIndex])}</strong>` + ps.map((p) => `<br>${p.marker}${p.seriesName}: <strong>${n0(p.value ?? 0)}</strong> provincias`).join("") },
-      grid: { left: 40, right: 24, top: 12, bottom: 44 },
-      xAxis: { type: "category", data: dd, boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+      tooltip: { ...Obs.tooltipBase(), formatter: (p) => `<strong>${Obs.escapar(etiquetaFila(claves[p.value[1]]))}</strong><br>Semana del ${fmtFecha(sem[p.value[0]])}` +
+        (porRegion ? `<br><strong>${n0(p.value[2])}</strong> ${p.value[2] === 1 ? "provincia" : "provincias"} en ${nombreMedida}` : `<br>En ${nombreMedida}`) },
+      grid: { left: 130, right: 16, top: 8, bottom: 44 },
+      xAxis: { type: "category", data: sem, splitArea: { show: false }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
         axisLabel: txt({ interval: (i) => i % cada === 0, formatter: etiquetaEje }) },
-      yAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
-      series: [["Estado de emergencia", sEE, colores[0]], ["Inmovilización social obligatoria", sIM, colores[1]]].map(([n, d, c]) => ({
-        name: n, type: "line", step: "end", data: d.map((x) => x ?? 0), symbol: "none", lineStyle: { width: 2, color: c }, itemStyle: { color: c }, areaStyle: { color: c, opacity: 0.08 } })),
+      yAxis: { type: "category", data: claves.map(etiquetaFila), inverse: true, axisTick: { show: false }, axisLine: { show: false },
+        splitLine: { show: true, lineStyle: { color: C.linea, opacity: 0.5 } }, axisLabel: txt({ color: C.texto, width: 120, overflow: "truncate" }), triggerEvent: porRegion },
+      visualMap: { show: false, min: 1, max: Math.max(2, maxC), inRange: { color: maxC > 1 ? C.escala.slice(1) : [C.escala[3], C.escala[3]] } },
+      series: [{ type: "heatmap", data: datos, cursor: porRegion ? "pointer" : "default", itemStyle: { borderColor: "#fff", borderWidth: 1, borderRadius: 2 },
+        emphasis: { itemStyle: { borderColor: C.texto, borderWidth: 1 } } }],
     }, true);
+    g.off("click");
+    if (porRegion) g.on("click", (p) => { const y = p.componentType === "yAxis" ? claves.findIndex((k) => etiquetaFila(k) === p.value) : p.value?.[1]; if (y >= 0 && claves[y]) elegirRegion(claves[y]); });
+    document.getElementById("ley-estado").innerHTML = porRegion && maxC > 1
+      ? `<div class="ley-continua"><span>1</span><i style="background:linear-gradient(90deg,${C.escala.slice(1).join(",")})"></i><span>${n0(maxC)} provincias</span></div>` : "";
   }
   const q = sinTildeTxt(buscar.e.trim());
   const filas = [...ee.map((x) => ({ ...x, tipo: "Estado de emergencia" })), ...im.map((x) => ({ ...x, tipo: "Inmovilización social obligatoria" }))]
@@ -564,7 +614,7 @@ async function geoDe(nivel) {
 async function pintarMapa() {
   const lista = IND[estado.modulo];
   const ind = lista.find((i) => i.id === estado.mapa[estado.modulo]) ?? lista[0];
-  const nivel = ind.provincial ? estado.nivelMapa : "regional";
+  const nivel = ind.provincial ? nivelMapa() : "regional";
   document.getElementById("f-mapa").innerHTML = lista.map((i) => `<option value="${i.id}"${i.id === ind.id ? " selected" : ""}>${Obs.escapar(i.nombre)}</option>`).join("");
   document.getElementById("f-nivel-mapa").innerHTML = [["regional", "Región"], ["provincial", "Provincia"]]
     .filter(([n]) => n === "regional" || ind.provincial).map(([n, e]) => `<button type="button" data-nivel="${n}" aria-pressed="${n === nivel}">${e}</button>`).join("");
@@ -582,30 +632,47 @@ async function pintarMapa() {
   ["regional", "provincial"].forEach((n) => (document.getElementById(`mapa-${n}`).hidden = n !== nivel));
   const geo = await geoDe(nivel);
   if (!mapas[nivel]) mapas[nivel] = new Obs.Mapa(`mapa-${nivel}`, geo, { alClic: (c) => (nivel === "regional" ? elegirRegion(c) : null), nombre: (c) => NOMBRE_MAPA.get(c) ?? PROV.get(c) ?? NOMBRES[c] ?? c });
-  // Fondo claro y parejo; el valor se lee en las burbujas (área proporcional al número)
-  const valores = new Map(geo.features.filter((f) => f.properties.tipo !== "pais").map((f) => [f.properties.region, 0]));
-  unidades.forEach((u) => valores.set(u.codigo, u.v));
-  mapas[nivel].pintar({ valores, color: () => "#e8ecf2", texto: (v) => n0(v), elegida: nivel === "regional" ? estado.region : null });
-  const centros = (CENTROS[nivel] ??= Obs.centroides(geo));
-  const cats = ind.categorias ? ind.categorias() : [[null, ind.nombre, ind.color ? ind.color() : C.unica]];
-  const porCat = (u) => cats.map(([c, nombre, color]) => ({ nombre, color, v: c == null ? u.v : suma(grupos.get(u.codigo).filter((x) => ind.categoria(x) === c)) }));
-  const maxB = Math.max(1, ...unidades.flatMap((u) => porCat(u).map((b) => b.v)));
-  const rMax = nivel === "regional" ? 30 : 22;
-  const radio = (v) => rMax * Math.sqrt(v / maxB);
-  mapas[nivel].burbujas(unidades.filter((u) => centros.has(u.codigo)).flatMap((u) => {
-    const partes = porCat(u);
-    const texto = `<strong>${Obs.escapar(NOMBRE_MAPA.get(u.codigo))}</strong><br>` + (cats.length > 1
-      ? partes.map((b) => `<span style="color:${b.color}">●</span> ${Obs.escapar(b.nombre)}: <b>${n0(b.v)}</b>`).join("<br>") + `<br>Total: <b>${n0(u.v)}</b>`
-      : `${Obs.escapar(ind.nombre)}: <b>${n0(u.v)}</b>`);
-    const [lat, lon] = centros.get(u.codigo);
-    return partes.filter((b) => b.v).map((b) => ({ lat, lon, radio: radio(b.v), color: b.color, texto, alClic: () => elegirRegion(u.region) }));
-  }));
-  // Leyenda: tamaños de referencia y colores
-  const refs = [...new Set([maxB, Math.round(maxB / 4), Math.round(maxB / 20)].filter((v) => v >= 1))];
-  document.getElementById("ley-mapa").innerHTML = unidades.length
-    ? `<div class="ley-burbujas">${refs.map((v) => { const r = Math.max(3, radio(v)); return `<span><svg width="${2 * r + 2}" height="${2 * r + 2}" aria-hidden="true"><circle cx="${r + 1}" cy="${r + 1}" r="${r}" fill="none" stroke="#5b6577" stroke-width="1.2"/></svg>${n0(v)}</span>`; }).join("")}</div>` +
-      (cats.length > 1 ? `<div class="ley">${cats.map(([, n, c]) => `<span><i style="background:${c}"></i>${Obs.escapar(n)}</span>`).join("")}</div>` : "")
-    : "";
+  // Fallecidos: burbujas (área proporcional al número). Lo demás: coroplético con escala continua
+  const conBurbujas = estado.modulo === "victimas";
+  const elegidaMapa = nivel === "regional" ? estado.region : null;
+  document.getElementById("d-mapa").textContent = (conBurbujas
+    ? "Cada burbuja es una región o provincia: cuanto más grande, más casos en el período elegido."
+    : `Cada ${nivel === "regional" ? "región" : "provincia"} se colorea según el indicador elegido, en el período elegido: cuanto más oscura, más casos.`) +
+    " Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para elegirla en todo el tablero.";
+  if (conBurbujas) {
+    // Fondo claro y parejo; el valor se lee en las burbujas (área proporcional al número)
+    const valores = new Map(geo.features.filter((f) => f.properties.tipo !== "pais").map((f) => [f.properties.region, 0]));
+    unidades.forEach((u) => valores.set(u.codigo, u.v));
+    mapas[nivel].pintar({ valores, color: () => "#e8ecf2", texto: (v) => n0(v), elegida: nivel === "regional" ? estado.region : null });
+    const centros = (CENTROS[nivel] ??= Obs.centroides(geo));
+    const cats = ind.categorias ? ind.categorias() : [[null, ind.nombre, ind.color ? ind.color() : C.unica]];
+    const porCat = (u) => cats.map(([c, nombre, color]) => ({ nombre, color, v: c == null ? u.v : suma(grupos.get(u.codigo).filter((x) => ind.categoria(x) === c)) }));
+    const maxB = Math.max(1, ...unidades.flatMap((u) => porCat(u).map((b) => b.v)));
+    const rMax = nivel === "regional" ? 30 : 22;
+    const radio = (v) => rMax * Math.sqrt(v / maxB);
+    mapas[nivel].burbujas(unidades.filter((u) => centros.has(u.codigo)).flatMap((u) => {
+      const partes = porCat(u);
+      const texto = `<strong>${Obs.escapar(NOMBRE_MAPA.get(u.codigo))}</strong><br>` + (cats.length > 1
+        ? partes.map((b) => `<span style="color:${b.color}">●</span> ${Obs.escapar(b.nombre)}: <b>${n0(b.v)}</b>`).join("<br>") + `<br>Total: <b>${n0(u.v)}</b>`
+        : `${Obs.escapar(ind.nombre)}: <b>${n0(u.v)}</b>`);
+      const [lat, lon] = centros.get(u.codigo);
+      return partes.filter((b) => b.v).map((b) => ({ lat, lon, radio: radio(b.v), color: b.color, texto, alClic: () => elegirRegion(u.region) }));
+    }));
+    // Leyenda: tamaños de referencia y colores
+    const refs = [...new Set([maxB, Math.round(maxB / 4), Math.round(maxB / 20)].filter((v) => v >= 1))];
+    document.getElementById("ley-mapa").innerHTML = unidades.length
+      ? `<div class="ley-burbujas">${refs.map((v) => { const r = Math.max(3, radio(v)); return `<span><svg width="${2 * r + 2}" height="${2 * r + 2}" aria-hidden="true"><circle cx="${r + 1}" cy="${r + 1}" r="${r}" fill="none" stroke="#5b6577" stroke-width="1.2"/></svg>${n0(v)}</span>`; }).join("")}</div>` +
+        (cats.length > 1 ? `<div class="ley">${cats.map(([, n, c]) => `<span><i style="background:${c}"></i>${Obs.escapar(n)}</span>`).join("")}</div>` : "")
+      : "";
+  } else {
+    const maxV = Math.max(1, ...unidades.map((u) => u.v));
+    // Sin registros es cero, salvo los heridos del Minsa, que no cubren todas las regiones
+    const valores = new Map(ind.suma ? [] : geo.features.filter((f) => f.properties.tipo !== "pais").map((f) => [f.properties.region, 0]));
+    unidades.forEach((u) => valores.set(u.codigo, u.v));
+    mapas[nivel].pintar({ valores, color: (v) => colorContinuo(v / maxV), texto: (v) => n0(v), elegida: elegidaMapa });
+    mapas[nivel].burbujas([]);
+    document.getElementById("ley-mapa").innerHTML = unidades.length ? leyendaContinua(maxV) : "";
+  }
   const total = unidades.reduce((s, u) => s + u.v, 0);
   const orden = [...unidades].sort((a, b) => b.v - a.v);
   document.getElementById("l-mapa").innerHTML = orden.length
@@ -648,6 +715,7 @@ function render() {
     b.tabIndex = activo ? 0 : -1;
   });
   MODULOS.forEach((m) => (document.getElementById(`m-${m}`).hidden = m !== estado.modulo));
+  document.querySelectorAll(".abajo").forEach((el) => (el.hidden = el.dataset.modulo !== estado.modulo));
   ({ victimas: pintarVictimas, protestas: pintarProtestas, bloqueos: pintarBloqueos, estado: pintarEstado })[estado.modulo]();
   pintarMapa();
   Obs.escribirURL({
@@ -656,7 +724,8 @@ function render() {
     desde: estado.desde === MESES_LISTA[0] ? null : estado.desde,
     hasta: estado.hasta === MESES_LISTA.at(-1) ? null : estado.hasta,
     mapa: estado.mapa[estado.modulo] ?? null,
-    nivel: estado.nivelMapa === "regional" ? null : estado.nivelMapa,
+    nivel: estado.nivel[estado.modulo] && estado.nivel[estado.modulo] !== NIVEL_INICIAL[estado.modulo] ? estado.nivel[estado.modulo] : null,
+    medida: estado.modulo === "estado" && estado.medida !== "emergencia" ? estado.medida : null,
     mensaje: estado.modulo === "estado" && estado.mensaje ? estado.mensaje : null,
     palabra: estado.modulo === "estado" && estado.palabra ? estado.palabra : null,
   });
@@ -687,7 +756,8 @@ Obs.iniciar(TABLERO, async () => {
   if (MESES_LISTA.includes(q.get("desde"))) estado.desde = q.get("desde");
   if (MESES_LISTA.includes(q.get("hasta"))) estado.hasta = q.get("hasta");
   if (IND[estado.modulo].some((i) => i.id === q.get("mapa"))) estado.mapa[estado.modulo] = q.get("mapa");
-  if (q.get("nivel") === "provincial") estado.nivelMapa = "provincial";
+  if (["regional", "provincial"].includes(q.get("nivel"))) estado.nivel[estado.modulo] = q.get("nivel");
+  if (q.get("medida") === "inmovilizacion") estado.medida = "inmovilizacion";
   if (D.mensajes.some((m) => m.fecha === q.get("mensaje"))) estado.mensaje = q.get("mensaje");
   estado.palabra = (q.get("palabra") || "").slice(0, 40);
   document.getElementById("f-palabra").value = estado.palabra;
@@ -709,7 +779,8 @@ Obs.iniciar(TABLERO, async () => {
   document.getElementById("f-hasta").onchange = (e) => { const h = e.target.value; actualizar({ hasta: h, desde: estado.desde > h ? h : estado.desde }); };
 
   document.getElementById("f-mapa").onchange = (e) => { estado.mapa[estado.modulo] = e.target.value; render(); };
-  document.getElementById("f-nivel-mapa").onclick = (e) => { const b = e.target.closest("button[data-nivel]"); if (b) { estado.nivelMapa = b.dataset.nivel; render(); } };
+  document.getElementById("f-nivel-mapa").onclick = (e) => { const b = e.target.closest("button[data-nivel]"); if (b) { estado.nivel[estado.modulo] = b.dataset.nivel; render(); } };
+  document.getElementById("f-medida").onclick = (e) => { const b = e.target.closest("button[data-m]"); if (b) { estado.medida = b.dataset.m; render(); } };
   document.getElementById("f-bloqueo").onclick = (e) => { const b = e.target.closest("button[data-b]"); if (b) { estado.bloqueo = b.dataset.b; render(); } };
   [["f-buscar-f", "f", pintarVictimas], ["f-buscar-v", "v", pintarBloqueos], ["f-buscar-e", "e", pintarEstado]].forEach(([id, k, f]) => {
     document.getElementById(id).oninput = (e) => { buscar[k] = e.target.value; clearTimeout(window.__b); window.__b = setTimeout(f, 200); };

@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=e6487fd">
-  <link rel="stylesheet" href="../../comun/tema.css?v=e6487fd">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=e6487fd">
-  <link rel="stylesheet" href="estilos.css?v=e6487fd">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=b1c2b88">
+  <link rel="stylesheet" href="../../comun/tema.css?v=b1c2b88">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=b1c2b88">
+  <link rel="stylesheet" href="estilos.css?v=b1c2b88">
 </head>
 <body>
   <header class="cabecera">
@@ -34,7 +34,7 @@
     <button role="tab" id="tab-victimas" aria-controls="m-victimas" data-modulo="victimas">Fallecidos y heridos</button>
     <button role="tab" id="tab-protestas" aria-controls="m-protestas" data-modulo="protestas">Movilizaciones y paros</button>
     <button role="tab" id="tab-bloqueos" aria-controls="m-bloqueos" data-modulo="bloqueos">Bloqueos y violencia</button>
-    <button role="tab" id="tab-estado" aria-controls="m-estado" data-modulo="estado">Emergencia y discursos</button>
+    <button role="tab" id="tab-estado" aria-controls="m-estado" data-modulo="estado">Respuesta del Estado</button>
   </nav>
 
   <main>
@@ -59,11 +59,6 @@
           <p class="nota-tarjeta">Por región, los comunicados del Minsa reportan los heridos atendidos en tres períodos: del 7 al 20 de diciembre de 2022, del 4 al 20 de enero y del 19 al 29 de enero de 2023. Se ven en el mapa (indicador «Heridos atendidos»).</p>
         </article>
       </div>
-      <article class="tarjeta">
-        <header><h3 id="t-lista">Las personas fallecidas</h3><p>Fecha, lugar y circunstancia de cada muerte. Los menores de edad aparecen con sus iniciales, como en la fuente.</p></header>
-        <div class="controles"><div class="buscador-tabla"><label for="f-buscar-f">Buscar</label><input id="f-buscar-f" type="search" placeholder="Nombre, región o provincia" autocomplete="off"></div></div>
-        <div class="tabla-caja" id="t-fallecidos"></div>
-      </article>
     </section>
 
     <!-- ================= MOVILIZACIONES Y PAROS ================= -->
@@ -103,11 +98,6 @@
         <header><h3>¿Dónde hubo hechos de violencia?</h3><p id="d-violencia-lugar"></p></header>
         <div class="grafico" id="g-violencia-lugar"></div>
       </article>
-      <article class="tarjeta">
-        <header><h3 id="t-violencia">Los hechos de violencia</h3><p>Cada hecho registrado, con su lugar, el tipo de bien afectado y quién lo realizó, si se conoce.</p></header>
-        <div class="controles"><div class="buscador-tabla"><label for="f-buscar-v">Buscar</label><input id="f-buscar-v" type="search" placeholder="Hecho, lugar o actor" autocomplete="off"></div></div>
-        <div class="tabla-caja" id="t-violencia-tabla"></div>
-      </article>
     </section>
 
     <!-- ================= ESTADOS DE EMERGENCIA ================= -->
@@ -115,14 +105,13 @@
       <p class="resumen" id="r-estado" aria-live="polite"></p>
       <div class="kpis kpis-4" id="k-estado"></div>
       <article class="tarjeta">
-        <header><h3>¿Cuántas provincias estaban bajo medidas de excepción cada día?</h3><p>Provincias en estado de emergencia (no nacional) o con inmovilización social obligatoria.</p></header>
-        <div class="ley" id="ley-estado"></div>
+        <header class="cabeza-con-control">
+          <div><h3>¿Cuándo y dónde rigieron las medidas de excepción?</h3><p id="d-estado"></p></div>
+          <div class="segmentado claro" id="f-medida" role="group" aria-label="Medida"></div>
+        </header>
+        <p class="lectura" id="l-estado"></p>
         <div class="grafico" id="g-estado"></div>
-      </article>
-      <article class="tarjeta">
-        <header><h3 id="t-medidas">Las medidas, una por una</h3><p>Cada declaratoria o prórroga, con la provincia, el inicio, el fin y su duración.</p></header>
-        <div class="controles"><div class="buscador-tabla"><label for="f-buscar-e">Buscar</label><input id="f-buscar-e" type="search" placeholder="Provincia o región" autocomplete="off"></div></div>
-        <div class="tabla-caja" id="t-medidas-tabla"></div>
+        <div class="leyenda-mapa" id="ley-estado"></div>
       </article>
       <article class="tarjeta">
         <header><h3>¿Qué dijo Dina Boluarte en sus mensajes a la nación?</h3><p>Elige un mensaje en la línea de tiempo. Debajo de cada fecha, las personas fallecidas hasta ese día. En la nube, las palabras más grandes son las que más repitió y el color indica su tema; haz clic en una para seguirla en el gráfico de abajo.</p></header>
@@ -151,7 +140,7 @@
 
     <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
     <article class="tarjeta">
-      <header><h3>¿Dónde ocurrió?</h3><p>Cada burbuja es una región o provincia: cuanto más grande, más casos en el período elegido. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una burbuja o en una región para elegirla en todo el tablero.</p></header>
+      <header><h3>¿Dónde ocurrió?</h3><p id="d-mapa"></p></header>
       <div class="controles">
         <div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div>
         <div class="filtro-local" role="group" aria-labelledby="lbl-nivel-mapa"><span id="lbl-nivel-mapa">Ver por</span><div class="segmentado claro" id="f-nivel-mapa"></div></div>
@@ -162,6 +151,28 @@
         <div class="tabla-caja" id="t-mapa"></div>
       </div>
     </article>
+    <!-- Tablas de detalle: debajo del mapa, cambian con la pestaña -->
+    <div class="abajo" data-modulo="victimas">
+        <article class="tarjeta">
+          <header><h3 id="t-lista">Las personas fallecidas</h3><p>Fecha, lugar y circunstancia de cada muerte. Los menores de edad aparecen con sus iniciales, como en la fuente.</p></header>
+          <div class="controles"><div class="buscador-tabla"><label for="f-buscar-f">Buscar</label><input id="f-buscar-f" type="search" placeholder="Nombre, región o provincia" autocomplete="off"></div></div>
+          <div class="tabla-caja" id="t-fallecidos"></div>
+        </article>
+    </div>
+    <div class="abajo" data-modulo="bloqueos" hidden>
+        <article class="tarjeta">
+          <header><h3 id="t-violencia">Los hechos de violencia</h3><p>Cada hecho registrado, con su lugar, el tipo de bien afectado y quién lo realizó, si se conoce.</p></header>
+          <div class="controles"><div class="buscador-tabla"><label for="f-buscar-v">Buscar</label><input id="f-buscar-v" type="search" placeholder="Hecho, lugar o actor" autocomplete="off"></div></div>
+          <div class="tabla-caja" id="t-violencia-tabla"></div>
+        </article>
+    </div>
+    <div class="abajo" data-modulo="estado" hidden>
+        <article class="tarjeta">
+          <header><h3 id="t-medidas">Las medidas, una por una</h3><p>Cada declaratoria o prórroga, con la provincia, el inicio, el fin y su duración.</p></header>
+          <div class="controles"><div class="buscador-tabla"><label for="f-buscar-e">Buscar</label><input id="f-buscar-e" type="search" placeholder="Provincia o región" autocomplete="off"></div></div>
+          <div class="tabla-caja" id="t-medidas-tabla"></div>
+        </article>
+    </div>
   </main>
 
   <footer class="pie">
@@ -172,14 +183,14 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Estallido social</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=e6487fd"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=e6487fd"></script>
-  <script src="../../comun/config.js?v=e6487fd"></script>
-  <script src="../../comun/base.js?v=e6487fd"></script>
-  <script src="../../comun/graficos.js?v=e6487fd"></script>
-  <script src="../../comun/mapa.js?v=e6487fd"></script>
-  <script src="../../comun/filtros.js?v=e6487fd"></script>
-  <script src="../../comun/descarga.js?v=e6487fd"></script>
-  <script src="tablero.js?v=e6487fd"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=b1c2b88"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=b1c2b88"></script>
+  <script src="../../comun/config.js?v=b1c2b88"></script>
+  <script src="../../comun/base.js?v=b1c2b88"></script>
+  <script src="../../comun/graficos.js?v=b1c2b88"></script>
+  <script src="../../comun/mapa.js?v=b1c2b88"></script>
+  <script src="../../comun/filtros.js?v=b1c2b88"></script>
+  <script src="../../comun/descarga.js?v=b1c2b88"></script>
+  <script src="tablero.js?v=b1c2b88"></script>
 </body>
 </html>
