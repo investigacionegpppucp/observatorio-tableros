@@ -108,6 +108,8 @@ const estado = { modulo: "residuos", ambito: "nacional", region: NACIONAL, tipo:
 
 let C, GEO, controles, mapa, MUNIS = [];
 let buscar = "";
+// Filtros propios de la tabla de municipalidades: siguen a la región elegida arriba, pero se pueden cambiar solo para la tabla
+const tabla = { region: NACIONAL, provincia: "", regionArriba: NACIONAL };
 
 /* ---------------------------------------------------------
    Agregados
@@ -342,36 +344,50 @@ function pintarMapa() {
    --------------------------------------------------------- */
 const sino = (b) => (b ? '<span class="si">Sí</span>' : '<span class="no">No</span>');
 function pintarMunicipalidades() {
-  const munis = filtrar(estado.region);
-  const q = buscar.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  const visibles = munis.filter((m) => !q || m.buscar.includes(q)).sort((a, b) => a.region.localeCompare(b.region) || a.provincia.localeCompare(b.provincia) || (a.tipo === "Provincial" ? -1 : b.tipo === "Provincial" ? 1 : a.nombre.localeCompare(b.nombre)));
+  // Si cambió la región elegida arriba, la tabla la sigue
+  if (tabla.regionArriba !== estado.region) Object.assign(tabla, { region: estado.region, provincia: "", regionArriba: estado.region });
+  const enRegion = filtrar(tabla.region);
+  const provincias = [...new Set(enRegion.map((m) => m.provincia))].sort((a, b) => a.localeCompare(b, "es"));
+  if (!provincias.includes(tabla.provincia)) tabla.provincia = "";
+  const opcion = (v, e, sel) => `<option value="${Obs.escapar(v)}"${v === sel ? " selected" : ""}>${Obs.escapar(e)}</option>`;
+  document.getElementById("f-tabla-region").innerHTML = opcion(NACIONAL, "Todas las regiones", tabla.region) +
+    Object.entries(NOMBRES).sort((a, b) => a[1].localeCompare(b[1], "es")).map(([k, n]) => opcion(k, n, tabla.region)).join("");
+  document.getElementById("f-tabla-provincia").innerHTML = opcion("", "Todas las provincias", tabla.provincia) + provincias.map((p) => opcion(p, p, tabla.provincia)).join("");
+
+  const munis = enRegion.filter((m) => !tabla.provincia || m.provincia === tabla.provincia);
+  const q = buscar.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Orden: región, provincia, la municipalidad provincial primero y luego los distritos
+  const visibles = munis.filter((m) => !q || m.buscar.includes(q)).sort((a, b) => nombreRegion(a.region).localeCompare(nombreRegion(b.region), "es") ||
+    a.provincia.localeCompare(b.provincia, "es") || (a.tipo === "Provincial" ? -1 : b.tipo === "Provincial" ? 1 : a.distrito.localeCompare(b.distrito, "es")));
   const LIMITE = 300;
   const filas = visibles.slice(0, LIMITE);
-  const base = (m) => `<td><strong>${Obs.escapar(m.nombre)}</strong></td><td>${Obs.escapar(m.provincia)}${estado.region === NACIONAL ? `, ${Obs.escapar(nombreRegion(m.region))}` : ""}</td><td>${m.tipo}</td>`;
+  const ubicacion = "<th>Región</th><th>Provincia</th><th>Distrito</th><th>Tipo de municipalidad</th>";
+  const base = (m) => `<td>${Obs.escapar(nombreRegion(m.region))}</td><td>${Obs.escapar(m.provincia)}</td><td><strong>${Obs.escapar(m.distrito)}</strong></td><td>${m.tipo}</td>`;
   let cabeza, cuerpo;
   if (estado.modulo === "recursos") {
-    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th>Servicio de internet</th>";
+    cabeza = `${ubicacion}<th>Servicio de internet</th>`;
     cuerpo = filas.map((m) => `<tr>${base(m)}<td>${sino(m.internet)}</td></tr>`);
   } else if (estado.modulo === "sociales") {
-    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th class=\"num\">Beneficiarios del Vaso de Leche</th><th class=\"num\">Niños de 0 a 6</th><th class=\"num\">Adultos mayores</th><th class=\"num\">Otros</th>";
+    cabeza = `${ubicacion}<th class="num">Beneficiarios del Vaso de Leche</th><th class="num">Niños de 0 a 6</th><th class="num">Adultos mayores</th><th class="num">Otros</th>`;
     cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num"><strong>${n0(m.vasoTotal)}</strong></td><td class="num">${n0(m.vaso["Niños de 0 a 6"])}</td><td class="num">${n0(m.vaso["Adultos mayores"])}</td>` +
       `<td class="num">${n0(m.vasoTotal - m.vaso["Niños de 0 a 6"] - m.vaso["Adultos mayores"])}</td></tr>`);
   } else if (estado.modulo === "seguridad") {
-    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th class=\"num\">Efectivos de serenazgo</th><th class=\"num\">Intervenciones</th><th class=\"num\">Rondas campesinas</th><th class=\"num\">Rondas urbanas</th><th class=\"num\">Comités de autodefensa</th>";
+    cabeza = `${ubicacion}<th class="num">Efectivos de serenazgo</th><th class="num">Intervenciones</th><th class="num">Rondas campesinas</th><th class="num">Rondas urbanas</th><th class="num">Comités de autodefensa</th>`;
     cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num">${n0(m.serenos)}</td><td class="num">${n0(m.intervenciones)}</td><td class="num">${n0(m.rondasCampesinas)}</td><td class="num">${n0(m.rondasUrbanas)}</td><td class="num">${n0(m.comites)}</td></tr>`);
   } else if (estado.modulo === "residuos") {
-    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th class=\"num\">Camiones (funcionan)</th><th>Frecuencia del recojo</th><th>Cobertura</th><th class=\"num\">Kilos por día</th>";
-    cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num">${m.camion ? `${n0(m.camiones)} (${n0(m.operativos)})` : "0"}</td><td>${Obs.escapar(m.frecuencia ?? "—")}</td><td>${m.cobertura ? ETIQ_COBERTURA[m.cobertura] : "—"}</td><td class="num">${m.kilos != null ? n0(m.kilos) : "—"}</td></tr>`);
+    cabeza = `${ubicacion}<th class="num">Camiones operativos</th><th>Frecuencia del recojo</th><th class="num">Kilos por día</th>`;
+    cuerpo = filas.map((m) => `<tr>${base(m)}<td class="num">${n0(m.operativos)}</td><td>${Obs.escapar(m.frecuencia ?? "—")}</td><td class="num">${m.kilos != null ? n0(m.kilos) : "—"}</td></tr>`);
   } else {
-    cabeza = "<th>Municipalidad</th><th>Provincia</th><th>Tipo</th><th>Presupuesto participativo</th><th>Rendición de cuentas</th><th class=\"num\">Espacios de gestión (de 6)</th><th>Junta de Delegados</th>";
+    cabeza = `${ubicacion}<th>Presupuesto participativo</th><th>Rendición de cuentas</th><th class="num">Espacios de gestión (de 6)</th><th>Junta de Delegados</th>`;
     cuerpo = filas.map((m) => `<tr>${base(m)}<td>${sino(m.espacios.P100_4)}</td><td>${sino(m.espacios.P100_6)}</td><td class="num">${ESPACIOS.filter((e) => e[2] === "gestion" && m.espacios[e[0]]).length}</td>` +
       `<td>${m.junta ? `${m.juntaActiva ? "En actividad" : "Inactiva"}${m.miembros != null ? `, ${n0(m.miembros)} miembros` : ""}` : '<span class="no">No tiene</span>'}</td></tr>`);
   }
+  const donde = tabla.provincia ? `en la provincia de ${tabla.provincia} (${nombreRegion(tabla.region)})` : enLugar(tabla.region);
   document.getElementById("t-munis-caja").innerHTML = visibles.length
-    ? `<table class="tabla"><caption class="solo-lectores">Municipalidades ${enLugar(estado.region)}</caption><thead><tr>${cabeza}</tr></thead><tbody>${cuerpo.join("")}</tbody></table>`
+    ? `<table class="tabla"><caption class="solo-lectores">Municipalidades ${Obs.escapar(donde)}</caption><thead><tr>${cabeza}</tr></thead><tbody>${cuerpo.join("")}</tbody></table>`
     : '<p class="pista" style="padding:12px">Ninguna municipalidad coincide con la búsqueda.</p>';
-  document.getElementById("d-munis").textContent = `${n0(munis.length)} ${delTipo()} ${enLugar(estado.region)}. Escribe el nombre para encontrar una.`;
-  document.getElementById("n-munis").textContent = visibles.length > LIMITE ? `Se muestran ${LIMITE} de ${n0(visibles.length)}. Escribe un nombre o elige una región para ver las demás.` : "";
+  document.getElementById("d-munis").textContent = `${n0(munis.length)} ${delTipo()} ${donde}. Elige la región y la provincia, o escribe el nombre del distrito.`;
+  document.getElementById("n-munis").textContent = visibles.length > LIMITE ? `Se muestran ${LIMITE} de ${n0(visibles.length)}. Elige una región o una provincia, o escribe un nombre, para ver las demás.` : "";
 }
 
 /* ---------------------------------------------------------
@@ -423,9 +439,9 @@ Obs.iniciar(TABLERO, async () => {
   const base = (f) => {
     const id = limpio(f.idmunici);
     if (!porId.has(id)) {
-      const nombre = limpio(f.Nombre || f.Distrito);
-      porId.set(id, { id, nombre, provincia: limpio(f.Provincia), region: limpio(f.Departamento), tipo: limpio(f.Tipomuni), espacios: {},
-        buscar: `${nombre} ${limpio(f.Provincia)}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") });
+      const nombre = limpio(f.Nombre || f.Distrito), distrito = limpio(f.Distrito || f.Nombre);
+      porId.set(id, { id, nombre, distrito, provincia: limpio(f.Provincia), region: limpio(f.Departamento), tipo: limpio(f.Tipomuni), espacios: {},
+        buscar: `${nombre} ${distrito} ${limpio(f.Provincia)}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") });
     }
     return porId.get(id);
   };
@@ -481,6 +497,8 @@ Obs.iniciar(TABLERO, async () => {
   document.getElementById("f-tipo").onclick = (e) => { const b = e.target.closest("button[data-tipo]"); if (b) actualizar({ tipo: b.dataset.tipo }); };
   document.getElementById("f-mapa").onchange = (e) => { estado.mapa[estado.modulo] = e.target.value; render(); };
   document.getElementById("f-buscar").oninput = (e) => { buscar = e.target.value; pintarMunicipalidades(); };
+  document.getElementById("f-tabla-region").onchange = (e) => { Object.assign(tabla, { region: e.target.value, provincia: "" }); pintarMunicipalidades(); };
+  document.getElementById("f-tabla-provincia").onchange = (e) => { tabla.provincia = e.target.value; pintarMunicipalidades(); };
 
   const pestanas = [...document.querySelectorAll(".modulos button")];
   pestanas.forEach((b, i) => {

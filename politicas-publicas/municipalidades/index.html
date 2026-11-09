@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=23c8d2e">
-  <link rel="stylesheet" href="../../comun/tema.css?v=23c8d2e">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=23c8d2e">
-  <link rel="stylesheet" href="estilos.css?v=23c8d2e">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=97331aa">
+  <link rel="stylesheet" href="../../comun/tema.css?v=97331aa">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=97331aa">
+  <link rel="stylesheet" href="estilos.css?v=97331aa">
 </head>
 <body>
   <header class="cabecera">
@@ -137,7 +137,11 @@
 
     <article class="tarjeta">
       <header><h3 id="t-munis">Busca tu municipalidad</h3><p id="d-munis"></p></header>
-      <div class="buscador-tabla"><label for="f-buscar">Buscar</label><input id="f-buscar" type="search" placeholder="Nombre de la municipalidad o de la provincia" autocomplete="off"></div>
+      <div class="controles filtros-tabla">
+        <div class="filtro-local"><label for="f-tabla-region">Región</label><select id="f-tabla-region"></select></div>
+        <div class="filtro-local"><label for="f-tabla-provincia">Provincia</label><select id="f-tabla-provincia"></select></div>
+        <div class="buscador-tabla"><label for="f-buscar">Distrito</label><input id="f-buscar" type="search" placeholder="Escribe el nombre del distrito" autocomplete="off"></div>
+      </div>
       <div class="tabla-caja" id="t-munis-caja"></div>
       <p class="nota-tarjeta" id="n-munis"></p>
     </article>
@@ -152,14 +156,14 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Gestión municipal</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=23c8d2e"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=23c8d2e"></script>
-  <script src="../../comun/config.js?v=23c8d2e"></script>
-  <script src="../../comun/base.js?v=23c8d2e"></script>
-  <script src="../../comun/graficos.js?v=23c8d2e"></script>
-  <script src="../../comun/mapa.js?v=23c8d2e"></script>
-  <script src="../../comun/filtros.js?v=23c8d2e"></script>
-  <script src="../../comun/descarga.js?v=23c8d2e"></script>
-  <script src="tablero.js?v=23c8d2e"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=97331aa"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=97331aa"></script>
+  <script src="../../comun/config.js?v=97331aa"></script>
+  <script src="../../comun/base.js?v=97331aa"></script>
+  <script src="../../comun/graficos.js?v=97331aa"></script>
+  <script src="../../comun/mapa.js?v=97331aa"></script>
+  <script src="../../comun/filtros.js?v=97331aa"></script>
+  <script src="../../comun/descarga.js?v=97331aa"></script>
+  <script src="tablero.js?v=97331aa"></script>
 </body>
 </html>

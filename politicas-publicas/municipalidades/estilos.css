@@ -57,7 +57,8 @@
 .buscador-tabla input { flex: 1; max-width: 420px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); font: inherit; font-size: 15px; }
 .buscador-tabla input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
 #t-munis-caja { max-height: 520px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; }
-#t-munis-caja .tabla { min-width: 760px; }
+#t-munis-caja .tabla { min-width: 860px; }
+.filtros-tabla .buscador-tabla { margin: 0; flex: 1; min-width: 240px; }
 .si { color: #2f6f00; font-weight: 700; }
 .no { color: var(--texto-suave); }
 
