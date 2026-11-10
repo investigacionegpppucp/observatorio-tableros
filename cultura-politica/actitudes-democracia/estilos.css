@@ -1,0 +1,69 @@
+/* =========================================================
+   Estilos propios del tablero de Actitudes hacia la democracia.
+   Lo compartido (franja, filtros, pestañas, tarjetas, mapa) está en
+   comun/estilos.css; los colores de marca, en comun/tema.css.
+   ========================================================= */
+:root {
+  /* Respuestas: de lo negativo (rojo) a lo positivo (azul); «no sabe» en gris */
+  --r-neg2: #a3123a;
+  --r-neg1: #e0708f;
+  --r-pos1: #7f9be8;
+  --r-pos2: #0f3d9e;
+  --r-nosabe: #b8c0cc;
+  --r-auto: #a3123a;
+  --r-mismo: #e8a33d;
+}
+.cabecera-interior { padding-bottom: 12px; }
+
+/* Cifras del panorama: cada una lleva a su pestaña */
+.kpi.boton-kpi { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); cursor: pointer; border-top: 4px solid var(--c); }
+.kpi.boton-kpi:hover { background: var(--fondo); }
+.kpi.boton-kpi:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.kpi .ir { font-size: 14px; font-weight: 700; color: var(--azul); margin-top: 4px; }
+
+/* Leyendas: línea (serie) y cuadro (respuestas) */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+
+/* Controles del mapa */
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin: 16px 0 0; }
+.filtro-local { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.filtro-local > label { font-size: 15px; font-weight: 700; color: var(--navy); }
+.filtro-local select {
+  height: 44px; max-width: 100%; padding: 0 36px 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); background: #fff; color: var(--texto);
+  font: inherit; font-size: 15px; font-weight: 600; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+.filtro-local select:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.lectura { margin: 14px 0 0; font-size: 16px; line-height: 1.5; max-width: 900px; }
+.lectura:empty { display: none; }
+.mapa-y-tabla .grafico { margin-top: 0; }
+.mapa-y-tabla > div { min-width: 0; }
+.ley-continua { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.ley-continua i { display: block; width: 180px; max-width: 50vw; height: 12px; border-radius: 3px; border: 1px solid var(--linea); }
+
+/* Tabla de regiones: ordenable, con la región elegida y el Perú resaltados */
+.tabla-caja { max-height: 640px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tabla tbody tr[data-k] { cursor: pointer; }
+.tabla tbody tr[data-k]:hover td { background: var(--fondo); }
+.tabla tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
+.celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.celda-barra i { display: block; height: 10px; border-radius: 2px; max-width: 90px; }
+.celda-barra b { font-weight: 700; min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+.tabla.ordenable th { padding: 0; }
+.tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
+.tabla.ordenable th.num button { justify-content: flex-end; text-align: right; }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.75; }
+.tabla.ordenable th[aria-sort="none"] .flecha { opacity: 0.4; }
+.tabla small { display: block; font-size: 13px; font-weight: 400; color: var(--texto-suave); }
+
+@media (max-width: 560px) {
+  .controles, .filtro-local { width: 100%; min-width: 0; }
+  .filtro-local select { width: 100%; }
+}

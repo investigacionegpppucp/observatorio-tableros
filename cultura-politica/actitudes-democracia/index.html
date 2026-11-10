@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Actitudes hacia la democracia | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=6cf9ac8">
+  <link rel="stylesheet" href="../../comun/tema.css?v=6cf9ac8">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=6cf9ac8">
+  <link rel="stylesheet" href="estilos.css?v=6cf9ac8">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Actitudes hacia la democracia</h1>
+        <p class="subtitulo">Qué tan importante es la democracia para los peruanos, cómo creen que funciona y si la prefieren a otras formas de gobierno, de 2013 a 2025, en el país y en cada región.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+  </section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-panorama" aria-controls="m-panorama" data-modulo="panorama">Panorama</button>
+    <button role="tab" id="tab-importancia" aria-controls="m-tema" data-modulo="importancia">Importancia</button>
+    <button role="tab" id="tab-funcionamiento" aria-controls="m-tema" data-modulo="funcionamiento">Funcionamiento</button>
+    <button role="tab" id="tab-opinion" aria-controls="m-tema" data-modulo="opinion">Opinión sobre la democracia</button>
+  </nav>
+
+  <main>
+    <!-- ================= PANORAMA ================= -->
+    <section class="modulo" id="m-panorama" role="tabpanel" aria-labelledby="tab-panorama">
+      <p class="resumen" id="r-panorama" aria-live="polite">Cargando datos…</p>
+      <div class="kpis" id="k-panorama"></div>
+      <article class="tarjeta">
+        <header><h3 id="t-tres">¿Cómo han cambiado las actitudes hacia la democracia?</h3><p id="d-tres"></p></header>
+        <div class="grafico" id="g-tres"></div>
+        <p class="pista">Haz clic en un año para elegirlo.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-comparar">Las regiones, de un vistazo</h3><p id="d-comparar"></p></header>
+        <div class="tabla-caja" id="t-regiones"></div>
+      </article>
+    </section>
+
+    <!-- ================= UN TEMA (importancia, funcionamiento u opinión) ================= -->
+    <section class="modulo" id="m-tema" role="tabpanel" hidden>
+      <p class="resumen" id="r-tema" aria-live="polite"></p>
+      <div class="kpis" id="k-tema"></div>
+      <div class="grilla">
+        <article class="tarjeta">
+          <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
+          <div class="ley" id="ley-evol"></div>
+          <div class="grafico" id="g-evol"></div>
+          <p class="pista">Haz clic en un año para elegirlo.</p>
+        </article>
+        <article class="tarjeta">
+          <header><h3 id="t-resp"></h3><p id="d-resp"></p></header>
+          <div class="ley" id="ley-resp"></div>
+          <div class="grafico" id="g-resp"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
+    <article class="tarjeta">
+      <header><h3 id="t-mapa"></h3><p>Cuanto más oscura la región, mayor el porcentaje. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
+      <div class="controles"><div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div></div>
+      <p class="lectura" id="l-mapa" aria-live="polite"></p>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+        <div><div class="grafico alto" id="g-regiones"></div></div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Hogares (ENAHO), módulo de Gobernabilidad, Democracia y Transparencia.</p>
+    <p><strong>Notas:</strong> Población de 18 años y más. Los porcentajes se calculan con los factores de expansión de la encuesta.
+      <strong>Importancia:</strong> «la considera importante» suma a quienes dicen que la democracia es importante o muy importante.
+      <strong>Funcionamiento:</strong> «funciona bien» suma a quienes dicen que la democracia funciona bien o muy bien en el Perú.
+      <strong>Opinión sobre la democracia:</strong> frase con la que la persona está más de acuerdo: la democracia es preferible a cualquier otra forma de gobierno; en algunas circunstancias, un gobierno autoritario puede ser preferible; o da lo mismo un régimen democrático que uno no democrático.
+      Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Actitudes hacia la democracia</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=6cf9ac8"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=6cf9ac8"></script>
+  <script src="../../comun/config.js?v=6cf9ac8"></script>
+  <script src="../../comun/base.js?v=6cf9ac8"></script>
+  <script src="../../comun/graficos.js?v=6cf9ac8"></script>
+  <script src="../../comun/mapa.js?v=6cf9ac8"></script>
+  <script src="../../comun/descarga.js?v=6cf9ac8"></script>
+  <script src="tablero.js?v=6cf9ac8"></script>
+</body>
+</html>
