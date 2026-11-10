@@ -86,10 +86,22 @@ window.Obs = window.Obs || {};
 
     const el = document.getElementById(id);
     const angosto = el.clientWidth < 480;
-    el.style.height = `${Math.max(160, datos.length * (angosto ? 44 : 34) + 16)}px`;
+    const ancho = Math.min(el.clientWidth >= 700 ? 290 : 230, Math.round(el.clientWidth * (angosto ? 0.44 : 0.38)));
+    // Cada fila crece según las líneas de su etiqueta, para que ninguna se oculte ni se encime
+    const lineas = (txt) => {
+      const ctx = (Obs.__medidor ??= document.createElement("canvas").getContext("2d"));
+      ctx.font = `14px ${t.fuente}`;
+      let n = 1, linea = "";
+      for (const p of String(txt).split(" ")) {
+        const prueba = linea ? `${linea} ${p}` : p;
+        if (linea && ctx.measureText(prueba).width > ancho - 14) { n++; linea = p; } else linea = prueba;
+      }
+      return n;
+    };
+    const fila = Math.max(angosto ? 44 : 34, Math.max(...datos.map((d) => lineas(d.etiqueta))) * 18 + 8);
+    el.style.height = `${Math.max(160, datos.length * fila + 16)}px`;
     const g = Obs.grafico(id);
     g.resize();
-    const ancho = Math.min(230, Math.round(el.clientWidth * (angosto ? 0.44 : 0.38)));
     const tope = Math.max(...datos.flatMap((d) => [d.valor, d.comp ?? 0])) * 1.18;
     // Con comparación, el número va después de la marca si esta queda más a la derecha que la barra
     const anchoTrazo = Math.max(1, el.clientWidth - ancho - 70);
@@ -112,7 +124,7 @@ window.Obs = window.Obs || {};
       yAxis: {
         type: "category", data: datos.map((d) => d.etiqueta), inverse: true,
         axisTick: { show: false }, axisLine: { lineStyle: { color: t.linea } },
-        axisLabel: { ...texto(), width: ancho - 10, overflow: "break", lineHeight: 18 },
+        axisLabel: { ...texto(), width: ancho - 10, overflow: "break", lineHeight: 18, interval: 0 },
       },
       series: [
         {

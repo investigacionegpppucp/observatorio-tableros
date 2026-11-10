@@ -243,13 +243,26 @@ function lineas(id, series, { quiebres = [], aria = "" } = {}) {
   const cada = ancho < 420 ? 4 : ancho < 760 ? 2 : 1;
   const rotular = series.length <= 4 && ancho >= 520;
   const ultimoIdx = (vals) => { for (let i = vals.length - 1; i >= 0; i--) if (vals[i] != null) return i; return -1; };
+  // Etiquetas del último año separadas al menos 17 px, para que no se encimen
+  const arriba = quiebres.length ? 34 : 16, altoTrazo = Math.max(1, el.clientHeight - arriba - 30);
+  const desplazo = new Map();
+  if (rotular) {
+    const fin = series.map((s, i) => { const u = ultimoIdx(s.valores); return u < 0 ? null : { i, y: arriba + altoTrazo * (1 - s.valores[u] / tope) }; })
+      .filter(Boolean).sort((a, b) => a.y - b.y);
+    const pos = fin.map((f) => f.y);
+    for (let k = 1; k < pos.length; k++) pos[k] = Math.max(pos[k], pos[k - 1] + 17);
+    // si se salen por abajo, se suben en bloque
+    const exceso = pos.length ? pos[pos.length - 1] - (arriba + altoTrazo + 8) : 0;
+    if (exceso > 0) for (let k = pos.length - 1; k >= 0; k--) pos[k] = Math.min(pos[k] - exceso, k < pos.length - 1 ? pos[k + 1] - 17 : Infinity);
+    fin.forEach((f, k) => desplazo.set(f.i, pos[k] - f.y));
+  }
   const g = Obs.grafico(id);
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
     tooltip: { ...Obs.tooltipBase(), trigger: "axis",
       formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.filter((p) => p.value != null).sort((x, y) => y.value - x.value)
         .map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${pct(p.value)}</strong>`).join("") },
-    grid: { left: 52, right: rotular ? 64 : 18, top: quiebres.length ? 34 : 16, bottom: 30 },
+    grid: { left: 52, right: rotular ? 64 : 18, top: arriba, bottom: 30 },
     xAxis: { type: "category", data: ANIOS.map(String), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: (i) => (ANIOS.length - 1 - i) % cada === 0 }) },
     yAxis: { type: "value", min: 0, max: tope, interval: paso, splitLine: { lineStyle: { color: C.linea } },
@@ -258,7 +271,7 @@ function lineas(id, series, { quiebres = [], aria = "" } = {}) {
       const u = ultimoIdx(s.valores);
       return {
         name: s.nombre, type: "line", connectNulls: true, symbol: "circle", symbolSize: s.punteada ? 6 : 8, z: s.punteada ? 2 : 3,
-        data: s.valores.map((v, j) => (j === u && rotular ? { value: v, label: { show: true, position: "right", distance: 8, formatter: () => pct(v), ...txt({ color: C.texto, fontWeight: 700 }) } } : v)),
+        data: s.valores.map((v, j) => (j === u && rotular ? { value: v, label: { show: true, position: "right", distance: 8, offset: [0, desplazo.get(i) ?? 0], formatter: () => pct(v), ...txt({ color: C.texto, fontWeight: 700 }) } } : v)),
         lineStyle: { width: s.punteada ? 2 : 2.5, color: s.color, type: s.punteada ? [6, 4] : "solid" },
         itemStyle: { color: s.punteada ? "#fff" : s.color, borderColor: s.color, borderWidth: s.punteada ? 2 : 1.5 },
         emphasis: { focus: "series" },
@@ -710,14 +723,13 @@ function pintarMapa(m) {
   }
   lectura.innerHTML = `${t}.` + (filas.some((x) => ref(x.x)) ? " Las regiones con * tienen menos de 30 encuestados: son referenciales." : "");
 
-  const max = Math.max(...filas.map((x) => x.v), peru?.v ?? 0);
   const lista = filas.map((x, i) => ({ region: x.region, nombre: nombre(x.region), v: x.v, r: ref(x.x), pos: i + 1 }));
   if (peru) lista.push({ region: NACIONAL, nombre: "Perú", v: peru.v, r: false, pos: null });
   tablaOrdenable(`t-mapa-${m}`, [
     { clave: "pos", titulo: "#", num: true, valor: (x) => (x.pos ?? filas.filter((y) => y.v > x.v).length + 0.5), html: (x) => (x.pos ? String(x.pos) : "") },
     { clave: "nombre", titulo: "Región", valor: (x) => x.nombre, html: (x) => Obs.escapar(x.nombre) + (x.r ? " *" : "") },
     { clave: "v", titulo: "Porcentaje", num: true, valor: (x) => x.v,
-      html: (x) => `<span class="celda-barra"><i style="width:${Math.max(3, (x.v / max) * 100)}%${x.r ? `;background:${C.referencial}` : ""}"></i><b>${pct(x.v)}</b></span>` },
+      html: (x) => pct(x.v) },
   ], lista, { inicial: { clave: "v", dir: -1 }, claveFila: (x) => x.region, elegida: estado.region, alClic: elegirRegion, buscar: "Nombre de la región",
     claseFila: (x) => (x.region === NACIONAL ? "peru" : ""), descripcion: `${def.titulo} por región, ${estado.anio}` });
 }
@@ -863,8 +875,20 @@ function render() {
   if (m === "victimas") { pintarDelitos(); pintarEvolVictimas(); pintarDenunciaDetalle(); }
   if (m === "percepcion") { pintarBrecha(); pintarPercepcionDelitos(); pintarLugares(); pintarEvolInseguridad(); pintarRazones("razones-inseg", "razones_inseguridad", "Razones para sentirse inseguro", C.percepcion, "razon_inseg"); }
   if (m === "policia") { pintarConfianzaInstituciones(); pintarEvolConfianza(); pintarRazones("razones-desconf", "razones_desconfianza", "Razones para no confiar en la Policía", C.unica, "razon_desconf"); pintarVigilancia(); pintarDesempeno(); }
+  igualarPares();
   pintarMapa(m);
   actualizarURL();
+}
+
+/* En un par de tarjetas lado a lado, los gráficos de barras toman la misma altura,
+   para que la tarjeta con menos filas no quede con un hueco abajo */
+function igualarPares() {
+  document.querySelectorAll(`#c-${estado.modulo} .par`).forEach((par) => {
+    const gs = [...par.querySelectorAll(":scope > .tarjeta:not([hidden]) .grafico:not([hidden])")].filter((g) => g.style.height);
+    if (gs.length !== 2 || Math.abs(gs[0].getBoundingClientRect().left - gs[1].getBoundingClientRect().left) < 50) return;
+    const alto = Math.max(...gs.map((g) => parseFloat(g.style.height)));
+    gs.forEach((g) => { if (parseFloat(g.style.height) < alto) { g.style.height = `${alto}px`; Obs.grafico(g.id).resize(); } });
+  });
 }
 
 function tarjetas() {
