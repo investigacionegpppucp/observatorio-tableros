@@ -37,7 +37,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 12px center;
 }
-.filtro-local select:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.filtro-local select:focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
 .lectura { margin: 14px 0 0; font-size: 16px; line-height: 1.5; max-width: 900px; }
 .lectura:empty { display: none; }
 .mapa-y-tabla .grafico { margin-top: 0; }
@@ -50,7 +50,7 @@
 .solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .tabla tbody tr[data-k] { cursor: pointer; }
 .tabla tbody tr[data-k]:hover td { background: var(--fondo); }
-.tabla tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
 .tabla tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
 .celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .celda-barra i { display: block; height: 10px; border-radius: 2px; max-width: 90px; }

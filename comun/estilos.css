@@ -17,6 +17,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 button, select, input { font-family: inherit; }
+/* Títulos y subtítulos en Montserrat; una palabra clave de un titular, en Source Serif 4 cursiva */
+h1, h2, h3, .modulos button, .kpi-valor { font-family: var(--fuente-titulos); }
+.destacada { font-family: var(--fuente-destacada); font-style: italic; font-weight: 600; }
 
 /* ---------- Franja superior: título, filtros y pestañas ---------- */
 .cabecera { background: var(--navy); color: #fff; }
@@ -25,7 +28,7 @@ button, select, input { font-family: inherit; }
   padding: 28px 16px 0;
   display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 24px; flex-wrap: wrap;
 }
-.cabecera h1 { margin: 0; font-size: clamp(28px, 4.2vw, 44px); font-weight: 800; line-height: 1.1; text-wrap: balance; }
+.cabecera h1 { margin: 0; font-size: clamp(28px, 4.2vw, 44px); font-weight: 700; line-height: 1.1; text-wrap: balance; }
 .cabecera h1::after { content: ""; display: block; width: 56px; height: 4px; background: var(--lima); margin-top: 14px; }
 .cabecera .subtitulo { margin: 8px 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.8); }
 
@@ -53,7 +56,7 @@ button, select, input { font-family: inherit; }
   height: 44px; padding: 0 38px 0 12px; min-width: 200px;
   border: 1px solid transparent; border-radius: var(--radio); background: var(--superficie);
   appearance: none; cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042354' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 14px center;
 }
 .filtro select.corto { min-width: 104px; }
@@ -148,7 +151,7 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
   padding: 18px 20px; display: flex; flex-direction: column; gap: 4px;
 }
 .kpi-etiqueta { font-size: 14px; font-weight: 600; color: var(--texto-suave); }
-.kpi-valor { font-size: 38px; font-weight: 800; color: var(--navy); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi-valor { font-size: 38px; font-weight: 700; color: var(--navy); line-height: 1.15; font-variant-numeric: tabular-nums; }
 .kpi-valor.texto { font-size: 22px; line-height: 1.3; padding-top: 4px; }
 .kpi-pie { font-size: 14px; color: var(--texto-suave); }
 
@@ -161,7 +164,7 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
 .grilla > .tarjeta { margin-bottom: 0; }
 /* Escala de cada tarjeta: título 22 px > lectura 17 px > descripción 15 px, para que el título se distinga
    del texto dinámico y del gráfico. Vale para todos los tableros. */
-.tarjeta h3 { margin: 0; font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1.25; text-wrap: balance; }
+.tarjeta h3 { margin: 0; font-size: 22px; font-weight: 700; color: var(--navy); line-height: 1.25; text-wrap: balance; }
 .tarjeta header p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--texto-suave); }
 .leyenda { display: flex; gap: 6px 16px; flex-wrap: wrap; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
 .leyenda:empty { display: none; }
@@ -187,7 +190,7 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
 .tabla-caja { max-height: 600px; overflow-y: auto; margin-top: 12px; }
 .tabla tr[data-region] { cursor: pointer; }
 .tabla tbody tr[data-region]:hover td { background: var(--fondo); }
-.tabla tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
 .barrita { display: inline-block; height: 10px; border-radius: 2px; margin-right: 10px; vertical-align: middle; }
 
 /* ---------- Mapa (Leaflet, sin teselas externas) ---------- */
@@ -246,7 +249,7 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
 .dl::backdrop { background: rgba(4, 35, 85, 0.55); }
 .dl form { display: grid; gap: 10px; padding: 16px 20px 20px; }
 .dl-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.dl h2 { margin: 0; font-size: 19px; font-weight: 800; color: var(--navy); }
+.dl h2 { margin: 0; font-size: 19px; font-weight: 700; color: var(--navy); }
 .dl-cerrar { width: 44px; height: 44px; margin: -8px -10px -8px 0; border: 0; border-radius: var(--radio); background: none; color: var(--texto-suave); cursor: pointer; }
 .dl-cerrar:hover { background: var(--fondo); color: var(--navy); }
 .dl-cerrar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
@@ -261,8 +264,8 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
   background: #fff; color: var(--texto); font: inherit; font-size: 15px;
 }
 .dl-campo select { appearance: none; padding-right: 34px; cursor: pointer;
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center; }
-.dl-campo :is(input, select):focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042354' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center; }
+.dl-campo :is(input, select):focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
 .dl [aria-invalid="true"] { border-color: var(--rojo); }
 .dl-error { margin: 4px 0 0; color: var(--rojo); font-size: 14px; font-weight: 600; }
 .dl-error:empty { display: none; }
@@ -281,7 +284,7 @@ body.embed .cabecera-interior { padding-top: 14px; justify-content: flex-end; }
 
 /* ---------- Pantallas medianas y celular ---------- */
 @media (max-width: 900px) {
-  .grilla, .mapa-y-tabla, .kpis { grid-template-columns: 1fr; }
+  .grilla, .mapa-y-tabla, .kpis { grid-template-columns: minmax(0, 1fr); }
   .mapa-geo { height: 480px; }
   .recuadro-lima .mapa-lima { height: 90px; }
   .recuadro-lima { width: 32%; left: 8px; bottom: 8px; padding: 4px; }

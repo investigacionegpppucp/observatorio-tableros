@@ -25,7 +25,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 12px center;
 }
-.filtro-local select:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.filtro-local select:focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
 .lectura { margin: 14px 0 0; font-size: 16px; line-height: 1.5; max-width: 900px; }
 .lectura:empty { display: none; }
 .nota-tarjeta { margin: 8px 0 0; font-size: 14px; color: var(--texto-suave); }
@@ -48,14 +48,14 @@
 .tabla tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
 .tabla tbody tr[data-k] { cursor: pointer; }
 .tabla tbody tr[data-k]:hover td { background: var(--fondo); }
-.tabla tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
 .celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .celda-barra i { display: block; height: 10px; border-radius: 2px; background: var(--escala-3); max-width: 90px; }
 .celda-barra b { font-weight: 700; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
 .buscador-tabla { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; }
 .buscador-tabla label { font-size: 15px; font-weight: 700; color: var(--navy); }
 .buscador-tabla input { flex: 1; max-width: 420px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); font: inherit; font-size: 15px; }
-.buscador-tabla input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.buscador-tabla input:focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
 #t-munis-caja { max-height: 520px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; }
 #t-munis-caja .tabla { min-width: 860px; }
 .filtros-tabla .buscador-tabla { margin: 0; flex: 1; min-width: 240px; }

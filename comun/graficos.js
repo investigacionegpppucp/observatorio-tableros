@@ -91,6 +91,9 @@ window.Obs = window.Obs || {};
     g.resize();
     const ancho = Math.min(230, Math.round(el.clientWidth * (angosto ? 0.44 : 0.38)));
     const tope = Math.max(...datos.flatMap((d) => [d.valor, d.comp ?? 0])) * 1.18;
+    // Con comparación, el número va después de la marca si esta queda más a la derecha que la barra
+    const anchoTrazo = Math.max(1, el.clientWidth - ancho - 70);
+    const distancia = (d) => 8 + (comparacion && d.comp != null && d.comp > d.valor ? ((d.comp - d.valor) / tope) * anchoTrazo + 4 : 0);
     g.__claves = datos.map((d) => d.clave);
 
     g.setOption({
@@ -117,6 +120,7 @@ window.Obs = window.Obs || {};
           data: datos.map((d) => ({
             value: d.valor,
             itemStyle: { color: d.color ?? color, borderRadius: [0, 2, 2, 0], opacity: seleccion && !seleccion.has(d.clave) ? 0.25 : 1 },
+            label: { distance: distancia(d) },
           })),
           label: { show: true, position: "right", distance: 8, formatter: (p) => formato(p.value), ...texto({ fontWeight: 700 }) },
         },

@@ -79,7 +79,7 @@
 .tabla.ordenable tbody tr[data-k] { cursor: pointer; }
 .tabla.ordenable tbody tr[data-k]:hover td { background: var(--fondo); }
 .tabla.ordenable tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
-.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
 .tabla tfoot td { position: sticky; bottom: 0; background: #e8eefb; border-top: 2px solid var(--navy); }
 #t-gobiernos .tabla td, #t-gobiernos .tabla.ordenable th button { padding-left: 10px; padding-right: 10px; }
 .tabla .sin-dato { color: var(--texto-suave); font-weight: 600; }

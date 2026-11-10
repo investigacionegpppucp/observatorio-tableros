@@ -102,6 +102,8 @@ window.Obs = window.Obs || {};
     if (typeof echarts === "undefined" || (mapa && typeof L === "undefined")) {
       return Obs.mostrarError("no cargaron las librerías de gráficos (comun/lib).");
     }
+    // Los gráficos miden el texto al dibujarse: se espera a que carguen las fuentes
+    if (document.fonts?.ready) await document.fonts.ready;
     await arrancar();
     Obs.informarAltura();
   };

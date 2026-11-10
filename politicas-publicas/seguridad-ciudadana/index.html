@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seguridad ciudadana | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Fuentes del manual de marca: Montserrat (títulos y texto) y Source Serif 4 (palabra clave) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=0c93921">
+  <link rel="stylesheet" href="../../comun/tema.css?v=0c93921">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=0c93921">
+  <link rel="stylesheet" href="../educacion/estilos.css?v=0c93921">
+  <link rel="stylesheet" href="estilos.css?v=0c93921">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Seguridad ciudadana</h1>
+        <p class="subtitulo">Víctimas de delitos, percepción de inseguridad y confianza en la Policía, en el Perú y en cada región, de 2014 a 2025.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ámbito, región, año y comparación: los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-victimas" aria-controls="m-victimas" data-modulo="victimas">Víctimas y denuncias</button>
+    <button role="tab" id="tab-percepcion" aria-controls="m-percepcion" data-modulo="percepcion">Percepción de inseguridad</button>
+    <button role="tab" id="tab-policia" aria-controls="m-policia" data-modulo="policia">Policía e instituciones</button>
+  </nav>
+
+  <!-- Las tarjetas de cada pestaña las arma tablero.js -->
+  <main>
+    <section class="modulo" id="m-victimas" role="tabpanel" aria-labelledby="tab-victimas">
+      <p class="resumen" id="r-victimas" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-3" id="k-victimas"></div>
+      <div id="c-victimas"></div>
+    </section>
+    <section class="modulo" id="m-percepcion" role="tabpanel" aria-labelledby="tab-percepcion" hidden>
+      <p class="resumen" id="r-percepcion" aria-live="polite"></p>
+      <div class="kpis kpis-3" id="k-percepcion"></div>
+      <div id="c-percepcion"></div>
+    </section>
+    <section class="modulo" id="m-policia" role="tabpanel" aria-labelledby="tab-policia" hidden>
+      <p class="resumen" id="r-policia" aria-live="polite"></p>
+      <div class="kpis kpis-3" id="k-policia"></div>
+      <div id="c-policia"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Programas Presupuestales (ENAPRES), capítulo de Seguridad ciudadana, 2014-2025. Cálculos del Observatorio a partir de las bases de datos.</p>
+    <p><strong>Población:</strong> personas de 15 años a más del área urbana, como en las cifras que publica el INEI. Los porcentajes usan el factor de expansión de cada pregunta; «No sabe» no entra en el cálculo.</p>
+    <p><strong>Víctimas de al menos un delito:</strong> personas que en los últimos 12 meses sufrieron al menos un delito o intento de robo, secuestro o extorsión, u «otro» delito. No incluye los delitos informáticos que la encuesta agregó en 2024. <strong>Denunciaron:</strong> víctimas que denunciaron al menos uno de esos hechos.</p>
+    <p><strong>Cambios en la encuesta:</strong> la confianza en las instituciones no tenía la opción «suficiente» hasta 2017, por eso sube en 2018. Desde 2024 solo se pregunta a quienes conocen las funciones de cada institución. Las razones de inseguridad y de desconfianza se preguntan desde 2019, la inseguridad en su zona desde 2019, los otros lugares desde 2022 y el desempeño de la Policía desde 2017.</p>
+    <p><strong>Datos referenciales (*):</strong> se calculan con menos de 30 personas encuestadas y pueden variar mucho de un año a otro. Lima Metropolitana es la provincia de Lima y Lima Provincias el resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Seguridad ciudadana</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=0c93921"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=0c93921"></script>
+  <script src="../../comun/config.js?v=0c93921"></script>
+  <script src="../../comun/base.js?v=0c93921"></script>
+  <script src="../../comun/graficos.js?v=0c93921"></script>
+  <script src="../../comun/mapa.js?v=0c93921"></script>
+  <script src="../../comun/filtros.js?v=0c93921"></script>
+  <script src="tablero.js?v=0c93921"></script>
+</body>
+</html>

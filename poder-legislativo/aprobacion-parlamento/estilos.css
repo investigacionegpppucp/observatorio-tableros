@@ -28,7 +28,7 @@
 .tabla td small { display: block; color: var(--texto-suave); font-size: 14px; }
 .tabla tr[data-gobierno] { cursor: pointer; }
 .tabla tbody tr[data-gobierno]:hover td { background: var(--fondo); }
-.tabla tr.elegida td { background: rgba(0, 63, 163, 0.08); }
+.tabla tr.elegida td { background: rgba(40, 65, 221, 0.08); }
 .tabla tr.elegida .fila-boton { color: var(--azul); }
 .fila-boton { padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--texto); text-align: left; cursor: pointer; white-space: nowrap; }
 .fila-boton:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }

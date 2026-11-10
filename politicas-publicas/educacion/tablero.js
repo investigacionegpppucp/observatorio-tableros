@@ -17,7 +17,7 @@
    comunes arriba: región, «Comparar con» y nivel educativo. En cada
    pestaña: resumen dinámico, cifras clave (con su cambio y su línea),
    evolución de cada indicador (con «Ver por» zona, sexo o gestión, que
-   muestra las diferencias en el tiempo, y «Ver como tabla») y mapa con
+   muestra las diferencias en el tiempo) y mapa con
    ranking. Patrón: un objeto `estado`, funciones puras
    para leer los datos y una sola `render()`.
 
@@ -166,7 +166,6 @@ const estado = {
   nivel: "Primaria",
   grado: "4p",            // grado de primaria en logros de aprendizaje
   verPor: {},             // indicador -> "Total" o un grupo de PARES
-  tabla: {},              // id de tarjeta -> true si se ve como tabla
   mapa: {
     estudiantes: { ind: "aprendizajes", curso: "Lectura", anio: null },
     docentes: { ind: "titulados", curso: "", anio: null },
@@ -372,12 +371,10 @@ function htmlEvol({ ind, titulo, desc }) {
     <div class="controles">
       ${info.cursos ? `<div class="filtro-local" data-grado-caja role="group" aria-labelledby="lbl-grado"><span id="lbl-grado">Grado evaluado</span><div class="segmentado claro" data-grado></div></div>` : ""}
       <div class="filtro-local" role="group" aria-labelledby="lbl-vp-${ind}"><span id="lbl-vp-${ind}">Ver por</span><div class="segmentado claro" data-verpor="${ind}"></div></div>
-      <button type="button" class="ver-tabla" data-tabla="${ind}" aria-controls="tb-${ind}">Ver como tabla</button>
     </div>
     <p class="lectura" id="l-${ind}" aria-live="polite"></p>
     <div class="ley" id="ley-${ind}"></div>
     <div class="grafico" id="g-${ind}"></div>
-    <div class="tabla-caja" id="tb-${ind}" hidden></div>
     <p class="nota-tarjeta" id="n-${ind}"></p>
   </article>`;
 }
@@ -387,9 +384,6 @@ function pintarEvol(ind) {
   const s = serieDe(ind);
   const card = document.getElementById(`c-${ind}`);
   const lectura = document.getElementById(`l-${ind}`), nota = document.getElementById(`n-${ind}`);
-  const verTabla = !!estado.tabla[ind];
-  $(`[data-tabla="${ind}"]`, card).textContent = verTabla ? "Ocultar tabla" : "Ver como tabla";
-  $(`[data-tabla="${ind}"]`, card).setAttribute("aria-expanded", verTabla);
   nota.textContent = "";
   if (info.cursos) {
     $("[data-grado-caja]", card).hidden = estado.nivel !== "Primaria";
@@ -445,15 +439,6 @@ function pintarEvol(ind) {
   } else leyenda(`ley-${ind}`, series.filter((x) => !x.punteada).map((x) => [x.nombre, x.color]), { hueco: !!info.hueco, comparacion: conComp, referencia });
   lineas(`g-${ind}`, ind, anios, series, `${info.corto}, ${info.cursos ? GRADO[s].nombre : nivelDe(ind).toLowerCase()}, ${vp !== "Total" ? `por ${PARES[vp].nombre.toLowerCase()}, Perú` : enLugar(lugar)}, ${a0}-${a1}`);
 
-  // Ver como tabla: un año por fila, una columna por línea
-  const caja = document.getElementById(`tb-${ind}`);
-  caja.hidden = !verTabla;
-  if (verTabla) {
-    const filas = anios.map((a, i) => ({ a, vals: series.map((x) => x.valores[i]) })).filter((f) => f.vals.some((v) => v != null));
-    tablaOrdenable(`tb-${ind}`, [{ clave: "anio", titulo: "Año", num: true, valor: (f) => f.a, html: (f) => String(f.a) },
-      ...series.map((x, j) => ({ clave: `s${j}`, titulo: Obs.escapar(x.nombre), num: true, valor: (f) => f.vals[j], html: (f) => fmt(ind, f.vals[j]) }))],
-    filas, { inicial: { clave: "anio", dir: -1 }, claveFila: (f) => f.a, descripcion: `${info.corto}: valores de cada año` });
-  }
 
   // Lectura
   if (vp !== "Total") {
@@ -737,8 +722,6 @@ function tarjetas() {
     const caja = document.getElementById(`c-${m}`);
     caja.innerHTML = MOD[m].evol.map((t) => (t.par ? `<div class="par">${t.par.map(htmlEvol).join("")}</div>` : htmlEvol(t))).join("") + htmlMapa(m);
     caja.addEventListener("click", (e) => {
-      const vt = e.target.closest("button[data-tabla]");
-      if (vt) { estado.tabla[vt.dataset.tabla] = !estado.tabla[vt.dataset.tabla]; render(); return; }
       const b = e.target.closest("button[data-valor]");
       if (!b) return;
       const grupo = b.parentElement, v = b.dataset.valor;

@@ -6,41 +6,46 @@
    archivo al cargar (comun/graficos.js, función leerTema).
    ========================================================= */
 :root {
-  /* Marca */
-  --navy: #042355;
-  --azul: #003fa3;
-  --azul-medio: #067bc2;
-  --azul-claro: #779cf7;
-  --rojo: #c61c44;
-  --rosa: #e06991;
-  --verde: #78a300;
-  --lima: #add94b;
-  --lima-suave: #d9f490;
+  /* Marca (manual de marca del Observatorio) */
+  --navy: #042354;         /* Azul institucional: textos, cabecera y pie */
+  --azul: #2841dd;         /* Azul real: botones y acciones */
+  --azul-medio: #0a7bc2;
+  --azul-claro: #9eaef5;
+  --rojo: #c3094a;
+  --rosa: #f56eb4;
+  --verde: #8bb733;
+  --lima: #add754;         /* Verde: acento del Observatorio */
+  --lima-suave: #d6ec9f;
 
-  /* Neutros */
-  --fondo: #f2f4f7;
+  /* Gris azulado: fondos, texto secundario y líneas */
+  --fondo: #f3f6fa;
   --superficie: #ffffff;
-  --linea: #dce1e8;
-  --texto: #1c2533;
-  --texto-suave: #4f5a6b;
+  --linea: #dde4ef;
+  --texto: #042354;
+  --texto-suave: #4a5b7a;
 
-  /* Gráficos: orden categórico fijo (validado con dataviz/validate_palette.js:
-     banda de luminosidad, croma, separación para daltonismo y contraste ≥ 3:1) */
-  --serie-1: #3a5fcd;
-  --serie-2: #c61c44;
-  --serie-3: #6f9800;
-  --serie-4: #067bc2;
-  --serie-5: #e06991;
-  --serie-otros: #9aa3b0;
-  /* Una sola serie y escala secuencial (de claro a oscuro) */
-  --serie-unica: #003fa3;
-  --escala-1: #e3eafb;
-  --escala-2: #b4c6fa;
-  --escala-3: #779cf7;
-  --escala-4: #003fa3;
-  --escala-5: #042355;
+  /* Gráficos: orden categórico fijo, con colores secundarios del manual (validado con
+     dataviz/validate_palette.js: banda de luminosidad, croma, separación para daltonismo y
+     contraste ≥ 3:1). Las series 4 y 5 se distinguen menos con daltonismo: llevan etiqueta. */
+  --serie-1: #2841dd;
+  --serie-2: #e2284d;
+  --serie-3: #008768;
+  --serie-4: #7f32c8;
+  --serie-5: #0a7bc2;
+  --serie-otros: #99b3b3;
+  /* Una sola serie y escala secuencial (de claro a oscuro, validada como rampa ordinal) */
+  --serie-unica: #2841dd;
+  --escala-1: #9eaef5;
+  --escala-2: #6f84f2;
+  --escala-3: #2841dd;
+  --escala-4: #1c2d9e;
+  --escala-5: #042354;
 
-  --fuente: "Avenir Next", "Avenir", "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  /* Tipografía: Montserrat para títulos, subtítulos y texto;
+     Source Serif 4 en cursiva solo para resaltar una palabra clave en un titular */
+  --fuente: "Montserrat", "Segoe UI", system-ui, sans-serif;
+  --fuente-titulos: "Montserrat", "Segoe UI", system-ui, sans-serif;
+  --fuente-destacada: "Source Serif 4", Georgia, serif;
   --radio: 4px;
   --ancho: 1400px; /* ancho del contenido; dentro del iframe de Webflow ocupa todo el recuadro */
   color-scheme: light;

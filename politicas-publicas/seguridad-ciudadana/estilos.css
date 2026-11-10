@@ -1,0 +1,67 @@
+/* =========================================================
+   Estilos propios del tablero de Seguridad ciudadana.
+   Usa además los de Educación (../educacion/estilos.css): pares de
+   tarjetas, botones claros, cifras clave, tablas ordenables.
+   ========================================================= */
+:root {
+  /* Colores del manual de marca (validados con dataviz/validate_palette.js) */
+  /* Víctimas y percepción en la misma línea */
+  --victimas: #2841dd;
+  --percepcion: #e23008;
+  /* Confianza: escala divergente, rojo (poca) a azul (mucha). Cada lado validado como rampa ordinal */
+  --conf-nada: #c3094a;
+  --conf-poca: #f56eb4;
+  --conf-suficiente: #5064f7;
+  --conf-bastante: #042354;
+  /* Sexo y grupos de edad: las series del tema */
+  --grupo-1: var(--serie-1);
+  --grupo-2: var(--serie-2);
+  --grupo-3: var(--serie-3);
+  --grupo-4: var(--serie-4);
+  /* Dato referencial: pocas personas encuestadas */
+  --referencial: #99b3b3;
+  --quiebre: rgba(74, 91, 122, 0.08);
+}
+
+/* Año, junto a los filtros comunes */
+.filtros select.corto { min-width: 96px; }
+
+/* Selector del delito dentro de una tarjeta */
+.filtro-local select { max-width: 320px; }
+
+/* Mapa o cuadrícula */
+.cuadricula { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; max-width: 520px; margin: 8px auto 0; }
+.cuadricula button {
+  aspect-ratio: 1 / 1; min-height: 44px; padding: 4px; border: 2px solid transparent; border-radius: 3px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font: inherit; font-size: 12px; font-weight: 700; line-height: 1.1; cursor: pointer; text-align: center; overflow-wrap: anywhere;
+}
+.cuadricula button span { font-size: 12px; font-weight: 600; }
+.cuadricula button.claro { color: var(--navy); }
+.cuadricula button.oscuro { color: #fff; }
+.cuadricula button[aria-pressed="true"] { border-color: var(--lima); box-shadow: 0 0 0 2px var(--navy); }
+.cuadricula button:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.cuadricula .sin-dato { background: #e6e9ee; color: var(--texto-suave); }
+
+/* Barras al 100 %: leyenda de confianza */
+.ley i.bloque { width: 14px; height: 14px; border-radius: 2px; }
+
+/* Aviso dentro de una tarjeta (pregunta que no existe en el año elegido) */
+.aviso-anio { margin: 16px 0 0; padding: 14px 16px; border-left: 4px solid var(--azul-claro); background: #eef1fd; font-size: 15px; color: var(--texto); }
+.aviso-anio:empty { display: none; }
+
+.tabla td.ref { color: var(--texto-suave); }
+
+/* Chips de los delitos elegidos y «Limpiar filtros» (en la franja de filtros) */
+.chips { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #fff; font-size: 14px; font-weight: 600; }
+.chip button { width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: #fff; font-size: 20px; line-height: 1; cursor: pointer; }
+.chip button:hover { background: rgba(255, 255, 255, 0.2); }
+.chip-limpiar { min-height: 40px; padding: 6px 14px; border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.chip-limpiar:hover { background: rgba(255, 255, 255, 0.1); }
+.chip button:focus-visible, .chip-limpiar:focus-visible { outline: 3px solid var(--lima); outline-offset: 2px; }
+
+/* Qué compara el mapa cuando se hizo clic en una barra */
+.foco-mapa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 14px 0 0; padding: 10px 14px; background: #eef1fd; border-left: 4px solid var(--azul); font-size: 16px; }
+.quitar-foco { min-height: 40px; padding: 6px 14px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); color: var(--navy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.quitar-foco:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }

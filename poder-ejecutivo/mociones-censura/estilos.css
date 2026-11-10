@@ -67,7 +67,7 @@
 .tabla.ordenable tbody tr[data-k] { cursor: pointer; }
 .tabla.ordenable tbody tr[data-k]:hover td { background: var(--fondo); }
 .tabla.ordenable tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
-.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
+.tabla.ordenable tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
 .tabla tfoot td { position: sticky; bottom: 0; background: #e8eefb; border-top: 2px solid var(--navy); }
 .tabla .ministro { font-weight: 700; min-width: 200px; }
 .tabla .gobierno { font-weight: 700; }
@@ -107,7 +107,7 @@
 .buscador label { font-weight: 700; color: var(--navy); }
 .buscador input { flex: 1 1 320px; max-width: 520px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio);
   font: inherit; font-size: 16px; color: var(--texto); background: #fff; }
-.buscador input:focus-visible { outline: 3px solid rgba(0, 63, 163, 0.3); border-color: var(--azul); }
+.buscador input:focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
 
 
 @media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
