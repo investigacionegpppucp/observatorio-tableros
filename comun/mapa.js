@@ -53,6 +53,48 @@ window.Obs = window.Obs || {};
     document.getElementById(id).innerHTML = cortes.map(([a, b], i) =>
       `<span><i style="background:${escala[i + escala.length - cortes.length]}"></i>${formato(a)} a ${formato(b)}</span>`).join("");
   };
+  /* Escala continua (sin tramos): cada valor tiene su propio tono, interpolado entre los
+     colores de la escala, del más claro (mínimo) al más oscuro (máximo). */
+  /* Con { log: true } (conteos muy desiguales, como Lima frente al resto) el tono sigue
+     el logaritmo del valor, para que las regiones con pocos casos no queden todas iguales. */
+  Obs.rango = (valores, { log = false } = {}) => {
+    const v = [...valores].filter((x) => x != null && Number.isFinite(x));
+    if (!v.length) return null;
+    const r = [Math.min(...v), Math.max(...v)];
+    r.log = log;
+    return r;
+  };
+  // Posición de 0 a 1 de un valor dentro del rango
+  Obs.posicionRango = (v, rango) => {
+    const f = rango.log ? Math.log1p : (x) => x;
+    const a = f(Math.max(0, rango[0])), b = f(rango[1]);
+    return b > a ? Math.max(0, Math.min(1, (f(v) - a) / (b - a))) : 1;
+  };
+  const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  Obs.colorContinuo = (v, rango, escala) => {
+    if (!rango) return escala.at(-1);
+    const t = Obs.posicionRango(v, rango);
+    const cs = escala.map(hexRGB);
+    const x = t * (cs.length - 1);
+    const i = Math.min(cs.length - 2, Math.floor(x)), f = x - i;
+    return `rgb(${cs[i].map((c, k) => Math.round(c + (cs[i + 1][k] - c) * f)).join(",")})`;
+  };
+  // ¿El texto encima de este color debe ir en blanco?
+  Obs.colorOscuro = (c) => {
+    const m = String(c).match(/\d+/g);
+    const [r, g, b] = c.startsWith("#") ? hexRGB(c) : m.map(Number);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.55;
+  };
+  /* Barra degradada con el mínimo y el máximo. Con `mapa`, al pasar el mouse por una región
+     una marca indica dónde cae su valor en la barra. */
+  Obs.leyendaContinua = (id, rango, escala, formato = Obs.fmtN, mapa = null) => {
+    const el = document.getElementById(id);
+    if (!rango) { el.innerHTML = ""; return; }
+    const [a, b] = rango;
+    el.innerHTML = `<div class="ley-continua"><span>${formato(a)}</span>` +
+      `<i style="background:linear-gradient(90deg,${escala.join(",")})"><b class="ley-marca" hidden></b></i><span>${formato(b)}</span></div>`;
+    if (mapa) mapa.leyenda = { el: el.querySelector(".ley-marca"), rango };
+  };
   Obs.leyendaCategorias = (id, entradas) => {
     document.getElementById(id).innerHTML = entradas.map(([etiqueta, color]) =>
       `<span><i style="background:${color}"></i>${Obs.escapar(etiqueta)}</span>`).join("");
@@ -125,11 +167,20 @@ window.Obs = window.Obs || {};
       mapa.capaRegiones = L.geoJSON(filtro("region"), {
         onEachFeature: (f, capa) => capa.on({
           click: () => this.alClic(f.properties.region),
-          mouseover: () => { capa.setStyle({ weight: 2.5, color: Obs.tema().navy }); capa.bringToFront(); },
-          mouseout: () => this.estilar(capa),
+          mouseover: () => { capa.setStyle({ weight: 2.5, color: Obs.tema().navy }); capa.bringToFront(); this.marcar(this.ultimo?.valores.get(f.properties.region)); },
+          mouseout: () => { this.estilar(capa); this.marcar(null); },
         }),
       }).addTo(mapa);
       return mapa;
+    }
+
+    // Marca en la leyenda continua el valor de la región bajo el mouse
+    marcar(v) {
+      const l = this.leyenda;
+      if (!l || !l.el.isConnected) return;
+      const ok = typeof v === "number" && Number.isFinite(v);
+      l.el.hidden = !ok;
+      if (ok) l.el.style.left = `${Obs.posicionRango(v, l.rango) * 100}%`;
     }
 
     estilar(capa) {

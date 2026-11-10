@@ -309,3 +309,8 @@ body.embed .cabecera-interior { padding-top: 14px; justify-content: flex-end; }
   .dl-fila { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* Leyenda de la escala continua de los mapas */
+.ley-continua { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.ley-continua i { position: relative; display: block; width: 240px; max-width: 55vw; height: 12px; border-radius: 3px; }
+.ley-continua .ley-marca { position: absolute; top: -4px; width: 3px; height: 20px; margin-left: -1.5px; background: var(--navy); border-radius: 1px; box-shadow: 0 0 0 1.5px #fff; }

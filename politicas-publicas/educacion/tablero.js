@@ -534,12 +534,12 @@ function pintarMapa(m) {
   const filas = REGIONES.map((r) => ({ region: r.region, v: val(ind, s, curso, r.region, anio) })).filter((f) => f.v != null).sort((a, b) => b.v - a.v);
   cuerpo.hidden = !filas.length;
   if (!filas.length) { lectura.textContent = "No hay datos regionales para esta selección."; return; }
-  const escala = info.numero ? 1 : 100; // los cortes van en puntos porcentuales
+  const escala = info.numero ? 1 : 100; // el mapa va en puntos porcentuales
   const valores = new Map(filas.map((f) => [f.region, f.v * escala]));
   if (!mapas[m]) mapas[m] = new Obs.Mapa(`mapa-${m}`, GEO, { alClic: elegirRegion, nombre: nombreRegion });
-  const cortes = Obs.cortesCuantiles([...valores.values()]);
-  mapas[m].pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => fmt(ind, v / escala), elegida: estado.region });
-  Obs.leyendaTramos(`ley-mapa-${m}`, cortes, C.escala, (v) => (info.difTxt ? soles(v) : info.numero ? Obs.fmtN(v, 0) : `${Obs.fmtN(v, 0)} %`));
+  const rango = Obs.rango(valores.values());
+  mapas[m].pintar({ valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => fmt(ind, v / escala), elegida: estado.region });
+  Obs.leyendaContinua(`ley-mapa-${m}`, rango, C.escala, (v) => (info.difTxt ? soles(v) : info.numero ? Obs.fmtN(v, 1) : `${Obs.fmtN(v, 1)} %`), mapas[m]);
 
   const peru = val(ind, s, curso, NACIONAL, anio);
   const alto = filas[0], bajo = filas.at(-1);

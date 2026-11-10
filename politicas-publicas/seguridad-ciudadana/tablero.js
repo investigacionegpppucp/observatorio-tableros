@@ -693,8 +693,8 @@ function pintarMapa(m) {
   cuerpo.hidden = !filas.length;
   if (!filas.length) { lectura.textContent = def.primero && estado.anio < def.primero ? "" : "No hay datos regionales para esta selección."; return; }
   const valores = new Map(filas.map((x) => [x.region, x.v * 100]));
-  const cortes = Obs.cortesCuantiles([...valores.values()]);
-  const colorDe = (v) => Obs.colorTramo(v, cortes, C.escala);
+  const rango = Obs.rango(valores.values());
+  const colorDe = (v) => Obs.colorContinuo(v, rango, C.escala);
   const etiqueta = (r) => { const x = filas.find((y) => y.region === r); return x ? `${pct(x.v)}${ref(x.x) ? " *" : ""}` : "sin datos"; };
   const enMapa = estado.vista === "mapa";
   document.getElementById(`mapa-${m}`).hidden = !enMapa;
@@ -704,14 +704,13 @@ function pintarMapa(m) {
     mapas[m].pintar({ valores, color: colorDe, texto: (v) => `${Obs.fmtN(v, 1)} %`, elegida: estado.region });
   } else {
     // Cuadrícula: todas las regiones del mismo tamaño, así se ven Callao y Lima Metropolitana
-    const oscuro = new Set(C.escala.slice(2));
     document.getElementById(`cuad-${m}`).innerHTML = Object.entries(CUADRO).sort((a, b) => a[1][1] - b[1][1] || a[1][0] - b[1][0]).map(([r, [c, fi]]) => {
       const v = valores.get(r), fondo = v != null ? colorDe(v) : null;
-      return `<button type="button" data-region="${r}" style="grid-column:${c + 1};grid-row:${fi + 1};${fondo ? `background:${fondo}` : ""}" class="${fondo ? (oscuro.has(fondo) ? "oscuro" : "claro") : "sin-dato"}" aria-pressed="${r === estado.region}" aria-label="${nombre(r)}: ${etiqueta(r)}">` +
+      return `<button type="button" data-region="${r}" style="grid-column:${c + 1};grid-row:${fi + 1};${fondo ? `background:${fondo}` : ""}" class="${fondo ? (Obs.colorOscuro(fondo) ? "oscuro" : "claro") : "sin-dato"}" aria-pressed="${r === estado.region}" aria-label="${nombre(r)}: ${etiqueta(r)}">` +
         `${Obs.escapar(nombre(r).length > 11 ? abreviar(r) : nombre(r))}<span>${v != null ? `${Obs.fmtN(v, 0)} %` : "—"}</span></button>`;
     }).join("");
   }
-  Obs.leyendaTramos(`ley-mapa-${m}`, cortes, C.escala, (v) => `${Obs.fmtN(v, 0)} %`);
+  Obs.leyendaContinua(`ley-mapa-${m}`, rango, C.escala, (v) => `${Obs.fmtN(v, 1)} %`, enMapa ? mapas[m] : null);
 
   const peru = def.valor(NACIONAL);
   const alto = filas[0], bajo = filas.at(-1);

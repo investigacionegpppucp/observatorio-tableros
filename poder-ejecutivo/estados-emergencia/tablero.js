@@ -333,12 +333,12 @@ function regiones(m, filas, unidad) {
   for (const f of filas) for (const r of f.regiones) porRegion.set(r, (porRegion.get(r) ?? 0) + 1);
   if (!mapas[m]) mapas[m] = new Obs.Mapa(`mapa-${m}`, Obs._geo_datos, { alClic: elegirRegion, nombre: nombreRegion });
   const escala = C.escala, distintos = new Set(porRegion.values());
-  // todas las regiones con el mismo valor (la emergencia sanitaria): un solo color, sin tramos
-  const cortes = distintos.size > 1 ? Obs.cortesCuantiles([...porRegion.values()]) : [];
-  const color = distintos.size > 1 ? (v) => Obs.colorTramo(v, cortes, escala) : () => escala[3];
+  // todas las regiones con el mismo valor (la emergencia sanitaria): un solo color, sin escala
+  const rango = distintos.size > 1 ? Obs.rango(porRegion.values(), { log: true }) : null;
+  const color = distintos.size > 1 ? (v) => Obs.colorContinuo(v, rango, escala) : () => escala[3];
   mapas[m].pintar({ valores: porRegion, color, texto: (v) => `${num(v)} ${unidad}`, elegida: estado.region });
   const ley = document.getElementById(`ley-mapa-${m}`);
-  if (cortes.length) Obs.leyendaTramos(`ley-mapa-${m}`, cortes, escala);
+  if (rango) Obs.leyendaContinua(`ley-mapa-${m}`, rango, escala, num, mapas[m]);
   else ley.innerHTML = porRegion.size ? `<span><i style="background:${escala[3]}"></i>${num([...distintos][0])} en cada región</span>` : "";
   const total = filas.length || 1;
   const lista = [...porRegion].map(([region, v]) => ({ region, nombre: nombreRegion(region), v }));

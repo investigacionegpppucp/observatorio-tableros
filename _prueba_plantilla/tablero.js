@@ -76,9 +76,9 @@ function render() {
 
   // Mapa: ignora la región elegida y la resalta
   const porRegion = Obs.sumarPor(s.regiones, (f) => D.regiones[f.region].region);
-  const cortes = Obs.cortesCuantiles([...porRegion.values()]);
-  mapa.pintar({ valores: porRegion, color: (v) => Obs.colorTramo(v, cortes, Obs.tema().escala), texto: (v) => `${Obs.fmtN(v)} ${UNIDAD}`, elegida: estado.region });
-  Obs.leyendaTramos("ley-resumen", cortes, Obs.tema().escala);
+  const rango = Obs.rango(porRegion.values());
+  mapa.pintar({ valores: porRegion, color: (v) => Obs.colorContinuo(v, rango, Obs.tema().escala), texto: (v) => `${Obs.fmtN(v)} ${UNIDAD}`, elegida: estado.region });
+  Obs.leyendaContinua("ley-resumen", rango, Obs.tema().escala, Obs.fmtN, mapa);
 
   Obs.escribirURL({ region: estado.region === "NACIONAL" ? null : estado.region });
 }

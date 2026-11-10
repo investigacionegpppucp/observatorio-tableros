@@ -408,9 +408,9 @@ async function pintarMapa() {
     mapas[nivel].pintar({ valores, color: (v) => (v > 0 ? colores[0] : colores[1]), texto: (v) => (v > 0 ? "Sí" : "No"), elegida: nivel === "regional" ? estado.region : mt.elegida });
     Obs.leyendaCategorias("ley-mapa", [["Sí", colores[0]], ["No", colores[1]]]);
   } else {
-    const cortes = Obs.cortesCuantiles([...valores.values()]);
-    mapas[nivel].pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => fmtInd(ind, v / escala), elegida: nivel === "regional" ? estado.region : mt.elegida });
-    Obs.leyendaTramos("ley-mapa", cortes, C.escala, (v) => (ind.tipo === "suma" ? fmtInd(ind, v) : `${Obs.fmtN(v, 0)} %`));
+    const rango = Obs.rango(valores.values(), { log: ind.tipo === "suma" });
+    mapas[nivel].pintar({ valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => fmtInd(ind, v / escala), elegida: nivel === "regional" ? estado.region : mt.elegida });
+    Obs.leyendaContinua("ley-mapa", rango, C.escala, (v) => (ind.tipo === "suma" ? fmtInd(ind, v) : `${Obs.fmtN(v, 1)} %`), mapas[nivel]);
   }
 
   // Con una región elegida en la tabla, el mapa de provincias o distritos se acerca a ella

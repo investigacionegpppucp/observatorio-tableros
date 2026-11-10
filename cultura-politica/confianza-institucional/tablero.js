@@ -179,11 +179,11 @@ function respuestas(s) {
 let mapa;
 function regiones(s) {
   document.getElementById("t-mapa").textContent = `Confianza en ${conArticulo(estado.institucion)} por región, ${estado.anio}`;
-  const valores = new Map(s.regiones.map((f) => [f.codigo, f.confia * 100])); // en puntos porcentuales para los cortes
-  const cortes = Obs.cortesCuantiles([...valores.values()]);
+  const valores = new Map(s.regiones.map((f) => [f.codigo, f.confia * 100])); // en puntos porcentuales
+  const rango = Obs.rango(valores.values());
   const escala = C.escala;
-  mapa.pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, escala), texto: (v) => pct(v / 100), elegida: estado.region === NACIONAL ? null : estado.region });
-  Obs.leyendaTramos("ley-mapa", cortes, escala, (v) => Obs.fmtN(v, 0) + " %");
+  mapa.pintar({ valores, color: (v) => Obs.colorContinuo(v, rango, escala), texto: (v) => pct(v / 100), elegida: estado.region === NACIONAL ? null : estado.region });
+  Obs.leyendaContinua("ley-mapa", rango, escala, (v) => Obs.fmtN(v, 1) + " %", mapa);
   Obs.barras("g-regiones", s.regiones.map((f) => ({ clave: f.codigo, etiqueta: NOMBRE_REGION.get(f.codigo), valor: f.confia })), {
     formato: pct, nombre: corto(estado.institucion), seleccion: estado.region === NACIONAL ? null : new Set([estado.region]), alClic: elegirRegion,
   });

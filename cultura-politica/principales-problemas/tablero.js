@@ -128,11 +128,11 @@ function lineas(id, anios, series, aria) {
 
 // Mapa coroplético de un porcentaje + tabla de regiones (ignora la región elegida; la resalta)
 function pintarMapa(m, filas, nombreProblema) {
-  const valores = new Map(filas.map((f) => [f.region, f.v * 100])); // en puntos porcentuales para los cortes
+  const valores = new Map(filas.map((f) => [f.region, f.v * 100])); // en puntos porcentuales
   if (!mapas[m]) mapas[m] = new Obs.Mapa(`mapa-${m}`, GEO, { alClic: elegirRegion, nombre: nombreRegion });
-  const cortes = Obs.cortesCuantiles([...valores.values()]);
-  mapas[m].pintar({ valores, color: (v) => Obs.colorTramo(v, cortes, C.escala), texto: (v) => pct(v / 100), elegida: estado.region });
-  Obs.leyendaTramos(`ley-${m}`, cortes, C.escala, (v) => `${Obs.fmtN(v, 0)}%`);
+  const rango = Obs.rango(valores.values());
+  mapas[m].pintar({ valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => pct(v / 100), elegida: estado.region });
+  Obs.leyendaContinua(`ley-${m}`, rango, C.escala, (v) => `${Obs.fmtN(v, 1)} %`, mapas[m]);
   Obs.tabla(`t-${m}-regiones`,
     [{ titulo: "#", campo: "pos" }, { titulo: "Región", campo: "nombre" }, { titulo: "Porcentaje", campo: "pct", num: true }],
     filas.map((f, i) => ({ pos: String(i + 1), region: f.region, nombre: nombreRegion(f.region), pct: pct(f.v) })),
