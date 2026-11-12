@@ -12,6 +12,9 @@
   --r-nosabe: #b8c0cc;
   --r-auto: #a3123a;
   --r-mismo: #e8a33d;
+  /* Cambio de las cifras clave (igual que en Educación): sube en verde, baja en rojo */
+  --sube: #2f6f00;
+  --baja: #b3173d;
 }
 .cabecera-interior { padding-bottom: 12px; }
 
@@ -19,6 +22,10 @@
 .kpi.boton-kpi { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); cursor: pointer; border-top: 4px solid var(--c); }
 .kpi.boton-kpi:hover { background: var(--fondo); }
 .kpi.boton-kpi:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.kpi-cambio { font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.kpi .sube { color: var(--sube); }
+.kpi .baja { color: var(--baja); }
+.flecha-kpi { font-size: 0.55em; margin-right: 6px; vertical-align: 0.25em; }
 .kpi .ir { font-size: 14px; font-weight: 700; color: var(--azul); margin-top: 4px; }
 
 /* Leyendas: línea (serie) y cuadro (respuestas) */
@@ -49,6 +56,30 @@
 .lectura { margin: 14px 0 0; font-size: 16px; line-height: 1.5; max-width: 900px; }
 .lectura:empty { display: none; }
 .mapa-y-tabla .grafico { margin-top: 0; }
+
+/* Ranking de regiones al lado del mapa: filas compactas, del mismo alto total que el mapa */
+.ranking { --nombre: 150px; --valor: 58px; position: relative; }
+.ranking ol { list-style: none; margin: 0; padding: 0; position: relative; }
+/* Línea punteada del valor del Perú, a lo largo de todas las barras */
+.ranking ol::before {
+  content: ""; position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
+  left: calc(var(--nombre) + 10px + (100% - var(--nombre) - var(--valor) - 20px) * var(--ref-n, 0));
+  border-left: 2px dashed var(--navy); opacity: 0.55;
+}
+.ranking button {
+  all: unset; box-sizing: border-box; display: grid; grid-template-columns: var(--nombre) 1fr var(--valor); align-items: center; gap: 10px;
+  width: 100%; min-height: 22px; padding: 0; cursor: pointer; border-radius: 3px;
+}
+.ranking button:hover { background: var(--fondo); }
+.ranking button:focus-visible { outline: 3px solid var(--azul); outline-offset: 1px; }
+.ranking .nombre { text-align: right; font-size: 14px; color: var(--texto); line-height: 1.15; }
+.ranking .pista-barra { display: block; height: 14px; }
+.ranking .pista-barra i { display: block; height: 100%; border-radius: 0 2px 2px 0; }
+.ranking .valor { font-size: 14px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.ranking .elegida .nombre { font-weight: 800; color: var(--navy); }
+.ranking-ref { display: flex; align-items: center; gap: 8px; margin: 0 0 6px calc(var(--nombre) + 10px); font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+.ranking.sin-ref ol::before { display: none; }
+.ranking-ref i { display: block; width: 0; height: 14px; border-left: 2px dashed var(--navy); opacity: 0.55; }
 .mapa-y-tabla > div { min-width: 0; }
 .ley-continua { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
 .ley-continua i { display: block; width: 180px; max-width: 50vw; height: 12px; border-radius: 3px; border: 1px solid var(--linea); }
@@ -71,6 +102,8 @@
 .tabla small { display: block; font-size: 13px; font-weight: 400; color: var(--texto-suave); }
 
 @media (max-width: 560px) {
+  .ranking { --nombre: 112px; --valor: 52px; }
+  .ranking button { min-height: 28px; }
   .controles, .filtro-local { width: 100%; min-width: 0; }
   .filtro-local select { width: 100%; }
 }

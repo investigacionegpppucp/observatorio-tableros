@@ -90,6 +90,11 @@ const valor = (tema, campo, reg, anio) => fila(tema, reg, anio)?.[campo] ?? null
 const enAmbito = (reg) => (reg === NACIONAL ? "en el Perú" : `en ${NOMBRE_REGION.get(reg)}`);
 const EnAmbito = (reg) => (reg === NACIONAL ? "En el Perú" : `En ${NOMBRE_REGION.get(reg)}`);
 const destacar = (s) => `<strong>${s}</strong>`;
+/* Cambio con flecha y color: en los tres indicadores, subir es mejor (verde) y bajar, peor (rojo) */
+const sentido = (d) => (Math.abs(d) < 0.0005 ? "igual" : d > 0 ? "sube" : "baja");
+const flecha = (d) => ({ sube: "▲", baja: "▼", igual: "■" })[sentido(d)];
+const cambio = (d, a0) => `<span class="kpi-cambio ${sentido(d)}"><span aria-hidden="true">${flecha(d)}</span> ` +
+  (sentido(d) === "igual" ? `Igual que en ${a0}` : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`) + "</span>";
 // Códigos del mapa: mayúsculas y sin tildes, como en publica/mapas/peru_regiones.geojson
 const codigo = (nombre) => String(nombre).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
 const temaActual = () => (estado.modulo === "panorama" ? null : estado.modulo);
@@ -118,7 +123,7 @@ function pintarPanorama() {
     const T = TEMAS[t], antes = valor(t, T.positivo, r, a0);
     const d = v[t] != null && antes != null && a !== a0 ? v[t] - antes : null;
     return `<button type="button" class="kpi boton-kpi" data-t="${t}" style="--c:${C.tema[t]}"><span class="kpi-etiqueta">${T.corto}</span><span class="kpi-valor">${pct(v[t])}</span>` +
-      `<span class="kpi-pie">${d == null ? `${NOMBRE_REGION.get(r)}, ${a}` : Math.abs(d) < 0.0005 ? `Igual que en ${a0}` : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`}</span><span class="ir">Ver detalle</span></button>`;
+      `${d == null ? `<span class="kpi-pie">${NOMBRE_REGION.get(r)}, ${a}</span>` : cambio(d, a0)}<span class="ir">Ver detalle</span></button>`;
   }).join("");
   document.querySelectorAll("#k-panorama button").forEach((b) => (b.onclick = () => actualizar({ modulo: b.dataset.t })));
 
@@ -184,7 +189,8 @@ function pintarTema(t) {
   const tarjeta = (etiqueta, val, pie) => `<div class="kpi"><span class="kpi-etiqueta">${etiqueta}</span><span class="kpi-valor">${val}</span><span class="kpi-pie">${pie}</span></div>`;
   document.getElementById("k-tema").innerHTML =
     tarjeta(T.corto, pct(v), `${NOMBRE_REGION.get(r)}, ${a}`) +
-    tarjeta(`Cambio desde ${a0}`, d == null ? "—" : `${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)} p. p.`, d == null ? "Es el primer año con datos" : Math.abs(d) < 0.0005 ? "Sin cambio" : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`) +
+    tarjeta(`Cambio desde ${a0}`, d == null ? "—" : `<span class="${sentido(d)}"><span class="flecha-kpi" aria-hidden="true">${flecha(d)}</span>${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)} p. p.</span>`,
+      d == null ? "Es el primer año con datos" : `En ${a0}: ${pct(antes)}`) +
     (r === NACIONAL
       ? tarjeta("La región con el valor más alto", Obs.escapar(NOMBRE_REGION.get(regs[0]?.reg) ?? "—"), regs[0] ? `${pct(regs[0].v)}; la más baja es ${Obs.escapar(NOMBRE_REGION.get(regs.at(-1).reg))} (${pct(regs.at(-1).v)})` : "")
       : tarjeta("Puesto entre las regiones", puesto ? `${puesto}.º de ${regs.length}` : "—", puesto === 1 ? "La más alta del país" : regs[0] ? `La primera es ${Obs.escapar(NOMBRE_REGION.get(regs[0].reg))} (${pct(regs[0].v)})` : ""));
@@ -304,20 +310,29 @@ function pintarMapa() {
   document.getElementById("t-regiones").dataset.ind = ind.tema;
   if (pano) pintarTablaRegiones();
   else {
-    // Con una región elegida, las demás barras van en un tono claro (opaco, para que sus cifras se lean bien)
-    const base = C.tema[ind.tema], claro = mezclar(base, 0.3);
-    Obs.barras("g-regiones", regs.map((x) => ({ clave: x.reg, etiqueta: NOMBRE_REGION.get(x.reg), valor: x.v,
-      color: estado.region === NACIONAL || x.reg === estado.region ? base : claro })), {
-      formato: pct, nombre: ind.nombre, alClic: elegirRegion,
-    });
+    pintarRanking(orden, peru, ind);
   }
-  // Lado a lado, el mapa crece hasta la altura del ranking (o de la tabla); apilados, conserva su alto
-  const elMapa = document.getElementById("mapa-regiones");
-  const ladoALado = getComputedStyle(document.querySelector(".mapa-y-tabla")).gridTemplateColumns.split(" ").length > 1;
-  const derecha = document.getElementById(pano ? "t-regiones" : "g-regiones");
-  const ley = document.getElementById("ley-mapa").offsetHeight + 10;
-  elMapa.style.height = ladoALado ? `${Math.max(600, derecha.offsetHeight - ley)}px` : "";
   mapa.pintar({ valores, color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: (v) => pct(v), elegida: estado.region === NACIONAL ? null : estado.region });
+}
+
+/* Ranking compacto en HTML: una fila por región, del valor más alto al más bajo,
+   con una línea punteada en el valor del Perú. Con una región elegida, las demás van en tono claro */
+function pintarRanking(orden, peru, ind) {
+  const el = document.getElementById("g-regiones");
+  const tope = Math.max(...orden.map((x) => x.v), peru ?? 0) || 1;
+  const base = C.tema[ind.tema], claro = mezclar(base, 0.3), hay = estado.region !== NACIONAL;
+  const ancho = (v) => `${((v / tope) * 100).toFixed(2)}%`;
+  el.style.setProperty("--ref-n", peru != null ? peru / tope : 0);
+  el.classList.toggle("sin-ref", peru == null);
+  el.innerHTML = (peru != null ? `<p class="ranking-ref"><i></i>Perú: ${pct(peru)}</p>` : "") +
+    `<ol aria-label="${Obs.escapar(ind.nombre)} por región, de mayor a menor">` + orden.map((x) => {
+      const elegida = x.reg === estado.region;
+      return `<li><button type="button" data-k="${x.reg}"${elegida ? ' class="elegida" aria-pressed="true"' : ""}>` +
+        `<span class="nombre">${Obs.escapar(NOMBRE_REGION.get(x.reg))}</span>` +
+        `<span class="pista-barra"><i style="width:${ancho(x.v)};background:${!hay || elegida ? base : claro}"></i></span>` +
+        `<span class="valor">${pct(x.v)}</span></button></li>`;
+    }).join("") + "</ol>";
+  el.querySelector("ol").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b) elegirRegion(b.dataset.k); };
 }
 
 /* ---------------------------------------------------------
