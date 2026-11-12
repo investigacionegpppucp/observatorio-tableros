@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coronavirus | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=5bb5758">
+  <link rel="stylesheet" href="../../comun/tema.css?v=5bb5758">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=5bb5758">
+  <link rel="stylesheet" href="estilos.css?v=5bb5758">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Coronavirus</h1>
+        <p class="subtitulo">Contagios, fallecidos y vacunación contra la COVID-19 en el Perú y en cada región, desde el inicio de la pandemia hasta agosto de 2024.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+  </section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-positivos" aria-controls="m-caso" data-modulo="positivos">Contagios</button>
+    <button role="tab" id="tab-fallecidos" aria-controls="m-caso" data-modulo="fallecidos">Fallecidos</button>
+    <button role="tab" id="tab-vacunas" aria-controls="m-vacunas" data-modulo="vacunas">Vacunación</button>
+  </nav>
+
+  <main>
+    <!-- ================= CONTAGIOS O FALLECIDOS ================= -->
+    <section class="modulo" id="m-caso" role="tabpanel" aria-labelledby="tab-positivos">
+      <p class="resumen" id="r-caso" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-caso"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3 id="t-edad"></h3><p id="d-edad"></p></header>
+          <div class="grafico" id="g-edad"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3 id="t-sexo"></h3><p id="d-sexo"></p></header>
+          <div class="composicion" id="g-sexo"></div>
+          <p class="lectura" id="l-sexo"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= VACUNACIÓN ================= -->
+    <section class="modulo" id="m-vacunas" role="tabpanel" aria-labelledby="tab-vacunas" hidden>
+      <p class="resumen" id="r-vacunas" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-vacunas"></div>
+      <article class="tarjeta">
+        <header><h3>¿Cuántas personas recibieron cada dosis?</h3><p id="d-dosis"></p></header>
+        <div class="grafico bajo" id="g-dosis"></div>
+        <p class="pista">Haz clic en una dosis para verla en todo el tablero.</p>
+      </article>
+      <div class="par">
+        <article class="tarjeta">
+          <header class="cabeza-con-control"><div><h3 id="t-edad-v"></h3><p id="d-edad-v"></p></div></header>
+          <div class="grafico" id="g-edad-v"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3 id="t-fab">¿Qué vacunas se aplicaron?</h3><p id="d-fab"></p></header>
+          <div class="ley" id="ley-fab"></div>
+          <div class="grafico" id="g-fab"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
+    <article class="tarjeta">
+      <header><h3 id="t-mapa"></h3><p>Cuanto más oscura la región, mayor el valor. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
+      <div class="controles"><div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div></div>
+      <p class="lectura" id="l-mapa" aria-live="polite"></p>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+        <div><div class="grafico alto" id="g-regiones"></div></div>
+      </div>
+    </article>
+
+    <article class="tarjeta">
+      <header><h3>Las regiones, una por una</h3><p>Contagios, fallecidos y vacunación de cada región. Los títulos de columna ordenan la tabla; un clic en una región la elige en todo el tablero.</p></header>
+      <div class="tabla-caja" id="t-regiones"></div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Ministerio de Salud (Minsa), datos abiertos de casos positivos, fallecidos y vacunados contra la COVID-19, con corte a agosto de 2024. Población: estimaciones del INEI para 2021.</p>
+    <p><strong>Notas:</strong> Las tasas se calculan sobre la población de 2021: contagios por cada 100 habitantes y fallecidos por cada 10 000. La letalidad es el porcentaje de fallecidos entre los contagios registrados.
+      El total nacional de contagios y fallecidos es la suma de las regiones. En vacunación, el total nacional incluye a las personas sin región registrada; la cobertura puede superar el 100 % en una región si se vacunaron allí personas de otras regiones.
+      Las dosis registradas como 8.ª y 9.ª se agrupan en «otras dosis». Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos procesados el <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Coronavirus</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=5bb5758"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=5bb5758"></script>
+  <script src="../../comun/config.js?v=5bb5758"></script>
+  <script src="../../comun/base.js?v=5bb5758"></script>
+  <script src="../../comun/graficos.js?v=5bb5758"></script>
+  <script src="../../comun/mapa.js?v=5bb5758"></script>
+  <script src="../../comun/descarga.js?v=5bb5758"></script>
+  <script src="tablero.js?v=5bb5758"></script>
+</body>
+</html>
