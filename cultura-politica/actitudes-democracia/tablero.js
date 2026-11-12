@@ -244,6 +244,14 @@ function pintarTema(t) {
   }, true);
   gr.off("click");
   gr.on("click", (p) => { const anio = +(p.componentType === "yAxis" ? p.value : p.name); if (ANIOS.includes(anio)) actualizar({ anio }); });
+
+  // Lado a lado, el gráfico de evolución crece para que su tarjeta mida lo mismo que la de respuestas
+  const gEvol = document.getElementById("g-evol");
+  const izq = gEvol.closest(".tarjeta"), der = el.closest(".tarjeta");
+  const ladoALado = getComputedStyle(izq.parentElement).gridTemplateColumns.split(" ").length > 1;
+  gEvol.style.height = "";
+  if (ladoALado) gEvol.style.height = `${Math.max(gEvol.offsetHeight, gEvol.offsetHeight + der.offsetHeight - izq.offsetHeight)}px`;
+  g.resize();
 }
 
 /* Clic en cualquier punto de la columna de un año */
