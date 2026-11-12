@@ -75,12 +75,18 @@
 /* «Ver por» común a las dos tarjetas del par (desglose y letalidad) */
 .controles-par { margin: 0 0 12px; }
 
-/* Tabla de regiones: en pantallas angostas, solo las columnas de la pestaña elegida */
+/* Tabla de regiones: en pantallas angostas, solo la columna del indicador elegido en el mapa */
 .tabla-caja { container-type: inline-size; }
 @container (max-width: 620px) {
-  #t-regiones[data-tab="positivos"] :is(.c-fal, .c-v1, .c-v3),
-  #t-regiones[data-tab="fallecidos"] :is(.c-pos, .c-v1, .c-v3),
-  #t-regiones[data-tab="vacunas"] :is(.c-pos, .c-fal, .c-let) { display: none; }
+  #t-regiones[data-ver="total"] .num:not(.c-total),
+  #t-regiones[data-ver="tasa"] .num:not(.c-tasa),
+  #t-regiones[data-ver="mayores"] .num:not(.c-mayores),
+  #t-regiones[data-ver="letalidad"] .num:not(.c-letalidad),
+  #t-regiones[data-ver="v1"] .num:not(.c-v1),
+  #t-regiones[data-ver="v2"] .num:not(.c-v2),
+  #t-regiones[data-ver="v3"] .num:not(.c-v3),
+  #t-regiones[data-ver="v4"] .num:not(.c-v4),
+  #t-regiones[data-ver="v5"] .num:not(.c-v5) { display: none; }
   .tabla th.num { white-space: normal; }
   .tabla { font-size: 14px; }
   .tabla.ordenable th button { padding: 8px 6px; font-size: 13px; line-height: 1.25; }

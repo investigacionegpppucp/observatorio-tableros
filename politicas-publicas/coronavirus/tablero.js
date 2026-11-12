@@ -280,6 +280,7 @@ function pintarMapa() {
     formato: ind.fmt, nombre: ind.nombre, elegida: estado.region === NACIONAL ? null : estado.region, alClic: elegirRegion,
     referencia: peru != null ? { valor: peru, etiqueta: "Perú" } : null,
   });
+  return ind.id;
 }
 
 /* ---------------------------------------------------------
@@ -318,24 +319,37 @@ function tablaOrdenable(id, columnas, filas, { inicial, claveFila = () => "", el
     el.querySelector("tbody").onkeydown = ir;
   }
 }
-function pintarTabla() {
-  const col = [
-    { clave: "pos", titulo: "Casos por 100 hab.", f: (r) => tasaPos(caso("positivos", r)), fmt: (v) => Obs.fmtN(v, 1) },
-    { clave: "fal", titulo: "Fallecidos por 10 000 hab.", f: (r) => tasaFal(caso("fallecidos", r)), fmt: (v) => Obs.fmtN(v, 1) },
-    { clave: "let", titulo: "Letalidad", f: letalidad, fmt: pct },
-    { clave: "v1", titulo: "Con 1 dosis", f: (r) => cobertura(r, 1), fmt: pct },
-    { clave: "v3", titulo: "Con 3 dosis", f: (r) => cobertura(r, 3), fmt: pct },
+/* Cada pestaña tiene su tabla: los indicadores de ese tema, una fila por región */
+function columnasTabla() {
+  const t1 = (v) => Obs.fmtN(v, 1);
+  if (estado.modulo === "vacunas") return DOSIS.map((d) => ({ clave: `v${d}`, titulo: d === OTRAS ? "5.ª dosis o más" : `${d}.ª dosis`, f: (r) => cobertura(r, d), fmt: pct }));
+  const pos = estado.modulo === "positivos", tabla = pos ? "positivos" : "fallecidos";
+  return [
+    { clave: "total", titulo: pos ? "Casos positivos" : "Fallecidos", f: (r) => caso(tabla, r)?.total, fmt: n0 },
+    { clave: "tasa", titulo: pos ? "Por 100 hab." : "Por 10 000 hab.", f: (r) => (pos ? tasaPos : tasaFal)(caso(tabla, r)), fmt: t1 },
+    { clave: "mayores", titulo: "60 años a más", f: (r) => mayores(caso(tabla, r)), fmt: pct },
+    { clave: "letalidad", titulo: "Letalidad", f: letalidad, fmt: pct },
   ];
+}
+function pintarTabla(indMapa) {
+  const col = columnasTabla(), vac = estado.modulo === "vacunas";
+  $("#t-tabla").textContent = `Comparación regional: ${vac ? "cobertura por dosis" : estado.modulo === "positivos" ? "casos positivos" : "fallecidos"}`;
+  $("#d-tabla").textContent = vac ? "Porcentaje de la población de cada región que recibió cada dosis."
+    : `Indicadores de ${estado.modulo === "positivos" ? "casos positivos" : "fallecidos"} en cada región.`;
+  // Se ordena por el indicador elegido en el mapa (o la dosis elegida); al cambiarlo, el orden vuelve a ese
+  const ver = vac ? `v${estado.dosis}` : indMapa, inicial = { clave: ver, dir: -1 };
+  if (pintarTabla.ver !== `${estado.modulo}|${ver}` || ![...col.map((c) => c.clave), "reg"].includes(ORDEN["t-regiones"]?.clave)) ORDEN["t-regiones"] = { ...inicial };
+  pintarTabla.ver = `${estado.modulo}|${ver}`;
   const filas = REGIONES.map((reg) => ({ reg, ...Object.fromEntries(col.map((c) => [c.clave, c.f(reg)])) }));
   tablaOrdenable("t-regiones", [
     { clave: "reg", titulo: "Región", valor: (f) => nombreRegion(f.reg), html: (f) => nombreRegion(f.reg) },
     ...col.map((c) => ({ clave: c.clave, titulo: c.titulo, num: true, valor: (f) => f[c.clave], html: (f) => c.fmt(f[c.clave]) })),
   ], filas, {
-    inicial: { clave: "fal", dir: -1 }, claveFila: (f) => f.reg, elegida: estado.region === NACIONAL ? null : estado.region, alClic: elegirRegion,
-    descripcion: "COVID-19 por región", pie: `<tr class="peru"><td>Perú</td>${col.map((c) => `<td class="num c-${c.clave}">${c.fmt(c.f(NACIONAL))}</td>`).join("")}</tr>`,
+    inicial, claveFila: (f) => f.reg, elegida: estado.region === NACIONAL ? null : estado.region, alClic: elegirRegion,
+    descripcion: $("#t-tabla").textContent, pie: `<tr class="peru"><td>Perú</td>${col.map((c) => `<td class="num c-${c.clave}">${c.fmt(c.f(NACIONAL))}</td>`).join("")}</tr>`,
   });
-  // En celular, la tabla muestra solo las columnas de la pestaña elegida
-  $("#t-regiones").dataset.tab = estado.modulo;
+  // En celular, solo la columna del indicador elegido en el mapa
+  $("#t-regiones").dataset.ver = ver;
 }
 
 /* ---------------------------------------------------------
@@ -352,8 +366,7 @@ function render() {
   $("#m-vacunas").hidden = estado.modulo !== "vacunas";
   pintarControles();
   if (estado.modulo === "vacunas") pintarVacunas(); else pintarCaso(estado.modulo);
-  pintarMapa();
-  pintarTabla();
+  pintarTabla(pintarMapa());
   Obs.escribirURL({
     modulo: estado.modulo === "positivos" ? null : estado.modulo,
     region: estado.region === NACIONAL ? null : estado.region,
