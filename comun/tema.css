@@ -21,6 +21,9 @@
   --fondo: #f3f6fa;
   --superficie: #ffffff;
   --linea: #dde4ef;
+  /* Cambio de las cifras clave: sube (mejora) en verde, baja (empeora) en rojo */
+  --sube: #2f6f00;
+  --baja: #b3173d;
   --texto: #042354;
   --texto-suave: #4a5b7a;
 

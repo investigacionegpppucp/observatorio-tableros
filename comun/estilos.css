@@ -154,6 +154,11 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
 .kpi-valor { font-size: 38px; font-weight: 700; color: var(--navy); line-height: 1.15; font-variant-numeric: tabular-nums; }
 .kpi-valor.texto { font-size: 22px; line-height: 1.3; padding-top: 4px; }
 .kpi-pie { font-size: 14px; color: var(--texto-suave); }
+/* Cambio con flecha y color (▲ sube, ▼ baja); la palabra «más/menos» acompaña siempre a la flecha */
+.kpi-cambio { font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.kpi .sube { color: var(--sube); }
+.kpi .baja { color: var(--baja); }
+.flecha-kpi { font-size: 0.55em; margin-right: 6px; vertical-align: 0.25em; }
 
 .grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: start; }
 .tarjeta {
@@ -239,6 +244,8 @@ main { max-width: var(--ancho); margin: 0 auto; padding: 32px 16px 8px; }
 /* ---------- Pie ---------- */
 .pie { max-width: var(--ancho); margin: 8px auto 0; padding: 12px 16px 40px; font-size: 14px; color: var(--texto-suave); }
 .pie p { margin: 6px 0; }
+.pie .notas { margin: 0 0 8px; padding-left: 18px; }
+.pie .notas li { margin: 3px 0; line-height: 1.5; }
 
 /* ---------- Ventana de descarga ---------- */
 .dl {
@@ -314,3 +321,49 @@ body.embed .cabecera-interior { padding-top: 14px; justify-content: flex-end; }
 .ley-continua { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
 .ley-continua i { position: relative; display: block; width: 240px; max-width: 55vw; height: 12px; border-radius: 3px; }
 .ley-continua .ley-marca { position: absolute; top: -4px; width: 3px; height: 20px; margin-left: -1.5px; background: var(--navy); border-radius: 1px; box-shadow: 0 0 0 1.5px #fff; }
+
+/* ---------- Botones de una opción dentro de una tarjeta («Ver por», «Mostrar») ---------- */
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin: 16px 0 0; }
+.filtro-local { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.filtro-local > span, .filtro-local > label { font-size: 15px; font-weight: 700; color: var(--navy); }
+.segmentado.claro { display: inline-flex; flex-wrap: wrap; gap: 0; padding: 0; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); overflow: hidden; }
+.segmentado.claro button { border-radius: 0; min-height: 44px; padding: 8px 14px; font-size: 15px; color: var(--texto-suave); border-right: 1px solid var(--linea); }
+.segmentado.claro button:last-child { border-right: 0; }
+.segmentado.claro button:hover:not([aria-pressed="true"]) { background: var(--fondo); color: var(--navy); }
+.segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.segmentado.claro button:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
+@media (max-width: 560px) {
+  .segmentado.claro { width: 100%; }
+  .segmentado.claro button { flex: 1 1 auto; padding: 8px 10px; }
+}
+
+/* ---------- Ranking compacto junto al mapa (Obs.ranking) ---------- */
+.ranking { --nombre: 150px; --valor: 64px; position: relative; }
+.ranking ol { list-style: none; margin: 0; padding: 0; position: relative; }
+.ranking ol::before {
+  content: ""; position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
+  left: calc(var(--nombre) + 10px + (100% - var(--nombre) - var(--valor) - 20px) * var(--ref-n, 0));
+  border-left: 2px dashed var(--navy); opacity: 0.55;
+}
+.ranking.sin-ref ol::before { display: none; }
+.ranking button {
+  all: unset; box-sizing: border-box; display: grid; grid-template-columns: var(--nombre) 1fr var(--valor); align-items: center; gap: 10px;
+  width: 100%; min-height: 22px; cursor: pointer; border-radius: 3px;
+}
+.ranking button:hover { background: var(--fondo); }
+.ranking button:focus-visible { outline: 3px solid var(--azul); outline-offset: 1px; }
+.ranking .nombre { text-align: right; font-size: 14px; color: var(--texto); line-height: 1.15; }
+.ranking .pista-barra { display: block; height: 14px; }
+.ranking .pista-barra i { display: block; height: 100%; border-radius: 0 2px 2px 0; }
+.ranking .valor { font-size: 14px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.ranking .elegida .nombre { font-weight: 800; color: var(--navy); }
+.ranking-ref { display: flex; align-items: center; gap: 8px; margin: 0 0 6px calc(var(--nombre) + 10px); font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+.ranking-ref i { display: block; width: 0; height: 14px; border-left: 2px dashed var(--navy); opacity: 0.55; }
+@media (max-width: 560px) {
+  .ranking { --nombre: 112px; --valor: 56px; }
+  .ranking button { min-height: 28px; }
+}
+
+/* ---------- Tabla con cifras centradas y sin barras (opcional: class="tabla centrada") ---------- */
+.tabla.centrada td.num { text-align: center; font-weight: 700; color: var(--navy); }
+.tabla.centrada.ordenable th.num button { justify-content: center; }

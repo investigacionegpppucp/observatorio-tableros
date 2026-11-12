@@ -52,9 +52,6 @@
 .tabla tbody tr[data-k] { cursor: pointer; }
 .tabla tbody tr[data-k]:hover td { background: var(--fondo); }
 .tabla tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
-.celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.celda-barra i { display: block; height: 10px; border-radius: 2px; background: var(--escala-3); max-width: 90px; }
-.celda-barra b { font-weight: 700; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
 .buscador-tabla { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; }
 .buscador-tabla label { font-size: 15px; font-weight: 700; color: var(--navy); }
 .buscador-tabla input { flex: 1; max-width: 420px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); font: inherit; font-size: 15px; }

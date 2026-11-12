@@ -1,6 +1,5 @@
 .cabecera-interior { padding-bottom: 12px; }
 
-/* Cifras del panorama: cada una lleva a su pestaña */
 
 /* Leyendas: línea (serie) y cuadro (respuestas) */
 .ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
@@ -33,9 +32,6 @@
 .tabla tbody tr[data-k]:hover td { background: var(--fondo); }
 .tabla tr.elegida td { font-weight: 800; background: rgba(0, 63, 163, 0.08); color: var(--azul); }
 .tabla tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
-.celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.celda-barra i { display: block; height: 10px; border-radius: 2px; max-width: 90px; }
-.celda-barra b { font-weight: 700; min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
 .tabla.ordenable th { padding: 0; }
 .tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
 .tabla.ordenable th.num button { justify-content: flex-end; text-align: right; }
@@ -55,7 +51,14 @@
 .kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .par { grid-template-columns: 1fr; } }
-@media (max-width: 560px) { .kpis-4 { grid-template-columns: 1fr; } }
+/* En celular, las cuatro cifras clave van en 2 × 2 para no ocupar una pantalla entera */
+@media (max-width: 560px) {
+  .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpis-4 .kpi { padding: 12px; }
+  .kpis-4 .kpi-valor { font-size: 24px; }
+  .kpis-4 .kpi-valor.texto { font-size: 18px; }
+  .kpis-4 .kpi-etiqueta, .kpis-4 .kpi-pie { font-size: 13px; }
+}
 
 /* Composición: barra al 100 % y sus partes */
 .composicion { margin-top: 14px; }
@@ -67,4 +70,25 @@
 .partes b { width: 14px; height: 14px; border-radius: 3px; }
 .partes strong { font-size: 20px; font-variant-numeric: tabular-nums; color: var(--navy); }
 .partes em { font-style: normal; font-size: 14px; color: var(--texto-suave); min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
-#t-regiones .tabla { min-width: 760px; }
+
+
+/* «Ver por» común a las dos tarjetas del par (desglose y letalidad) */
+.controles-par { margin: 0 0 12px; }
+
+/* Tabla de regiones: en pantallas angostas, solo las columnas de la pestaña elegida */
+.tabla-caja { container-type: inline-size; }
+@container (max-width: 620px) {
+  #t-regiones[data-tab="positivos"] :is(.c-fal, .c-v1, .c-v3),
+  #t-regiones[data-tab="fallecidos"] :is(.c-pos, .c-v1, .c-v3),
+  #t-regiones[data-tab="vacunas"] :is(.c-pos, .c-fal, .c-let) { display: none; }
+  .tabla th.num { white-space: normal; }
+  .tabla { font-size: 14px; }
+  .tabla.ordenable th button { padding: 8px 6px; font-size: 13px; line-height: 1.25; }
+  .tabla td { padding: 9px 6px; }
+}
+
+/* Dosis en la franja de filtros: en celular, los cinco botones caben en una fila */
+@media (max-width: 560px) {
+  #filtro-dosis, #f-dosis { width: 100%; }
+  #f-dosis button { flex: 1 1 0; min-width: 0; padding: 7px 4px; }
+}

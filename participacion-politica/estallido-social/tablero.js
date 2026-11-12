@@ -246,7 +246,7 @@ function pintarProtestas() {
     unidad: "acciones", elegida: tipoMapa,
     alClic: (t) => { const i = TIPOS.indexOf(t); estado.mapa.protestas = tipoMapa === t || i > 3 ? "acciones" : `tipo${i}`; render(); },
   });
-  document.getElementById("d-tipos").textContent = `Acciones de protesta ${enLugar(estado.region)}, ${periodoTxt()}. Haz clic en un tipo para verlo en el mapa.`;
+  document.getElementById("d-tipos").textContent = `Acciones de protesta ${enLugar(estado.region)}, ${periodoTxt()}.`;
   // Dónde: regiones; con una región, sus provincias; en Lima Metropolitana, sus distritos
   let grupos, que;
   if (estado.region === NACIONAL) { grupos = contar(a, (x) => nombreRegion(x.region)); que = "regiones"; }
@@ -550,7 +550,7 @@ function tablaOrdenable(id, columnas, filas, { inicial, claveFila = () => "", el
     return `<tr data-k="${Obs.escapar(k)}"${alClic ? ' tabindex="0"' : ""}${k && k === elegida ? ' class="elegida"' : ""}>` + columnas.map((c) => `<td class="${c.num ? "num" : ""}">${c.html(f)}</td>`).join("") + "</tr>";
   }).join("");
   el.innerHTML = datos.length
-    ? `<table class="tabla ordenable"><caption class="solo-lectores">${Obs.escapar(descripcion)}. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody>${pie ? `<tfoot>${pie}</tfoot>` : ""}</table>` +
+    ? `<table class="tabla ordenable centrada"><caption class="solo-lectores">${Obs.escapar(descripcion)}. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody>${pie ? `<tfoot>${pie}</tfoot>` : ""}</table>` +
       (datos.length > LIMITE ? `<p class="pista" style="padding:8px 12px">Se muestran ${LIMITE} de ${n0(datos.length)}. Usa los filtros para ver las demás.</p>` : "")
     : '<p class="pista" style="padding:12px">Ninguna fila coincide con los filtros.</p>';
   if (!datos.length) return;
@@ -568,7 +568,6 @@ function tablaOrdenable(id, columnas, filas, { inicial, claveFila = () => "", el
     el.querySelector("tbody").onkeydown = ir;
   }
 }
-const celdaBarra = (texto, v, max, ancho = 90) => `<span class="celda-barra"><i style="width:${Math.max(3, (v / (max || 1)) * ancho)}px"></i><b>${texto}</b></span>`;
 const sinTilde = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 /* ---------------------------------------------------------
@@ -638,7 +637,7 @@ async function pintarMapa() {
   document.getElementById("d-mapa").textContent = (conBurbujas
     ? "Cada burbuja es una región o provincia: cuanto más grande, más casos en el período elegido."
     : `Cada ${nivel === "regional" ? "región" : "provincia"} se colorea según el indicador elegido, en el período elegido: cuanto más oscura, más casos.`) +
-    " Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para elegirla en todo el tablero.";
+    " Lima Metropolitana y el Callao se muestran ampliados en el recuadro.";
   if (conBurbujas) {
     // Fondo claro y parejo; el valor se lee en las burbujas (área proporcional al número)
     const valores = new Map(geo.features.filter((f) => f.properties.tipo !== "pais").map((f) => [f.properties.region, 0]));
@@ -680,11 +679,10 @@ async function pintarMapa() {
       `La que más tiene es ${destacar(NOMBRE_MAPA.get(orden[0].codigo))} (${n0(orden[0].v)}, ${pct(orden[0].v / total)}).`
     : `No hay registros de «${ind.nombre.toLowerCase()}» ${periodoTxt()}.`;
   document.getElementById("n-mapa").textContent = ind.id === "heridos" ? "En los comunicados del Minsa, «Lima» se muestra como Lima Metropolitana." : "";
-  const max = Math.max(1, ...unidades.map((u) => u.v));
   const columnas = [
     { clave: "region", titulo: "Región", valor: (u) => nombreRegion(u.region), html: (u) => Obs.escapar(nombreRegion(u.region)) },
     ...(nivel === "provincial" ? [{ clave: "prov", titulo: "Provincia", valor: (u) => PROV.get(u.codigo) ?? u.codigo, html: (u) => `<strong>${Obs.escapar(PROV.get(u.codigo) ?? u.codigo)}</strong>` }] : []),
-    { clave: "v", titulo: "Número", num: true, valor: (u) => u.v, html: (u) => celdaBarra(n0(u.v), u.v, max, 60) },
+    { clave: "v", titulo: "Número", num: true, valor: (u) => u.v, html: (u) => n0(u.v) },
     { clave: "p", titulo: "% del total", num: true, valor: (u) => u.v / (total || 1), html: (u) => pct(u.v / (total || 1)) },
   ];
   tablaOrdenable("t-mapa", columnas, unidades, { inicial: { clave: "v", dir: -1 }, claveFila: (u) => u.codigo, elegida: nivel === "regional" ? estado.region : null,

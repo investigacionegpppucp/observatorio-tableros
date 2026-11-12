@@ -254,4 +254,39 @@ window.Obs = window.Obs || {};
       if (tr) alClic(tr.dataset.region);
     };
   };
+
+  /* ---------- Ranking compacto (HTML) ----------
+     Una fila por ítem, de mayor a menor, con barras finas y una línea punteada
+     en el valor de referencia (el Perú). Mide lo mismo que el mapa de al lado.
+       items       [{ clave, etiqueta, valor }]
+       opciones:
+         formato     función para mostrar el valor
+         nombre      qué se ordena (para lectores de pantalla)
+         color       color de las barras
+         elegida     clave resaltada; las demás van en un tono claro opaco (cifras legibles)
+         referencia  { valor, etiqueta } para la línea punteada (p. ej. { valor: 13.4, etiqueta: "Perú" })
+         alClic      función(clave) al elegir una fila */
+  const mezclarBlanco = (hex, p) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).map((c) => Math.round(255 - (255 - c) * p)).join(",")})`;
+  Obs.ranking = (id, items, opciones = {}) => {
+    const t = Obs.tema();
+    const { formato = (v) => Obs.fmtN(v), nombre = "", color = t.unica, elegida = null, referencia = null, alClic = null } = opciones;
+    const el = document.getElementById(id);
+    const datos = items.filter((d) => d.valor != null).sort((a, b) => b.valor - a.valor);
+    if (!datos.length) { el.innerHTML = `<p class="vacio">Sin datos para esta selección</p>`; return; }
+    const ref = referencia && referencia.valor != null ? referencia : null;
+    const tope = Math.max(...datos.map((d) => d.valor), ref?.valor ?? 0) || 1;
+    const claro = mezclarBlanco(color.startsWith("#") ? color : "#2841dd", 0.3);
+    el.classList.add("ranking");
+    el.classList.toggle("sin-ref", !ref);
+    el.style.setProperty("--ref-n", ref ? ref.valor / tope : 0);
+    el.innerHTML = (ref ? `<p class="ranking-ref"><i></i>${Obs.escapar(ref.etiqueta)}: ${formato(ref.valor)}</p>` : "") +
+      `<ol aria-label="${Obs.escapar(nombre)}, de mayor a menor">` + datos.map((d) => {
+        const sel = elegida != null && d.clave === elegida;
+        return `<li><button type="button" data-k="${Obs.escapar(d.clave)}"${sel ? ' class="elegida" aria-pressed="true"' : ""}>` +
+          `<span class="nombre">${Obs.escapar(d.etiqueta)}</span>` +
+          `<span class="pista-barra"><i style="width:${((d.valor / tope) * 100).toFixed(2)}%;background:${elegida == null || sel ? color : claro}"></i></span>` +
+          `<span class="valor">${formato(d.valor)}</span></button></li>`;
+      }).join("") + "</ol>";
+    el.querySelector("ol").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b && alClic) alClic(b.dataset.k); };
+  };
 })();

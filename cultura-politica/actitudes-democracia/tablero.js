@@ -101,8 +101,6 @@ const temaActual = () => (estado.modulo === "panorama" ? null : estado.modulo);
 
 /* Escala continua (sin cortes), de un celeste visible (no se confunde con «sin datos») al azul más oscuro */
 const escalaContinua = () => ["#c3cdf7", ...C.escala];
-/* Mezcla un color con blanco: p = proporción del color original */
-const mezclar = (h, p) => `rgb(${hexRGB(h).map((c) => Math.round(255 - (255 - c) * p)).join(",")})`;
 const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 function colorContinuo(t) {
   const cs = escalaContinua().map(hexRGB);
@@ -310,29 +308,12 @@ function pintarMapa() {
   document.getElementById("t-regiones").dataset.ind = ind.tema;
   if (pano) pintarTablaRegiones();
   else {
-    pintarRanking(orden, peru, ind);
+    Obs.ranking("g-regiones", orden.map((x) => ({ clave: x.reg, etiqueta: NOMBRE_REGION.get(x.reg), valor: x.v })), {
+      formato: pct, nombre: `${ind.nombre} por región`, color: C.tema[ind.tema], alClic: elegirRegion,
+      elegida: estado.region === NACIONAL ? null : estado.region, referencia: peru != null ? { valor: peru, etiqueta: "Perú" } : null,
+    });
   }
   mapa.pintar({ valores, color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: (v) => pct(v), elegida: estado.region === NACIONAL ? null : estado.region });
-}
-
-/* Ranking compacto en HTML: una fila por región, del valor más alto al más bajo,
-   con una línea punteada en el valor del Perú. Con una región elegida, las demás van en tono claro */
-function pintarRanking(orden, peru, ind) {
-  const el = document.getElementById("g-regiones");
-  const tope = Math.max(...orden.map((x) => x.v), peru ?? 0) || 1;
-  const base = C.tema[ind.tema], claro = mezclar(base, 0.3), hay = estado.region !== NACIONAL;
-  const ancho = (v) => `${((v / tope) * 100).toFixed(2)}%`;
-  el.style.setProperty("--ref-n", peru != null ? peru / tope : 0);
-  el.classList.toggle("sin-ref", peru == null);
-  el.innerHTML = (peru != null ? `<p class="ranking-ref"><i></i>Perú: ${pct(peru)}</p>` : "") +
-    `<ol aria-label="${Obs.escapar(ind.nombre)} por región, de mayor a menor">` + orden.map((x) => {
-      const elegida = x.reg === estado.region;
-      return `<li><button type="button" data-k="${x.reg}"${elegida ? ' class="elegida" aria-pressed="true"' : ""}>` +
-        `<span class="nombre">${Obs.escapar(NOMBRE_REGION.get(x.reg))}</span>` +
-        `<span class="pista-barra"><i style="width:${ancho(x.v)};background:${!hay || elegida ? base : claro}"></i></span>` +
-        `<span class="valor">${pct(x.v)}</span></button></li>`;
-    }).join("") + "</ol>";
-  el.querySelector("ol").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b) elegirRegion(b.dataset.k); };
 }
 
 /* ---------------------------------------------------------
