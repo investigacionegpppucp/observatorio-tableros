@@ -26,6 +26,14 @@
 .ley:empty { display: none; }
 .ley i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+.ley i.l.punteada { border-top: 2px dashed var(--texto-suave); }
+
+/* Las cifras subrayadas en lima quedan solo en el resumen de cada pestaña */
+.lectura strong { text-decoration: none; }
+
+/* Notas del pie, en lista */
+.pie .notas { margin: 0 0 8px; padding-left: 18px; }
+.pie .notas li { margin: 3px 0; line-height: 1.5; }
 
 /* Controles del mapa */
 .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin: 16px 0 0; }
@@ -46,18 +54,17 @@
 .ley-continua i { display: block; width: 180px; max-width: 50vw; height: 12px; border-radius: 3px; border: 1px solid var(--linea); }
 
 /* Tabla de regiones: ordenable, con la región elegida y el Perú resaltados */
-.tabla-caja { max-height: 640px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; }
+.tabla-caja { max-height: 600px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; }
 .solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .tabla tbody tr[data-k] { cursor: pointer; }
 .tabla tbody tr[data-k]:hover td { background: var(--fondo); }
 .tabla tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
 .tabla tr.peru td { font-weight: 700; color: var(--navy); background: #eef2f8; }
-.celda-barra { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.celda-barra i { display: block; height: 10px; border-radius: 2px; max-width: 90px; }
-.celda-barra b { font-weight: 700; min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+/* Cifras centradas en su columna */
+.tabla td.num { text-align: center; font-weight: 700; color: var(--navy); }
+.tabla.ordenable th.num button { justify-content: center; }
 .tabla.ordenable th { padding: 0; }
 .tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
-.tabla.ordenable th.num button { justify-content: flex-end; text-align: right; }
 .tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
 .tabla.ordenable .flecha { font-size: 11px; opacity: 0.75; }
 .tabla.ordenable th[aria-sort="none"] .flecha { opacity: 0.4; }
@@ -66,4 +73,15 @@
 @media (max-width: 560px) {
   .controles, .filtro-local { width: 100%; min-width: 0; }
   .filtro-local select { width: 100%; }
+}
+
+/* En celular, la tabla muestra solo la columna del indicador elegido en el mapa */
+.tabla-caja { container-type: inline-size; }
+@container (max-width: 620px) {
+  .tabla.ordenable th button, .tabla td { padding-left: 10px; padding-right: 10px; }
+}
+@container (max-width: 440px) {
+  #t-regiones[data-ind="importancia"] :is(.c-funcionamiento, .c-opinion),
+  #t-regiones[data-ind="funcionamiento"] :is(.c-importancia, .c-opinion),
+  #t-regiones[data-ind="opinion"] :is(.c-importancia, .c-funcionamiento) { display: none; }
 }

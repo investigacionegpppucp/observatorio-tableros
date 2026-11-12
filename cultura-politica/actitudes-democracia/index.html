@@ -8,17 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=5bb5758">
-  <link rel="stylesheet" href="../../comun/tema.css?v=5bb5758">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=5bb5758">
-  <link rel="stylesheet" href="estilos.css?v=5bb5758">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=b7fe75b">
+  <link rel="stylesheet" href="../../comun/tema.css?v=b7fe75b">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=b7fe75b">
+  <link rel="stylesheet" href="estilos.css?v=b7fe75b">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Actitudes hacia la democracia</h1>
-        <p class="subtitulo">Qué tan importante es la democracia para los peruanos, cómo creen que funciona y si la prefieren a otras formas de gobierno, de 2013 a 2025, en el país y en cada región.</p>
+        <p class="subtitulo">Cuánto valoran la democracia los peruanos, cómo creen que funciona en el país y si la prefieren a otras formas de gobierno, de 2013 a 2025.</p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -36,7 +36,7 @@
     <button role="tab" id="tab-panorama" aria-controls="m-panorama" data-modulo="panorama">Panorama</button>
     <button role="tab" id="tab-importancia" aria-controls="m-tema" data-modulo="importancia">Importancia</button>
     <button role="tab" id="tab-funcionamiento" aria-controls="m-tema" data-modulo="funcionamiento">Funcionamiento</button>
-    <button role="tab" id="tab-opinion" aria-controls="m-tema" data-modulo="opinion">Opinión sobre la democracia</button>
+    <button role="tab" id="tab-opinion" aria-controls="m-tema" data-modulo="opinion">Preferencias</button>
   </nav>
 
   <main>
@@ -45,13 +45,9 @@
       <p class="resumen" id="r-panorama" aria-live="polite">Cargando datos…</p>
       <div class="kpis" id="k-panorama"></div>
       <article class="tarjeta">
-        <header><h3 id="t-tres">¿Cómo han cambiado las actitudes hacia la democracia?</h3><p id="d-tres"></p></header>
-        <div class="grafico" id="g-tres"></div>
-        <p class="pista">Haz clic en un año para elegirlo.</p>
-      </article>
-      <article class="tarjeta">
-        <header><h3 id="t-comparar">Las regiones, de un vistazo</h3><p id="d-comparar"></p></header>
-        <div class="tabla-caja" id="t-regiones"></div>
+        <header><h3 id="t-tres">Evolución de las actitudes hacia la democracia</h3><p id="d-tres"></p></header>
+        <div class="ley" id="ley-tres"></div>
+        <div class="grafico clicable" id="g-tres"></div>
       </article>
     </section>
 
@@ -63,8 +59,7 @@
         <article class="tarjeta">
           <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
           <div class="ley" id="ley-evol"></div>
-          <div class="grafico" id="g-evol"></div>
-          <p class="pista">Haz clic en un año para elegirlo.</p>
+          <div class="grafico clicable" id="g-evol"></div>
         </article>
         <article class="tarjeta">
           <header><h3 id="t-resp"></h3><p id="d-resp"></p></header>
@@ -76,33 +71,39 @@
 
     <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
     <article class="tarjeta">
-      <header><h3 id="t-mapa"></h3><p>Cuanto más oscura la región, mayor el porcentaje. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
+      <header><h3 id="t-mapa"></h3><p id="d-mapa"></p></header>
       <div class="controles"><div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div></div>
       <p class="lectura" id="l-mapa" aria-live="polite"></p>
       <div class="mapa-y-tabla">
         <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
-        <div><div class="grafico alto" id="g-regiones"></div></div>
+        <div><div class="grafico alto" id="g-regiones"></div><div class="tabla-caja" id="t-regiones" hidden></div></div>
       </div>
     </article>
   </main>
 
   <footer class="pie">
-    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Hogares (ENAHO), módulo de Gobernabilidad, Democracia y Transparencia.</p>
-    <p><strong>Notas:</strong> Población de 18 años y más. Los porcentajes se calculan con los factores de expansión de la encuesta.
-      <strong>Importancia:</strong> «la considera importante» suma a quienes dicen que la democracia es importante o muy importante.
-      <strong>Funcionamiento:</strong> «funciona bien» suma a quienes dicen que la democracia funciona bien o muy bien en el Perú.
-      <strong>Opinión sobre la democracia:</strong> frase con la que la persona está más de acuerdo: la democracia es preferible a cualquier otra forma de gobierno; en algunas circunstancias, un gobierno autoritario puede ser preferible; o da lo mismo un régimen democrático que uno no democrático.
-      Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
-    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Actitudes hacia la democracia</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Encuesta Nacional de Hogares (ENAHO), módulo de Gobernabilidad, Democracia y Transparencia, 2013-2025.</p>
+    <p><strong>Elaboración:</strong> Observatorio para la Democracia y Gobernabilidad, Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+    <p><strong>Notas:</strong></p>
+    <ul class="notas">
+      <li>Población de 18 años y más. Los porcentajes se calculan con los factores de expansión de la encuesta.</li>
+      <li><strong>Importancia:</strong> «considera importante la democracia» suma las respuestas «importante» y «muy importante».</li>
+      <li><strong>Funcionamiento:</strong> «cree que la democracia funciona bien» suma las respuestas «bien» y «muy bien».</li>
+      <li><strong>Preferencias:</strong> frase con la que la persona está más de acuerdo: «Un gobierno democrático es siempre preferible», «Me da lo mismo que sea democrático o autoritario», «En algunas circunstancias, es preferible un gobierno autoritario que uno democrático» o «No sabe».</li>
+      <li>Las estimaciones regionales tienen un margen de error mayor que las nacionales; las diferencias pequeñas entre regiones pueden no ser significativas.</li>
+      <li>Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.</li>
+      <li>Datos actualizados al <span id="actualizado"></span>.</li>
+    </ul>
+    <p><strong>Cómo citar:</strong> Aragón, J., Cruz, M., Alcántara, K., Sánchez, P. y Gutiérrez, N. (2026). <em>Actitudes hacia la democracia</em> [tablero de datos]. Observatorio para la Democracia y Gobernabilidad, Escuela de Gobierno y Políticas Públicas, PUCP. https://democracia-gobernabilidad.pucp.edu.pe/cultura-pol%C3%ADtica/actitudes-hacia-la-democracia</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=5bb5758"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=5bb5758"></script>
-  <script src="../../comun/config.js?v=5bb5758"></script>
-  <script src="../../comun/base.js?v=5bb5758"></script>
-  <script src="../../comun/graficos.js?v=5bb5758"></script>
-  <script src="../../comun/mapa.js?v=5bb5758"></script>
-  <script src="../../comun/descarga.js?v=5bb5758"></script>
-  <script src="tablero.js?v=5bb5758"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=b7fe75b"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=b7fe75b"></script>
+  <script src="../../comun/config.js?v=b7fe75b"></script>
+  <script src="../../comun/base.js?v=b7fe75b"></script>
+  <script src="../../comun/graficos.js?v=b7fe75b"></script>
+  <script src="../../comun/mapa.js?v=b7fe75b"></script>
+  <script src="../../comun/descarga.js?v=b7fe75b"></script>
+  <script src="tablero.js?v=b7fe75b"></script>
 </body>
 </html>

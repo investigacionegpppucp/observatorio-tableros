@@ -31,7 +31,7 @@ const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const TEMAS = {
   importancia: {
     hoja: "Importancia de la democracia", nombre: "Importancia de la democracia", color: "--serie-1",
-    positivo: "muy_importante_p", corto: "La considera importante", columna: "Importante",
+    positivo: "muy_importante_p", corto: "Considera importante la democracia", columna: "Importante",
     respuestas: [
       { campo: "nada_p", nombre: "Nada importante", css: "--r-neg2" },
       { campo: "poco_p", nombre: "Poco importante", css: "--r-neg1" },
@@ -46,7 +46,7 @@ const TEMAS = {
   },
   funcionamiento: {
     hoja: "Funcionamiento de la democracia", nombre: "Funcionamiento de la democracia", color: "--serie-3",
-    positivo: "sum_bien_p", corto: "Cree que funciona bien", columna: "Funciona bien",
+    positivo: "sum_bien_p", corto: "Cree que la democracia funciona bien", columna: "Funciona bien",
     respuestas: [
       { campo: "muy_mal_p", nombre: "Muy mal", css: "--r-neg2" },
       { campo: "mal_p", nombre: "Mal", css: "--r-neg1" },
@@ -60,18 +60,18 @@ const TEMAS = {
     evol: "Personas que creen que la democracia funciona bien",
   },
   opinion: {
-    hoja: "Opinión sobre la democracia", nombre: "Opinión sobre la democracia", color: "--serie-2",
-    positivo: "demo_p", corto: "Prefiere la democracia", columna: "Prefiere la democracia",
+    hoja: "Opinión sobre la democracia", nombre: "Preferencias", color: "--serie-4",
+    positivo: "demo_p", corto: "Prefiere la democracia", columna: "Prefiere",
     respuestas: [
-      { campo: "demo_p", nombre: "La democracia es preferible", css: "--r-pos2" },
-      { campo: "auto_p", nombre: "Un gobierno autoritario puede ser preferible", css: "--r-auto" },
-      { campo: "mismo_p", nombre: "Le da lo mismo", css: "--r-mismo" },
+      { campo: "demo_p", nombre: "Un gobierno democrático es siempre preferible", css: "--r-pos2" },
+      { campo: "mismo_p", nombre: "Me da lo mismo que sea democrático o autoritario", css: "--r-mismo" },
+      { campo: "auto_p", nombre: "En algunas circunstancias, es preferible un gobierno autoritario que uno democrático", css: "--r-auto" },
       { campo: "no_sabe_p", nombre: "No sabe", css: "--r-nosabe" },
     ],
     extra: [],
-    frase: "prefiere la democracia a cualquier otra forma de gobierno",
+    frase: "considera que un gobierno democrático es siempre preferible",
     pregunta: "¿Con qué frase está más de acuerdo?",
-    evol: "Personas que prefieren la democracia",
+    evol: "Personas que prefieren un gobierno democrático",
   },
 };
 const CLAVES_TEMA = Object.keys(TEMAS);
@@ -83,7 +83,7 @@ const NOMBRE_REGION = new Map([[NACIONAL, "Perú"]]);
 const INDICE = new Map(); // "tema|región|año" -> fila
 
 const pct = (v) => (v == null ? "—" : Obs.fmtPct(v, 1));
-const puntos = (d) => `${Obs.fmtN(Math.abs(d * 100), 1)} ${Math.abs(Math.round(d * 1000)) === 10 ? "punto" : "puntos"}`;
+const puntos = (d) => `${Obs.fmtN(Math.abs(d * 100), 1)} p. p.`;
 const txt = (x = {}) => ({ color: C.textoSuave, fontFamily: C.fuente, fontSize: 14, ...x });
 const fila = (tema, reg, anio) => INDICE.get(`${tema}|${reg}|${anio}`) ?? null;
 const valor = (tema, campo, reg, anio) => fila(tema, reg, anio)?.[campo] ?? null;
@@ -94,8 +94,10 @@ const destacar = (s) => `<strong>${s}</strong>`;
 const codigo = (nombre) => String(nombre).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
 const temaActual = () => (estado.modulo === "panorama" ? null : estado.modulo);
 
-/* Escala continua (sin cortes), del celeste más claro al azul más oscuro */
-const escalaContinua = () => ["#f1f5fd", ...C.escala];
+/* Escala continua (sin cortes), de un celeste visible (no se confunde con «sin datos») al azul más oscuro */
+const escalaContinua = () => ["#c3cdf7", ...C.escala];
+/* Mezcla un color con blanco: p = proporción del color original */
+const mezclar = (h, p) => `rgb(${hexRGB(h).map((c) => Math.round(255 - (255 - c) * p)).join(",")})`;
 const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 function colorContinuo(t) {
   const cs = escalaContinua().map(hexRGB);
@@ -111,18 +113,21 @@ function pintarPanorama() {
   const r = estado.region, a = estado.anio, a0 = ANIOS[0];
   const v = Object.fromEntries(CLAVES_TEMA.map((t) => [t, valor(t, TEMAS[t].positivo, r, a)]));
   document.getElementById("r-panorama").innerHTML = `${EnAmbito(r)}, en ${a}, ${destacar(pct(v.importancia))} de las personas de 18 años y más considera importante la democracia, ` +
-    `pero ${v.funcionamiento < v.importancia ? "solo " : ""}${destacar(pct(v.funcionamiento))} cree que funciona bien o muy bien, y ${destacar(pct(v.opinion))} la prefiere a cualquier otra forma de gobierno.`;
+    `${destacar(pct(v.funcionamiento))} cree que funciona bien o muy bien y ${destacar(pct(v.opinion))} la prefiere a cualquier otra forma de gobierno.`;
   document.getElementById("k-panorama").innerHTML = CLAVES_TEMA.map((t) => {
     const T = TEMAS[t], antes = valor(t, T.positivo, r, a0);
     const d = v[t] != null && antes != null && a !== a0 ? v[t] - antes : null;
     return `<button type="button" class="kpi boton-kpi" data-t="${t}" style="--c:${C.tema[t]}"><span class="kpi-etiqueta">${T.corto}</span><span class="kpi-valor">${pct(v[t])}</span>` +
-      `<span class="kpi-pie">${d == null ? `${NOMBRE_REGION.get(r)}, ${a}` : Math.abs(d) < 0.0005 ? `Igual que en ${a0}` : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`}</span><span class="ir">Ver ${T.nombre.toLowerCase()} →</span></button>`;
+      `<span class="kpi-pie">${d == null ? `${NOMBRE_REGION.get(r)}, ${a}` : Math.abs(d) < 0.0005 ? `Igual que en ${a0}` : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`}</span><span class="ir">Ver detalle</span></button>`;
   }).join("");
   document.querySelectorAll("#k-panorama button").forEach((b) => (b.onclick = () => actualizar({ modulo: b.dataset.t })));
 
   // Los tres indicadores en el tiempo; con una región, el Perú en línea punteada
   const conRef = r !== NACIONAL;
-  document.getElementById("d-tres").textContent = `Porcentaje de personas de 18 años y más, ${enAmbito(r)}, ${a0}-${ANIOS.at(-1)}.` + (conRef ? " En línea punteada, el Perú." : "");
+  document.getElementById("t-tres").textContent = `Evolución de las actitudes hacia la democracia, ${a0}-${ANIOS.at(-1)}`;
+  document.getElementById("d-tres").textContent = `Porcentaje de personas de 18 años y más, ${enAmbito(r)}.`;
+  document.getElementById("ley-tres").innerHTML = CLAVES_TEMA.map((t) => `<span><i class="l" style="border-color:${C.tema[t]}"></i>${TEMAS[t].corto}</span>`).join("") +
+    (conRef ? `<span><i class="l punteada"></i>Perú</span>` : "");
   const serie = (t, reg, ref) => ({
     name: ref ? `${TEMAS[t].corto} (Perú)` : TEMAS[t].corto, type: "line", data: ANIOS.map((x) => valor(t, TEMAS[t].positivo, reg, x)),
     symbol: ref ? "none" : "circle", symbolSize: 7, z: ref ? 1 : 3, lineStyle: { width: ref ? 1.5 : 2.5, type: ref ? "dashed" : "solid", color: C.tema[t] }, itemStyle: { color: C.tema[t] },
@@ -131,10 +136,9 @@ function pintarPanorama() {
   const g = Obs.grafico("g-tres");
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 14, itemHeight: 4, textStyle: txt(), data: CLAVES_TEMA.map((t) => TEMAS[t].corto) },
     tooltip: { ...Obs.tooltipBase(), trigger: "axis",
       formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${pct(p.value)}</strong>`).join("") },
-    grid: { left: 48, right: 64, top: 44, bottom: 30 },
+    grid: { left: 48, right: 64, top: 16, bottom: 30 },
     xAxis: { type: "category", data: ANIOS.map(String), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
     yAxis: { type: "value", min: 0, max: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Math.round(x * 100) + " %" }) },
     series: [
@@ -145,18 +149,20 @@ function pintarPanorama() {
   }, true);
   clicAnio(g);
 
-  // Las regiones, de un vistazo
-  document.getElementById("d-comparar").textContent = `Porcentaje de personas de 18 años y más en cada región, ${a}. Los títulos de columna ordenan la tabla; un clic en una región la elige en todo el tablero.`;
+}
+
+/* Panorama: tabla con los tres indicadores por región (al lado del mapa) */
+function pintarTablaRegiones() {
+  const r = estado.region, a = estado.anio;
   const filas = REGIONES.map((reg) => ({ reg, ...Object.fromEntries(CLAVES_TEMA.map((t) => [t, valor(t, TEMAS[t].positivo, reg, a)])) }));
-  const maximo = Object.fromEntries(CLAVES_TEMA.map((t) => [t, Math.max(...filas.map((f) => f[t] ?? 0))]));
   const peru = Object.fromEntries(CLAVES_TEMA.map((t) => [t, valor(t, TEMAS[t].positivo, NACIONAL, a)]));
   tablaOrdenable("t-regiones", [
     { clave: "reg", titulo: "Región", valor: (f) => NOMBRE_REGION.get(f.reg), html: (f) => Obs.escapar(NOMBRE_REGION.get(f.reg)) },
-    ...CLAVES_TEMA.map((t) => ({ clave: t, titulo: TEMAS[t].columna, num: true, valor: (f) => f[t], html: (f) => celdaBarra(pct(f[t]), f[t], maximo[t], C.tema[t]) })),
+    ...CLAVES_TEMA.map((t) => ({ clave: t, titulo: TEMAS[t].columna, num: true, valor: (f) => f[t], html: (f) => pct(f[t]) })),
   ], filas, {
     inicial: { clave: "importancia", dir: -1 }, claveFila: (f) => f.reg, elegida: r === NACIONAL ? null : r, alClic: elegirRegion,
     descripcion: `Actitudes hacia la democracia por región, ${a}`,
-    pie: `<tr class="peru"><td>Perú</td>${CLAVES_TEMA.map((t) => `<td class="num">${celdaBarra(pct(peru[t]), peru[t], maximo[t], C.tema[t])}</td>`).join("")}</tr>`,
+    pie: `<tr class="peru"><td>Perú</td>${CLAVES_TEMA.map((t) => `<td class="num c-${t}">${pct(peru[t])}</td>`).join("")}</tr>`,
   });
 }
 
@@ -178,7 +184,7 @@ function pintarTema(t) {
   const tarjeta = (etiqueta, val, pie) => `<div class="kpi"><span class="kpi-etiqueta">${etiqueta}</span><span class="kpi-valor">${val}</span><span class="kpi-pie">${pie}</span></div>`;
   document.getElementById("k-tema").innerHTML =
     tarjeta(T.corto, pct(v), `${NOMBRE_REGION.get(r)}, ${a}`) +
-    tarjeta(`Cambio desde ${a0}`, d == null ? "—" : `${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)}`, d == null ? "Es el primer año con datos" : Math.abs(d) < 0.0005 ? "Sin cambio" : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`) +
+    tarjeta(`Cambio desde ${a0}`, d == null ? "—" : `${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)} p. p.`, d == null ? "Es el primer año con datos" : Math.abs(d) < 0.0005 ? "Sin cambio" : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}`) +
     (r === NACIONAL
       ? tarjeta("La región con el valor más alto", Obs.escapar(NOMBRE_REGION.get(regs[0]?.reg) ?? "—"), regs[0] ? `${pct(regs[0].v)}; la más baja es ${Obs.escapar(NOMBRE_REGION.get(regs.at(-1).reg))} (${pct(regs.at(-1).v)})` : "")
       : tarjeta("Puesto entre las regiones", puesto ? `${puesto}.º de ${regs.length}` : "—", puesto === 1 ? "La más alta del país" : regs[0] ? `La primera es ${Obs.escapar(NOMBRE_REGION.get(regs[0].reg))} (${pct(regs[0].v)})` : ""));
@@ -248,6 +254,9 @@ function clicAnio(g) {
     const i = Math.round(g.convertFromPixel({ xAxisIndex: 0 }, e.offsetX));
     if (ANIOS[i] && ANIOS[i] !== estado.anio) actualizar({ anio: ANIOS[i] });
   });
+  // El cursor de mano indica que cada año se puede elegir
+  g.getZr().off("mousemove");
+  g.getZr().on("mousemove", (e) => g.getZr().setCursorStyle(g.containPixel({ gridIndex: 0 }, [e.offsetX, e.offsetY]) ? "pointer" : "default"));
 }
 
 /* ---------------------------------------------------------
@@ -258,7 +267,7 @@ function indicadoresMapa() {
   if (!t) return CLAVES_TEMA.map((x) => ({ id: x, tema: x, campo: TEMAS[x].positivo, nombre: `${TEMAS[x].corto}` }));
   const T = TEMAS[t];
   return [{ id: T.positivo, tema: t, campo: T.positivo, nombre: T.corto }, ...T.extra.map((x) => ({ id: x.campo, tema: t, campo: x.campo, nombre: x.nombre })),
-    ...T.respuestas.map((x) => ({ id: x.campo, tema: t, campo: x.campo, nombre: `Responde «${x.nombre}»` }))];
+    ...T.respuestas.filter((x) => x.campo !== T.positivo).map((x) => ({ id: x.campo, tema: t, campo: x.campo, nombre: `Responde «${x.nombre}»` }))];
 }
 function pintarMapa() {
   const lista = indicadoresMapa();
@@ -267,20 +276,40 @@ function pintarMapa() {
   sel.innerHTML = lista.map((i) => `<option value="${i.id}"${i.id === ind.id ? " selected" : ""}>${Obs.escapar(i.nombre)}</option>`).join("");
   const a = estado.anio;
   document.getElementById("t-mapa").textContent = `${ind.nombre} por región, ${a}`;
+  const pano = !temaActual();
+  document.getElementById("d-mapa").textContent = pano
+    ? `Porcentaje de personas de 18 años y más. El mapa muestra el indicador elegido; la tabla, los tres indicadores.`
+    : `Porcentaje de personas de 18 años y más en cada región.`;
   const regs = REGIONES.map((reg) => ({ reg, v: valor(ind.tema, ind.campo, reg, a) })).filter((x) => x.v != null);
   const vs = regs.map((x) => x.v);
   const min = Math.min(...vs), max = Math.max(...vs);
   const valores = new Map(regs.map((x) => [x.reg, x.v]));
-  mapa.pintar({ valores, color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: (v) => pct(v), elegida: estado.region === NACIONAL ? null : estado.region });
   document.getElementById("ley-mapa").innerHTML = regs.length
     ? `<div class="ley-continua"><span>${pct(min)}</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${pct(max)}</span></div>` : "";
   const orden = [...regs].sort((x, y) => y.v - x.v);
   const peru = valor(ind.tema, ind.campo, NACIONAL, a);
   document.getElementById("l-mapa").innerHTML = orden.length
     ? `En ${a}, va de ${destacar(pct(min))} en ${Obs.escapar(NOMBRE_REGION.get(orden.at(-1).reg))} a ${destacar(pct(max))} en ${Obs.escapar(NOMBRE_REGION.get(orden[0].reg))}. En el Perú es ${pct(peru)}.` : "";
-  Obs.barras("g-regiones", regs.map((x) => ({ clave: x.reg, etiqueta: NOMBRE_REGION.get(x.reg), valor: x.v })), {
-    formato: pct, nombre: ind.nombre, seleccion: estado.region === NACIONAL ? null : new Set([estado.region]), alClic: elegirRegion,
-  });
+  document.getElementById("g-regiones").hidden = pano;
+  document.getElementById("t-regiones").hidden = !pano;
+  // En pantallas angostas, la tabla muestra solo el indicador elegido para el mapa
+  document.getElementById("t-regiones").dataset.ind = ind.tema;
+  if (pano) pintarTablaRegiones();
+  else {
+    // Con una región elegida, las demás barras van en un tono claro (opaco, para que sus cifras se lean bien)
+    const base = C.tema[ind.tema], claro = mezclar(base, 0.3);
+    Obs.barras("g-regiones", regs.map((x) => ({ clave: x.reg, etiqueta: NOMBRE_REGION.get(x.reg), valor: x.v,
+      color: estado.region === NACIONAL || x.reg === estado.region ? base : claro })), {
+      formato: pct, nombre: ind.nombre, alClic: elegirRegion,
+    });
+  }
+  // Lado a lado, el mapa crece hasta la altura del ranking (o de la tabla); apilados, conserva su alto
+  const elMapa = document.getElementById("mapa-regiones");
+  const ladoALado = getComputedStyle(document.querySelector(".mapa-y-tabla")).gridTemplateColumns.split(" ").length > 1;
+  const derecha = document.getElementById(pano ? "t-regiones" : "g-regiones");
+  const ley = document.getElementById("ley-mapa").offsetHeight + 10;
+  elMapa.style.height = ladoALado ? `${Math.max(600, derecha.offsetHeight - ley)}px` : "";
+  mapa.pintar({ valores, color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: (v) => pct(v), elegida: estado.region === NACIONAL ? null : estado.region });
 }
 
 /* ---------------------------------------------------------
@@ -298,11 +327,11 @@ function tablaOrdenable(id, columnas, filas, { inicial, claveFila = () => "", el
   });
   const th = columnas.map((c) => {
     const activo = c.clave === col.clave;
-    return `<th class="${c.num ? "num" : ""}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-orden="${c.clave}">${c.titulo}<span class="flecha" aria-hidden="true">${activo ? (orden.dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
+    return `<th class="${c.num ? "num" : ""} c-${c.clave}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-orden="${c.clave}">${c.titulo}<span class="flecha" aria-hidden="true">${activo ? (orden.dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
   }).join("");
   const tr = datos.map((f) => {
     const k = String(claveFila(f));
-    return `<tr data-k="${Obs.escapar(k)}"${alClic ? ' tabindex="0"' : ""}${k && k === elegida ? ' class="elegida"' : ""}>` + columnas.map((c) => `<td class="${c.num ? "num" : ""}">${c.html(f)}</td>`).join("") + "</tr>";
+    return `<tr data-k="${Obs.escapar(k)}"${alClic ? ' tabindex="0"' : ""}${k && k === elegida ? ' class="elegida"' : ""}>` + columnas.map((c) => `<td class="${c.num ? "num" : ""} c-${c.clave}">${c.html(f)}</td>`).join("") + "</tr>";
   }).join("");
   el.innerHTML = `<table class="tabla ordenable"><caption class="solo-lectores">${Obs.escapar(descripcion)}. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody>${pie ? `<tfoot>${pie}</tfoot>` : ""}</table>`;
   el.querySelector("thead").onclick = (e) => {
@@ -319,7 +348,6 @@ function tablaOrdenable(id, columnas, filas, { inicial, claveFila = () => "", el
     el.querySelector("tbody").onkeydown = ir;
   }
 }
-const celdaBarra = (texto, v, max, color) => `<span class="celda-barra"><i style="width:${Math.max(3, ((v ?? 0) / (max || 1)) * 90)}px;background:${color}"></i><b>${texto}</b></span>`;
 
 /* ---------------------------------------------------------
    Estado y render
