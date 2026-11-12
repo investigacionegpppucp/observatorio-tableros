@@ -47,6 +47,7 @@ const nombreRegion = (c) => (c === NACIONAL ? "Perú" : NOMBRES[c] ?? c);
 const enAmbito = (c) => (c === NACIONAL ? "en el Perú" : `en ${nombreRegion(c)}`);
 const EnAmbito = (c) => (c === NACIONAL ? "En el Perú" : `En ${nombreRegion(c)}`);
 const destacar = (s) => `<strong>${s}</strong>`;
+const lista = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} y ${xs.at(-1)}`);
 const $ = (s) => document.querySelector(s);
 
 /* ---------- Consultas ---------- */
@@ -127,16 +128,18 @@ function pintarCaso(tabla) {
   // Cifras clave: total, tasa, la región con la tasa más alta (o el puesto de la elegida) y letalidad o mayores
   const unidad = pos ? "casos por cada 100 habitantes" : "fallecidos por cada 10 000 habitantes";
   const lets = REGIONES.map((reg) => ({ reg, v: letalidad(reg) })).sort((x, y) => y.v - x.v);
+  // Regiones que comparten el valor más alto al redondear a un decimal (p. ej., tres con 7.2 %)
+  const empatadas = lets.filter((x) => pct(x.v) === pct(lets[0].v));
   const nac = r === NACIONAL, tasaPeru = pos ? tasaPos(caso(tabla, NACIONAL)) : tasaFal(caso(tabla, NACIONAL));
   kpis("#k-caso", [
     { etiqueta: pos ? "Casos positivos" : "Fallecidos", valor: n0(f.total), pie: pos ? "Hasta agosto de 2024" : "Hasta marzo de 2024" },
     { etiqueta: pos ? "Por cada 100 habitantes" : "Por cada 10 000 habitantes", valor: Obs.fmtN(tasa, 1), pie: nac ? "Promedio del Perú" : `Perú: ${Obs.fmtN(tasaPeru, 1)}` },
     nac
-      ? { etiqueta: pos ? "Región con más casos por habitante" : "Región con más fallecidos por habitante", valor: nombreRegion(regs[0].reg), texto: true, pie: `${Obs.fmtN(regs[0].v, 1)} ${unidad}` }
+      ? { etiqueta: pos ? "Más casos registrados por habitante" : "Más fallecidos por habitante", valor: nombreRegion(regs[0].reg), texto: true, pie: `${Obs.fmtN(regs[0].v, 1)} ${unidad}` }
       : { etiqueta: "Puesto entre las regiones", valor: `${puesto}.º de ${regs.length}`, pie: puesto === 1 ? "La tasa más alta del país" : `La más alta: ${nombreRegion(regs[0].reg)} (${Obs.fmtN(regs[0].v, 1)})` },
     pos
       ? (nac
-        ? { etiqueta: "Región con mayor letalidad", valor: nombreRegion(lets[0].reg), texto: true, pie: `${pct(lets[0].v)} de sus casos positivos falleció` }
+        ? { etiqueta: "Mayor letalidad registrada", valor: lista(empatadas.map((x) => nombreRegion(x.reg))), texto: true, pie: `${pct(lets[0].v)} de los casos positivos falleció` }
         : { etiqueta: "Letalidad", valor: pct(letalidad(r)), pie: `Perú: ${pct(letalidad(NACIONAL))}` })
       : { etiqueta: "De 60 años a más", valor: pct(may), pie: `${n0(f.e_60_75 + f.m_75)} personas` },
   ]);
