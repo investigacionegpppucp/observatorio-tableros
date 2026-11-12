@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saneamiento | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=abca742">
+  <link rel="stylesheet" href="../../comun/tema.css?v=abca742">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=abca742">
+  <link rel="stylesheet" href="estilos.css?v=abca742">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Saneamiento</h1>
+        <p class="subtitulo">Cuánto pesa el agua y el saneamiento en el presupuesto público, cuánto se asigna y cuánto se gasta, de 2012 a 2023.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+    <div class="filtro"><span class="etiqueta" id="lbl-medida">Presupuesto</span><div class="segmentado" id="f-medida" role="group" aria-labelledby="lbl-medida"></div></div>
+  </section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-prioridad" aria-controls="m-prioridad" data-modulo="prioridad">Prioridad en el presupuesto</button>
+    <button role="tab" id="tab-presupuesto" aria-controls="m-presupuesto" data-modulo="presupuesto">Presupuesto y gasto</button>
+  </nav>
+
+  <main>
+    <!-- ================= PRIORIDAD EN EL PRESUPUESTO ================= -->
+    <section class="modulo" id="m-prioridad" role="tabpanel" aria-labelledby="tab-prioridad">
+      <p class="resumen" id="r-prioridad" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-prioridad"></div>
+      <article class="tarjeta">
+        <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
+        <div class="ley" id="ley-evol"></div>
+        <div class="grafico bajo" id="g-evol"></div>
+        <p class="nota-tarjeta">La base trae cuatro años: 2012, 2017, 2022 y 2023. Haz clic en un año para elegirlo.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-funciones"></h3><p id="d-funciones"></p></header>
+        <div class="grafico" id="g-funciones"></div>
+        <p class="pista">Haz clic en una función para seguirla en todo el tablero.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-mapa"></h3><p>Porcentaje del presupuesto de cada departamento que va a la función elegida. Cuanto más oscuro, mayor el peso. Haz clic en un departamento para verlo en todo el tablero; otro clic vuelve al Perú.</p></header>
+        <div class="controles"><div class="filtro-local"><label for="f-funcion">Función</label><select id="f-funcion"></select></div></div>
+        <p class="lectura" id="l-mapa" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div><p class="nota-tarjeta">El departamento de Lima se muestra con un solo valor en Lima Metropolitana y Lima Provincias.</p></div>
+          <div><div class="grafico alto" id="g-regiones"></div></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= PRESUPUESTO Y GASTO ================= -->
+    <section class="modulo" id="m-presupuesto" role="tabpanel" aria-labelledby="tab-presupuesto" hidden>
+      <p class="resumen" id="r-presupuesto" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-presupuesto"></div>
+      <article class="tarjeta">
+        <header><h3>¿Cuánto se asignó y cuánto se gastó?</h3><p>Presupuesto de la función Saneamiento en todo el país, en millones de soles de cada año. Haz clic en un año para ver sus cifras.</p></header>
+        <div class="ley" id="ley-pres"></div>
+        <div class="grafico" id="g-pres"></div>
+      </article>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Qué parte del presupuesto se gastó?</h3><p id="d-ejec"></p></header>
+          <div class="grafico" id="g-ejec"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Cuánto creció el presupuesto durante el año?</h3><p>Diferencia entre el presupuesto modificado (PIM) y el de apertura (PIA), en millones de soles.</p></header>
+          <div class="grafico" id="g-mod"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Ministerio de Economía y Finanzas (MEF), Consulta Amigable del gasto público, función Saneamiento y demás funciones del presupuesto.</p>
+    <p><strong>Notas:</strong> <strong>PIA:</strong> presupuesto institucional de apertura, aprobado al inicio del año. <strong>PIM:</strong> presupuesto institucional modificado, con los cambios del año. <strong>Devengado:</strong> gasto comprometido y reconocido. Montos en soles corrientes, de los tres niveles de gobierno.
+      La prioridad es el porcentaje del presupuesto total (o del departamento) que va a cada función. Según el archivo de origen, los datos tienen corte a octubre, por lo que el devengado del último año puede estar incompleto. Datos procesados el <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Saneamiento</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=abca742"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=abca742"></script>
+  <script src="../../comun/config.js?v=abca742"></script>
+  <script src="../../comun/base.js?v=abca742"></script>
+  <script src="../../comun/graficos.js?v=abca742"></script>
+  <script src="../../comun/mapa.js?v=abca742"></script>
+  <script src="../../comun/descarga.js?v=abca742"></script>
+  <script src="tablero.js?v=abca742"></script>
+</body>
+</html>
