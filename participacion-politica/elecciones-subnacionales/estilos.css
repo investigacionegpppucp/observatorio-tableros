@@ -53,3 +53,7 @@
 /* Ranking largo al lado del mapa: se desplaza dentro de la tarjeta */
 @media (min-width: 1101px) { .dos-col .desliza { max-height: 660px; overflow-y: auto; padding-right: 4px; } }
 .mapa-geo path.leaflet-interactive:focus { outline: none; }
+/* Barra de la escala continua más grande (dentro de .ley-cat el ícono se achicaba a 14 px) */
+.ley-cat .ley-continua { justify-content: flex-start; font-size: 15px; }
+.ley-cat .ley-continua i { width: 320px; max-width: 55vw; height: 16px; border-radius: 3px; }
+.ley-cat .ley-continua .ley-marca { top: -4px; height: 24px; }

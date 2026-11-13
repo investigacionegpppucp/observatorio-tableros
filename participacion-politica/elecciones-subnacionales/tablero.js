@@ -455,7 +455,7 @@ function pintarMapaResultados() {
   if (k === "ganador") { pintarMapaGanador("resultados", id); lectura(id, "Haz clic en un lugar para ver su votación abajo."); return; }
   const I = IND_RES[k], ok = (f) => !f.anulada && I.valor(f) !== "" && I.valor(f) != null, fs = filas().filter(ok);
   const valores = new Map(filas(estado.anio, estado.nivel, PE).filter(ok).map((f) => [f.ubigeo, +I.valor(f)]));
-  const rango = Obs.rango(valores.values());
+  const rango = Obs.rango(fs.map((f) => +I.valor(f)));   // con una región elegida, la escala es la de sus lugares
   document.getElementById(`ley-${id}`).innerHTML = "";
   const mapa = pintarMapaGeo("resultados", { valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => I.formato(v) });
   Obs.leyendaContinua(`ley-${id}`, rango, C.escala, I.formato, mapa);
@@ -587,7 +587,7 @@ function pintarMapaParticipacion() {
   $("[data-mapa-par]", card).innerHTML = botones(Object.entries(IND_PAR).map(([valor, x]) => ({ valor, etiqueta: x.corto })), k);
   const ok = (f) => !f.anulada && I.valor(f) != null && I.valor(f) !== "", fs = filas().filter(ok);
   const valores = new Map(filas(estado.anio, estado.nivel, PE).filter(ok).map((f) => [f.ubigeo, +I.valor(f)]));
-  const rango = Obs.rango(valores.values());
+  const rango = Obs.rango(fs.map((f) => +I.valor(f)));   // con una región elegida, la escala es la de sus lugares
   const mapa = pintarMapaGeo("participacion", { valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => I.formato(v) });
   Obs.leyendaContinua(`ley-${id}`, rango, C.escala, I.formato, mapa);
   const orden = [...fs].sort((x, y) => I.valor(y) - I.valor(x));
