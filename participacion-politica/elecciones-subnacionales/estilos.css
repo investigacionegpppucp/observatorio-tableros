@@ -52,3 +52,4 @@
 @media (min-width: 1101px) { .dos-col .mapa-solo .mapa-geo { height: 560px; } .dos-col { align-items: stretch; } }
 /* Ranking largo al lado del mapa: se desplaza dentro de la tarjeta */
 @media (min-width: 1101px) { .dos-col .desliza { max-height: 660px; overflow-y: auto; padding-right: 4px; } }
+.mapa-geo path.leaflet-interactive:focus { outline: none; }

@@ -325,19 +325,32 @@ function pintarMapaGeo(m, { valores, color, texto }) {
     agregarLimites(mapas[k], nivel, region);
   }
   const v = new Map([...valores].map(([u, x]) => [claveGeo(u, nivel), x]));
+  // Capitales de provincia en el mapa distrital: no eligen alcalde distrital (gris, con su propio texto)
+  const CAPITAL = "capital";
+  if (nivel === "distrital") geoDe(nivel, region).features.forEach((f) => { const c = f.properties.region; if (f.properties.tipo === "region" && c.endsWith("01") && !v.has(c)) v.set(c, CAPITAL); });
+  const colorF = (x) => (x === CAPITAL ? "#ccd3dd" : color(x));
+  const textoF = (x) => (x === CAPITAL ? "Capital de provincia: no elige alcalde distrital" : texto(x));
+  document.getElementById(`leymapa-${m}`).innerHTML = nivel === "distrital"
+    ? '<span><i style="background:#ccd3dd"></i>Capital de provincia: no elige alcalde distrital (la gobierna la municipalidad provincial)</span>' : "";
   const elegida = nivel === "regional" ? null : estado.lugar;
-  mapas[k].pintar({ valores: v, color, texto, elegida });
+  // Con una región elegida, el mapa no vuelve a mostrar todo el Perú al repintarse
+  const M = mapas[k], fb = M.principal.fitBounds;
+  if (region !== PE) M.principal.fitBounds = () => M.principal;
+  M.pintar({ valores: v, color: colorF, texto: textoF, elegida });
+  M.principal.fitBounds = fb;
   // Con una región elegida, el mapa muestra solo esa región y se acerca a ella
   const recuadro = div.querySelector(".recuadro-lima");
   if (recuadro) recuadro.hidden = region !== PE;
   if (region !== PE) {
     const capas = [];
     mapas[k].principal.capaRegiones.eachLayer((c) => capas.push(c));
-    if (capas.length) mapas[k].principal.fitBounds(L.featureGroup(capas).getBounds(), { padding: [16, 16] });
+    // Regiones chicas (Callao) necesitan más acercamiento que el máximo del mapa del Perú
+    mapas[k].principal.setMaxZoom(12);
+    if (capas.length) mapas[k].principal.fitBounds(L.featureGroup(capas).getBounds(), { padding: [16, 16], animate: false });
   }
   return mapas[k];
 }
-const htmlMapa = (m) => `<div class="mapa-solo"><div id="mapa-${m}"></div></div>`;
+const htmlMapa = (m) => `<div class="mapa-solo"><div id="mapa-${m}"></div><p class="ley-cat" id="leymapa-${m}"></p></div>`;
 
 /* ---------------------------------------------------------
    Pestaña Resumen
@@ -432,7 +445,8 @@ function pintarMapaResultados() {
   Obs.leyendaContinua(`ley-${id}`, rango, C.escala, I.formato, mapa);
   const orden = [...fs].sort((x, y) => I.valor(y) - I.valor(x));
   const nom = (f) => (estado.nivel === "regional" ? nombreRegion(f.dep) : nombreLugar(f.ubigeo));
-  if (orden.length) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: el valor más alto está en ${destacar(Obs.escapar(nom(orden[0])))} (${I.formato(+I.valor(orden[0]))}) y el más bajo en ${destacar(Obs.escapar(nom(orden.at(-1))))} (${I.formato(+I.valor(orden.at(-1)))}).`);
+  if (orden.length === 1) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: ${destacar(Obs.escapar(nom(orden[0])))}, ${I.formato(+I.valor(orden[0]))}.`);
+  else if (orden.length) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: el valor más alto está en ${destacar(Obs.escapar(nom(orden[0])))} (${I.formato(+I.valor(orden[0]))}) y el más bajo en ${destacar(Obs.escapar(nom(orden.at(-1))))} (${I.formato(+I.valor(orden.at(-1)))}).`);
 }
 
 function lugarElegido() {
@@ -562,7 +576,8 @@ function pintarMapaParticipacion() {
   Obs.leyendaContinua(`ley-${id}`, rango, C.escala, I.formato, mapa);
   const orden = [...fs].sort((x, y) => I.valor(y) - I.valor(x));
   const nom = (f) => (estado.nivel === "regional" ? nombreRegion(f.dep) : nombreLugar(f.ubigeo));
-  if (orden.length) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: la más alta fue en ${destacar(Obs.escapar(nom(orden[0])))} (${I.formato(+I.valor(orden[0]))}) y la más baja en ${destacar(Obs.escapar(nom(orden.at(-1))))} (${I.formato(+I.valor(orden.at(-1)))}).`);
+  if (orden.length === 1) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: ${destacar(Obs.escapar(nom(orden[0])))}, ${I.formato(+I.valor(orden[0]))}.`);
+  else if (orden.length) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: la más alta fue en ${destacar(Obs.escapar(nom(orden[0])))} (${I.formato(+I.valor(orden[0]))}) y la más baja en ${destacar(Obs.escapar(nom(orden.at(-1))))} (${I.formato(+I.valor(orden.at(-1)))}).`);
   nota(id, estado.anio === ANIO_PARCIAL() ? "Mientras el conteo no llegue al 100 %, la participación se calcula sobre las actas contabilizadas." : "");
 }
 function pintarRankingParticipacion() {
@@ -583,7 +598,7 @@ function pintarRankingParticipacion() {
   }
   const peru = agregado(filas(estado.anio, estado.nivel, PE));
   const ref = peru && (estado.mapa.participacion === "participacion" ? peru.participacion : peru.invalidos);
-  Obs.barras(`g-${id}`, items.map((d) => ({ ...d, color: C.unica })), { formato: pct, limite: estado.region === PE ? 25 : 40, compacto: true,
+  Obs.barras(`g-${id}`, items.map((d) => ({ ...d, color: C.unica })), { formato: pct, limite: estado.region === PE ? 25 : 40, alto: window.innerWidth > 1100 ? 640 : null, compacto: true,
     alClic: (k) => (estado.region === PE ? actualizar({ region: k, lugar: null }) : elegirLugar(k)),
     seleccion: estado.lugar ? new Set([estado.lugar]) : null });
   document.getElementById(`g-${id}`).setAttribute("aria-label", `${I.corto} por lugar, ${estado.anio}`);
