@@ -1,0 +1,25 @@
+/* Estilos propios del tablero de Elecciones congresales. Usa los de Educación, Seguridad ciudadana y Elecciones subnacionales. */
+
+/* Hemiciclo con la lista de organizaciones al lado */
+.hemi-caja { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .hemi-caja { grid-template-columns: 1fr; } }
+.hemi svg { width: 100%; height: auto; display: block; }
+.hemi .hemi-total { font: 700 15px var(--fuente-titulos); fill: var(--navy); }
+.hemi .hemi-etq { font: 500 6px var(--fuente); fill: var(--texto-suave); }
+.partidos { list-style: none; margin: 0 0 12px; padding: 0; }
+.partidos button { width: 100%; display: grid; grid-template-columns: 14px 1fr auto; gap: 4px 10px; align-items: center; padding: 7px 8px;
+  border: 0; border-top: 1px solid var(--linea); background: none; font: inherit; font-size: 15px; text-align: left; cursor: pointer; color: var(--texto); }
+.partidos button:hover, .partidos button[aria-pressed="true"] { background: var(--fondo); }
+.partidos button[aria-pressed="true"] span { font-weight: 700; }
+.partidos i { width: 14px; height: 14px; border-radius: 50%; }
+.partidos strong { color: var(--navy); font-variant-numeric: tabular-nums; }
+.partidos em { grid-column: 2 / 4; font-style: normal; font-size: 13px; color: var(--texto-suave); }
+#hemi-congresistas h4 { margin: 4px 0 6px; font-size: 15px; color: var(--navy); }
+.lista-congresistas { margin: 0; padding-left: 22px; max-height: 320px; overflow: auto; font-size: 14px; }
+.lista-congresistas li { padding: 3px 0; }
+.lista-congresistas small { display: block; color: var(--texto-suave); }
+.pista { color: var(--texto-suave); font-size: 14px; }
+
+/* Matriz de escaños por organización y elección */
+.tabla.matriz td, .tabla.matriz th { padding: 6px 8px; font-size: 14px; white-space: nowrap; }
+.tabla.matriz td:first-child { white-space: normal; min-width: 220px; }

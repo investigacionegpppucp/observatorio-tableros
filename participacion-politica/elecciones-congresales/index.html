@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elecciones congresales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Fuentes del manual de marca: Montserrat (títulos y texto) y Source Serif 4 (palabra clave) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=38d4ef5">
+  <link rel="stylesheet" href="../../comun/tema.css?v=38d4ef5">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=38d4ef5">
+  <link rel="stylesheet" href="../../politicas-publicas/educacion/estilos.css?v=38d4ef5">
+  <link rel="stylesheet" href="../../politicas-publicas/seguridad-ciudadana/estilos.css?v=38d4ef5">
+  <link rel="stylesheet" href="../elecciones-subnacionales/estilos.css?v=38d4ef5">
+  <link rel="stylesheet" href="estilos.css?v=38d4ef5">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Elecciones congresales</h1>
+        <p class="subtitulo">Cómo quedó el Congreso en cada elección, quiénes llegaron y cómo votó cada región, de 2001 a 2026.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Elección, cámara y región: los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-eleccion" aria-controls="m-eleccion" data-modulo="eleccion">Por elección</button>
+    <button role="tab" id="tab-historico" aria-controls="m-historico" data-modulo="historico">Histórico</button>
+    <button role="tab" id="tab-congresistas" aria-controls="m-congresistas" data-modulo="congresistas">Congresistas</button>
+  </nav>
+
+  <main>
+    <section class="modulo" id="m-eleccion" role="tabpanel" aria-labelledby="tab-eleccion">
+      <p class="resumen" id="r-eleccion" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-eleccion"></div>
+      <div id="c-eleccion"></div>
+    </section>
+    <section class="modulo" id="m-historico" role="tabpanel" aria-labelledby="tab-historico" hidden>
+      <p class="resumen" id="r-historico" aria-live="polite"></p>
+      <div id="c-historico"></div>
+    </section>
+    <section class="modulo" id="m-congresistas" role="tabpanel" aria-labelledby="tab-congresistas" hidden>
+      <p class="resumen" id="r-congresistas" aria-live="polite"></p>
+      <div id="c-congresistas"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuentes:</strong> Jurado Nacional de Elecciones, Infogob (resultados al Congreso 2001-2021); Oficina Nacional de Procesos Electorales, resultados de las Elecciones Generales 2026 (Senado y Cámara de Diputados, al 100 % de actas); Jurado Nacional de Elecciones, proclamación del Congreso 2026-2031. Escaños 2001-2021 y mujeres candidatas: bases del Observatorio. Fuente provisional: Wikipedia, congresistas electos de cada elección. Cálculos del Observatorio.</p>
+    <p><strong>Congresistas:</strong> los que juraron al inicio de cada periodo; no se incluyen los reemplazos posteriores. El sexo de los congresistas se identificó por el nombre y se revisó a mano. <strong>Votos:</strong> los porcentajes de cada organización son sobre los votos válidos (sin blancos ni nulos); los votos en blanco y nulos, sobre los votos emitidos.</p>
+    <p><strong>Lima:</strong> hasta 2006 fue un solo distrito electoral (con Lima Provincias y los residentes en el extranjero); de 2011 a 2020, Lima Metropolitana incluye a los residentes en el extranjero; desde 2021 estos eligen a sus propios representantes. <strong>2026:</strong> el Senado tiene 30 escaños de distrito único nacional y 30 de distritos regionales. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Elecciones congresales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=38d4ef5"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=38d4ef5"></script>
+  <script src="../../comun/config.js?v=38d4ef5"></script>
+  <script src="../../comun/base.js?v=38d4ef5"></script>
+  <script src="../../comun/graficos.js?v=38d4ef5"></script>
+  <script src="../../comun/mapa.js?v=38d4ef5"></script>
+  <script src="tablero.js?v=38d4ef5"></script>
+</body>
+</html>
