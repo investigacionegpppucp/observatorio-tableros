@@ -8,17 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=f40036e">
-  <link rel="stylesheet" href="../../comun/tema.css?v=f40036e">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=f40036e">
-  <link rel="stylesheet" href="estilos.css?v=f40036e">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=b4e7da7">
+  <link rel="stylesheet" href="../../comun/tema.css?v=b4e7da7">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=b4e7da7">
+  <link rel="stylesheet" href="estilos.css?v=b4e7da7">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Saneamiento</h1>
-        <p class="subtitulo">Cuánto pesa el agua y el saneamiento en el presupuesto público, cuánto se asigna y cuánto se gasta, de 2012 a 2023.</p>
+        <p class="subtitulo">Cómo acceden al agua y al desagüe las viviendas del Perú según el Censo 2025, y cuánto pesa el saneamiento en el presupuesto público, cuánto se asigna y cuánto se gasta.</p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -29,18 +29,63 @@
 
   <section class="filtros" id="filtros" aria-label="Filtros">
     <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
-    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
-    <div class="filtro"><span class="etiqueta" id="lbl-medida">Presupuesto</span><div class="segmentado" id="f-medida" role="group" aria-labelledby="lbl-medida"></div></div>
+    <div class="filtro" data-en="acceso"><span class="etiqueta" id="lbl-area">Área</span><div class="segmentado" id="f-area" role="group" aria-labelledby="lbl-area"></div></div>
+    <div class="filtro" data-en="prioridad"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+    <div class="filtro" data-en="prioridad"><span class="etiqueta" id="lbl-medida">Presupuesto</span><div class="segmentado" id="f-medida" role="group" aria-labelledby="lbl-medida"></div></div>
   </section>
 
   <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-acceso" aria-controls="m-acceso" data-modulo="acceso">Acceso al agua y desagüe</button>
     <button role="tab" id="tab-prioridad" aria-controls="m-prioridad" data-modulo="prioridad">Prioridad en el presupuesto</button>
     <button role="tab" id="tab-presupuesto" aria-controls="m-presupuesto" data-modulo="presupuesto">Presupuesto y gasto</button>
   </nav>
 
   <main>
+    <!-- ================= ACCESO AL AGUA Y DESAGÜE (CENSO 2025) ================= -->
+    <section class="modulo" id="m-acceso" role="tabpanel" aria-labelledby="tab-acceso">
+      <p class="resumen" id="r-acceso" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-acceso"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿De dónde viene el agua?</h3><p id="d-agua"></p></header>
+          <div class="composicion" id="g-agua"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Qué servicio higiénico tienen?</h3><p id="d-desague"></p></header>
+          <div class="composicion" id="g-desague"></div>
+        </article>
+      </div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Cuántas horas al día llega el agua?</h3><p id="d-horas"></p></header>
+          <div class="composicion" id="g-horas"></div>
+          <p class="lectura" id="l-dias"></p>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Cuánto tardan en ir por agua?</h3><p id="d-tiempo"></p></header>
+          <div class="composicion" id="g-tiempo"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>¿Qué tan distinto es en la ciudad y en el campo?</h3><p id="d-areas"></p></header>
+        <div class="grafico bajo" id="g-areas"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-mapa-c"></h3><p id="d-mapa-c"></p></header>
+        <div class="controles">
+          <div class="filtro-local"><label for="f-ind">Indicador</label><select id="f-ind"></select></div>
+          <div class="filtro-local" role="group" aria-labelledby="lbl-nivel"><span id="lbl-nivel">Ver por</span><div class="segmentado claro" id="f-nivel"></div></div>
+        </div>
+        <p class="lectura" id="l-mapa-c" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-censo-dep"></div><div id="mapa-censo-dist" hidden></div><div class="leyenda-mapa" id="ley-mapa-c"></div><p class="nota-tarjeta" id="n-mapa-c"></p></div>
+          <div><div class="grafico alto" id="g-deps"></div><div id="caja-dist" hidden><div class="buscador-tabla"><label for="f-buscar">Buscar</label><input id="f-buscar" type="search" placeholder="Distrito o provincia" autocomplete="off"></div><div class="tabla-caja" id="t-dist"></div></div></div>
+        </div>
+      </article>
+    </section>
+
     <!-- ================= PRIORIDAD EN EL PRESUPUESTO ================= -->
-    <section class="modulo" id="m-prioridad" role="tabpanel" aria-labelledby="tab-prioridad">
+    <section class="modulo" id="m-prioridad" role="tabpanel" aria-labelledby="tab-prioridad" hidden>
       <p class="resumen" id="r-prioridad" aria-live="polite">Cargando datos…</p>
       <div class="kpis kpis-4" id="k-prioridad"></div>
       <article class="tarjeta">
@@ -88,19 +133,20 @@
   </main>
 
   <footer class="pie">
-    <p><strong>Fuente:</strong> Ministerio de Economía y Finanzas (MEF), Consulta Amigable del gasto público, función Saneamiento y demás funciones del presupuesto.</p>
-    <p><strong>Notas:</strong> <strong>PIA:</strong> presupuesto institucional de apertura, aprobado al inicio del año. <strong>PIM:</strong> presupuesto institucional modificado, con los cambios del año. <strong>Devengado:</strong> gasto comprometido y reconocido. Montos en soles corrientes, de los tres niveles de gobierno.
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Censos Nacionales de Población y Vivienda 2025, consulta en Redatam. Ministerio de Economía y Finanzas (MEF), Consulta Amigable del gasto público, función Saneamiento y demás funciones del presupuesto.</p>
+    <p><strong>Notas:</strong> <strong>Censo 2025:</strong> viviendas con información de cada pregunta; «red pública» de agua o de desagüe incluye la conexión dentro de la vivienda y dentro del lote o terreno. Los días de servicio se preguntan a las viviendas con agua por red pública o pilón, y las horas, a las que la reciben todos los días; el tiempo para ir por agua, a las que no tienen red pública. En el Censo, Lima Metropolitana y Lima Provincias se separan; los mapas por distrito usan los límites de 2017, así que los distritos creados después no se dibujan.
+      <strong>Presupuesto:</strong> <strong>PIA:</strong> presupuesto institucional de apertura, aprobado al inicio del año. <strong>PIM:</strong> presupuesto institucional modificado, con los cambios del año. <strong>Devengado:</strong> gasto comprometido y reconocido. Montos en soles corrientes, de los tres niveles de gobierno.
       La prioridad es el porcentaje del presupuesto total (o del departamento) que va a cada función. Según el archivo de origen, los datos tienen corte a octubre, por lo que el devengado del último año puede estar incompleto. Datos procesados el <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Saneamiento</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=f40036e"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=f40036e"></script>
-  <script src="../../comun/config.js?v=f40036e"></script>
-  <script src="../../comun/base.js?v=f40036e"></script>
-  <script src="../../comun/graficos.js?v=f40036e"></script>
-  <script src="../../comun/mapa.js?v=f40036e"></script>
-  <script src="../../comun/descarga.js?v=f40036e"></script>
-  <script src="tablero.js?v=f40036e"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=b4e7da7"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=b4e7da7"></script>
+  <script src="../../comun/config.js?v=b4e7da7"></script>
+  <script src="../../comun/base.js?v=b4e7da7"></script>
+  <script src="../../comun/graficos.js?v=b4e7da7"></script>
+  <script src="../../comun/mapa.js?v=b4e7da7"></script>
+  <script src="../../comun/descarga.js?v=b4e7da7"></script>
+  <script src="tablero.js?v=b4e7da7"></script>
 </body>
 </html>

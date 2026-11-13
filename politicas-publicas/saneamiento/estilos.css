@@ -59,3 +59,26 @@
 
 .nota-tarjeta { margin: 8px 0 0; font-size: 14px; color: var(--texto-suave); }
 .ley i.l { height: 0; width: 20px; border-top: 3px solid; border-radius: 0; vertical-align: 4px; }
+
+/* Composición: barra al 100 % y sus partes */
+.composicion { margin-top: 14px; }
+.barra-comp { display: flex; height: 28px; border-radius: 4px; overflow: hidden; background: var(--fondo); }
+.barra-comp i { display: block; min-width: 2px; }
+.barra-comp i + i { border-left: 2px solid #fff; }
+.partes { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
+.partes div { display: grid; grid-template-columns: 14px 1fr auto 60px; align-items: center; gap: 10px; min-height: 34px; font-size: 15px; }
+.partes b { width: 14px; height: 14px; border-radius: 3px; }
+.partes strong { font-variant-numeric: tabular-nums; color: var(--navy); }
+.partes em { font-style: normal; font-size: 14px; color: var(--texto-suave); text-align: right; font-variant-numeric: tabular-nums; }
+.segmentado.claro { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); overflow: hidden; padding: 0; gap: 0; }
+.segmentado.claro button { border: 0; border-right: 1px solid var(--linea); border-radius: 0; min-height: 44px; padding: 8px 14px; font: inherit; font-size: 15px; font-weight: 600; color: var(--texto-suave); background: none; cursor: pointer; }
+.segmentado.claro button:last-child { border-right: 0; }
+.segmentado.claro button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.filtro-local > span { font-size: 15px; font-weight: 700; color: var(--navy); }
+.buscador-tabla { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+.buscador-tabla label { font-size: 15px; font-weight: 700; color: var(--navy); }
+.buscador-tabla input { flex: 1; max-width: 360px; height: 44px; padding: 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); font: inherit; font-size: 15px; }
+#t-dist { max-height: 560px; }
+#t-dist .tabla { min-width: 560px; }
+.tabla td small { display: block; font-size: 13px; color: var(--texto-suave); }
+.nota-tarjeta:empty { display: none; }
