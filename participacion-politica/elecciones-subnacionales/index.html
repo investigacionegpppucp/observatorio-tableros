@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elecciones regionales y municipales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Fuentes del manual de marca: Montserrat (títulos y texto) y Source Serif 4 (palabra clave) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=f40036e">
+  <link rel="stylesheet" href="../../comun/tema.css?v=f40036e">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=f40036e">
+  <link rel="stylesheet" href="../../politicas-publicas/educacion/estilos.css?v=f40036e">
+  <link rel="stylesheet" href="../../politicas-publicas/seguridad-ciudadana/estilos.css?v=f40036e">
+  <link rel="stylesheet" href="estilos.css?v=f40036e">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Elecciones regionales y municipales</h1>
+        <p class="subtitulo">Quién gobierna las regiones, provincias y distritos del Perú, cuánto vota la gente y quiénes se presentan, de 2002 a 2026.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Elección, nivel y región: los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-resumen" aria-controls="m-resumen" data-modulo="resumen">Resumen</button>
+    <button role="tab" id="tab-resultados" aria-controls="m-resultados" data-modulo="resultados">Resultados</button>
+    <button role="tab" id="tab-participacion" aria-controls="m-participacion" data-modulo="participacion">Participación</button>
+    <button role="tab" id="tab-oferta" aria-controls="m-oferta" data-modulo="oferta">Oferta</button>
+  </nav>
+
+  <main>
+    <p class="aviso-corte" id="aviso-corte" hidden></p>
+    <section class="modulo" id="m-resumen" role="tabpanel" aria-labelledby="tab-resumen">
+      <p class="resumen" id="r-resumen" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-resumen"></div>
+      <div id="c-resumen"></div>
+    </section>
+    <section class="modulo" id="m-resultados" role="tabpanel" aria-labelledby="tab-resultados" hidden>
+      <p class="resumen" id="r-resultados" aria-live="polite"></p>
+      <div id="c-resultados"></div>
+    </section>
+    <section class="modulo" id="m-participacion" role="tabpanel" aria-labelledby="tab-participacion" hidden>
+      <p class="resumen" id="r-participacion" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-participacion"></div>
+      <div id="c-participacion"></div>
+    </section>
+    <section class="modulo" id="m-oferta" role="tabpanel" aria-labelledby="tab-oferta" hidden>
+      <p class="resumen" id="r-oferta" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-oferta"></div>
+      <div id="c-oferta"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuentes:</strong> Jurado Nacional de Elecciones, Infogob (resultados y candidatos de las Elecciones Regionales y Municipales 2002-2022); Oficina Nacional de Procesos Electorales, resultados de las Elecciones Regionales y Municipales 2026. Fuente provisional: Wikipedia, gobernadores regionales electos 2002-2022 (ganador de la segunda vuelta), hasta tener los datos oficiales de Infogob. Cálculos del Observatorio.</p>
+    <p><strong>Definiciones:</strong> participación es votos emitidos entre electores hábiles. Los porcentajes de cada organización son sobre los votos válidos (sin blancos ni nulos). El número efectivo de partidos dice entre cuántas organizaciones de igual tamaño se reparte el voto (Laakso y Taagepera). Desde 2010, si en la elección regional nadie llega al 30 % de los votos válidos, hay segunda vuelta.</p>
+    <p><strong>Tipo de organización:</strong> el de Infogob. En 2026 la ONPE no lo publica: se toma el de la misma organización en elecciones anteriores o se estima. <strong>Lima:</strong> Lima Metropolitana no elige gobernador regional; la elección regional de Lima es la de Lima Provincias. Las capitales de provincia no tienen elección distrital: las gobierna la municipalidad provincial. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Elecciones regionales y municipales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=f40036e"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=f40036e"></script>
+  <script src="../../comun/config.js?v=f40036e"></script>
+  <script src="../../comun/base.js?v=f40036e"></script>
+  <script src="../../comun/graficos.js?v=f40036e"></script>
+  <script src="../../comun/mapa.js?v=f40036e"></script>
+  <script src="tablero.js?v=f40036e"></script>
+</body>
+</html>
