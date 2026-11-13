@@ -21,6 +21,10 @@ const NIVELES = ["regional", "provincial", "distrital"];
 const NIVEL_NOMBRE = { regional: "Elecciones regionales", provincial: "Elecciones provinciales", distrital: "Elecciones distritales" };
 const NIVEL_BOTON = { regional: "Regionales", provincial: "Provinciales", distrital: "Distritales" };
 const GOBIERNO = { regional: "gobiernos regionales", provincial: "municipalidades provinciales", distrital: "municipalidades distritales" };
+const DE_GOB = { regional: "de los gobiernos regionales", provincial: "de las municipalidades provinciales", distrital: "de las municipalidades distritales" };
+const GANADOS = { regional: "Gobiernos regionales ganados", provincial: "Municipalidades provinciales ganadas", distrital: "Municipalidades distritales ganadas" };
+const CARGO = { regional: "gobernadores", provincial: "alcaldes", distrital: "alcaldes" };
+const LUGARES = { regional: "regiones", provincial: "provincias", distrital: "distritos" };
 const LUGAR = { regional: "región", provincial: "provincia", distrital: "distrito" };
 // Nombre de la elección, para que los textos digan siempre de cuál se habla
 const ELECCION = { regional: "la elección de gobernadores regionales", provincial: "la elección de alcaldes provinciales", distrital: "la elección de alcaldes distritales" };
@@ -79,6 +83,8 @@ const etqAnio = (a) => (a === ANIO_PARCIAL() ? `${a} (conteo en curso)` : String
 const colorTipo = (t) => (t === PENDIENTE ? "#b9c2cf" : C.categorias[TIPOS.indexOf(t)] ?? C.otros);
 const pill = (t) => (t ? `<span class="pill" style="background:${colorTipo(t)}">${Obs.escapar(t)}</span>` : "");
 const nombreLugar = (u) => (String(u).length === 2 ? nombreRegion(u) : NOMBRE_LUGAR.get(u) ?? u);
+// Nombre de una fila de resultados; si el lugar no calzó con el mapa (sin código), el nombre que trae la fuente
+const nombreFila = (f) => (f.nivel === "regional" ? nombreRegion(f.dep) : f.ubigeo ? nombreLugar(f.ubigeo) : titulo(f.nivel === "provincial" ? f.provincia : f.distrito));
 
 /* ---------------------------------------------------------
    Datos: filtros y agregados
@@ -362,7 +368,7 @@ function pintarResumenKpis() {
     kpi("Electores", cuenta(ag?.electores), { pie: `${{ regional: "elección regional", provincial: "elección provincial", distrital: "elección distrital" }[estado.nivel]}, ${estado.region === PE ? "todo el Perú" : nombreRegion(estado.region)}` }) +
     kpi("Participación", pct(ag?.participacion), { pie: "votos emitidos entre electores" }) +
     kpi("Listas en competencia", n0(o?.listas ?? ag?.listas), { pie: `en ${n0(ag?.lugares)} ${ag?.lugares === 1 ? LUGAR[estado.nivel] : LUGAR[estado.nivel] === "región" ? "regiones" : LUGAR[estado.nivel] + "s"}` }) +
-    kpi("Ganados por movimientos regionales", pct0(mov), { pie: c ? `${n0(c.n("Movimiento regional"))} de ${n0(c.total)} ${GOBIERNO[estado.nivel]}` : "" });
+    kpi(estado.nivel === "regional" ? "Ganados por movimientos regionales" : "Ganadas por movimientos regionales", pct0(mov), { pie: c ? `${n0(c.n("Movimiento regional"))} de ${n0(c.total)} ${GOBIERNO[estado.nivel]}` : "" });
 }
 
 function pintarMapaGanador(m, id) {
@@ -385,6 +391,7 @@ function pintarReparto(gs) {
 }
 
 function pintarGanadorTipo() {
+  $("h3", document.getElementById("c-ganador-tipo")).textContent = `¿Quién gobierna cada ${LUGAR[estado.nivel]}?`;
   const id = "ganador-tipo", gs = pintarMapaGanador("resumen", id), c = cuotaTipos(estado.anio);
   const pend = gs.filter((g) => g.tipo === PENDIENTE).length;
   pintarReparto(gs);
@@ -393,7 +400,7 @@ function pintarGanadorTipo() {
   lectura(id, `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}, ${orden.map((t, i) => `${i === orden.length - 1 && i ? "y " : ""}${destacar(PLURAL[t])} ganaron ${destacar(`${n0(c.n(t))}`)} (${pct0(c.cuota(t))})`).join(", ")} de ${n0(c.total)} ${GOBIERNO[estado.nivel]}` +
     (pend ? `. En ${destacar(n0(pend))} regiones falta la segunda vuelta` : "") + ".");
   nota(id, estado.nivel === "regional" ? "Ganador final: en las regiones con segunda vuelta, quien la ganó (fuente provisional: Wikipedia). Lima Metropolitana no elige gobernador." :
-    "Las capitales de provincia no tienen alcalde distrital: las gobierna la municipalidad provincial (en gris en el mapa de distritos).");
+    estado.nivel === "distrital" ? "Las capitales de provincia no tienen alcalde distrital: las gobierna la municipalidad provincial (en gris en el mapa)." : "");
 }
 
 function pintarEvolTipos() {
@@ -407,12 +414,21 @@ function pintarEvolTipos() {
   const p = (a, t) => cuotaTipos(a)?.cuota(t);
   const a0 = ANIOS.find((a) => p(a, "Movimiento regional") != null), a1 = estado.anio;
   if (a0 != null && p(a1, "Movimiento regional") != null) {
-    lectura(id, `Los movimientos regionales ganaron el ${destacar(pct0(p(a0, "Movimiento regional")))} de los ${GOBIERNO[estado.nivel]} en ${a0} y el ${destacar(pct0(p(a1, "Movimiento regional")))} en ${etqAnio(a1)}; los partidos políticos, el ${destacar(pct0(p(a0, "Partido político")))} y el ${destacar(pct0(p(a1, "Partido político")))}.`);
+    lectura(id, `Los movimientos regionales ganaron el ${destacar(pct0(p(a0, "Movimiento regional")))} ${DE_GOB[estado.nivel]} en ${a0} y el ${destacar(pct0(p(a1, "Movimiento regional")))} en ${etqAnio(a1)}; los partidos políticos, el ${destacar(pct0(p(a0, "Partido político")))} y el ${destacar(pct0(p(a1, "Partido político")))}.`);
   }
-  nota(id, "Porcentaje sobre los gobiernos con ganador conocido. En las regiones donde falta la segunda vuelta, todavía no se cuentan.");
+  const n = estado.nivel;
+  $("h3", document.getElementById(`c-${id}`)).textContent = `${GANADOS[n]} por cada tipo de organización, de 2002 a 2026`;
+  $("header p", document.getElementById(`c-${id}`)).textContent = `Porcentaje ${DE_GOB[n]} que ganó cada tipo de organización, en cada elección.`;
+  nota(id, n === "regional" ? "Porcentaje sobre los gobiernos regionales con ganador conocido. En las regiones donde falta la segunda vuelta, todavía no se cuentan."
+    : `Porcentaje sobre las ${GOBIERNO[n]} con resultados (sin las elecciones anuladas).`);
 }
 
 function pintarTopOrganizaciones(id = "top-org", limite = 10) {
+  if (id === "top-org") {
+    const card = document.getElementById(`c-${id}`);
+    $("h3", card).textContent = `¿Qué organizaciones ganaron más ${GOBIERNO[estado.nivel]}?`;
+    $("header p", card).textContent = `Número de ${GOBIERNO[estado.nivel]} que ganó cada organización en la elección elegida (las 10 primeras).`;
+  }
   const gs = ganadores().filter((g) => g.org);
   const m = new Map();
   gs.forEach((g) => { const x = m.get(g.org) ?? { n: 0, tipo: g.tipo }; x.n++; m.set(g.org, x); });
@@ -444,7 +460,7 @@ function pintarMapaResultados() {
   const mapa = pintarMapaGeo("resultados", { valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => I.formato(v) });
   Obs.leyendaContinua(`ley-${id}`, rango, C.escala, I.formato, mapa);
   const orden = [...fs].sort((x, y) => I.valor(y) - I.valor(x));
-  const nom = (f) => (estado.nivel === "regional" ? nombreRegion(f.dep) : nombreLugar(f.ubigeo));
+  const nom = nombreFila;
   if (orden.length === 1) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: ${destacar(Obs.escapar(nom(orden[0])))}, ${I.formato(+I.valor(orden[0]))}.`);
   else if (orden.length) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: el valor más alto está en ${destacar(Obs.escapar(nom(orden[0])))} (${I.formato(+I.valor(orden[0]))}) y el más bajo en ${destacar(Obs.escapar(nom(orden.at(-1))))} (${I.formato(+I.valor(orden.at(-1)))}).`);
 }
@@ -466,7 +482,7 @@ function pintarDetalle() {
     nota(id, "");
     return pintarTopOrganizaciones(id, 9);
   }
-  const nombreF = estado.nivel === "regional" ? nombreRegion(f.dep) : nombreLugar(f.ubigeo);
+  const nombreF = nombreFila(f);
   h3.textContent = `¿Cómo votó ${nombreF}?`;
   desc.textContent = `Porcentaje de los votos válidos de cada organización en ${etqAnio(estado.anio)}${estado.nivel === "regional" ? " (primera vuelta)" : ""}.`;
   document.getElementById(`ley-${id}`).innerHTML = "";
@@ -526,7 +542,7 @@ function pintarTablaResultados() {
   $("h3", card).textContent = `¿Quién ganó en cada ${LUGAR[estado.nivel]}?`;
   $("header p", card).textContent = `Organización ganadora, su porcentaje de votos válidos y la diferencia con el segundo, ${enRegion(estado.region)}.`;
   tablaOrdenable(`g-${id}`, [
-    { clave: "lugar", titulo: titulo(LUGAR[estado.nivel]), valor: (f) => nombreLugar(f.ubigeo), html: (f) => Obs.escapar(nombreLugar(f.ubigeo)) + (estado.region === PE ? `<br><small>${Obs.escapar(nombreRegion(f.dep))}</small>` : "") },
+    { clave: "lugar", titulo: titulo(LUGAR[estado.nivel]), valor: (f) => nombreFila(f), html: (f) => Obs.escapar(nombreFila(f)) + (estado.region === PE ? `<br><small>${Obs.escapar(nombreRegion(f.dep))}</small>` : "") },
     { clave: "ganador", titulo: "Organización ganadora", valor: (f) => titulo(f.primero), html: (f) => (f.anulada ? "Anulada o sin datos" : Obs.escapar(titulo(f.primero))) },
     { clave: "tipo", titulo: "Tipo de organización", valor: (f) => (f.anulada ? "" : f.tipo_primero), html: (f) => (f.anulada ? "—" : pill(f.tipo_primero)) },
     { clave: "p1", titulo: "% de votos", num: true, valor: (f) => (f.anulada ? null : +f.pct_primero), html: (f) => (f.anulada ? "—" : pct(f.pct_primero)) },
@@ -575,7 +591,7 @@ function pintarMapaParticipacion() {
   const mapa = pintarMapaGeo("participacion", { valores, color: (v) => Obs.colorContinuo(v, rango, C.escala), texto: (v) => I.formato(v) });
   Obs.leyendaContinua(`ley-${id}`, rango, C.escala, I.formato, mapa);
   const orden = [...fs].sort((x, y) => I.valor(y) - I.valor(x));
-  const nom = (f) => (estado.nivel === "regional" ? nombreRegion(f.dep) : nombreLugar(f.ubigeo));
+  const nom = nombreFila;
   if (orden.length === 1) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: ${destacar(Obs.escapar(nom(orden[0])))}, ${I.formato(+I.valor(orden[0]))}.`);
   else if (orden.length) lectura(id, `${I.corto} en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}: la más alta fue en ${destacar(Obs.escapar(nom(orden[0])))} (${I.formato(+I.valor(orden[0]))}) y la más baja en ${destacar(Obs.escapar(nom(orden.at(-1))))} (${I.formato(+I.valor(orden.at(-1)))}).`);
   nota(id, estado.anio === ANIO_PARCIAL() ? "Mientras el conteo no llegue al 100 %, la participación se calcula sobre las actas contabilizadas." : "");
@@ -592,14 +608,14 @@ function pintarRankingParticipacion() {
     $("h3", card).textContent = `${I.corto} por región`;
     $("header p", card).textContent = `Cada región ordenada de mayor a menor, en ${etqAnio(estado.anio)}. Haz clic en una para elegirla.`;
   } else {
-    items = filas().filter((f) => !f.anulada).map((f) => ({ clave: f.ubigeo, etiqueta: estado.nivel === "regional" ? nombreRegion(f.dep) : nombreLugar(f.ubigeo), valor: +I.valor(f) }));
+    items = filas().filter((f) => !f.anulada).map((f, i) => ({ clave: f.ubigeo || `sin-codigo-${i}`, etiqueta: nombreFila(f), valor: +I.valor(f) }));
     $("h3", card).textContent = `${I.corto} en ${nombreRegion(estado.region)}`;
     $("header p", card).textContent = estado.nivel === "regional" ? "Valor de la región en la elección elegida." : `Cada ${LUGAR[estado.nivel]}, de mayor a menor.`;
   }
   const peru = agregado(filas(estado.anio, estado.nivel, PE));
   const ref = peru && (estado.mapa.participacion === "participacion" ? peru.participacion : peru.invalidos);
   Obs.barras(`g-${id}`, items.map((d) => ({ ...d, color: C.unica })), { formato: pct, limite: estado.region === PE ? 25 : 40, alto: window.innerWidth > 1100 ? 640 : null, compacto: true,
-    alClic: (k) => (estado.region === PE ? actualizar({ region: k, lugar: null }) : elegirLugar(k)),
+    alClic: (k) => (k.startsWith("sin-codigo") ? null : estado.region === PE ? actualizar({ region: k, lugar: null }) : elegirLugar(k)),
     seleccion: estado.lugar ? new Set([estado.lugar]) : null });
   document.getElementById(`g-${id}`).setAttribute("aria-label", `${I.corto} por lugar, ${estado.anio}`);
   lectura(id, ref != null ? `Perú: ${destacar(pct(ref))}.` : "");
@@ -674,8 +690,8 @@ function pintarResumen() {
   if (!ag) { el.textContent = `No hay datos de esta elección ${enRegion(estado.region)}.`; return; }
   const c = cuotaTipos(a);
   const txt = {
-    resumen: `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${destacar(cuenta(ag.electores))}${ag.electores >= 1e6 ? " de" : ""} electores eligieron ${n0(ag.lugares)} ${GOBIERNO[estado.nivel]}. Votó el ${destacar(pct(ag.participacion))}` +
-      (c ? ` y los partidos políticos ganaron el ${destacar(pct0(c.cuota("Partido político")))} de los gobiernos.` : "."),
+    resumen: `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${destacar(cuenta(ag.electores))}${ag.electores >= 1e6 ? " de" : ""} electores eligieron a los ${CARGO[estado.nivel]} de ${n0(ag.lugares)} ${ag.lugares === 1 ? LUGAR[estado.nivel] : LUGARES[estado.nivel]}. Votó el ${destacar(pct(ag.participacion))}` +
+      (c ? ` y los partidos políticos ganaron el ${destacar(pct0(c.cuota("Partido político")))} ${DE_GOB[estado.nivel]}.` : "."),
     resultados: `Quién ganó en cada ${LUGAR[estado.nivel]} y por cuánto en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${enRegion(estado.region)}.`,
     participacion: `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, votó el ${destacar(pct(ag.participacion))} de los electores y ${destacar(pct(ag.invalidos))} de los votos fueron en blanco o nulos.`,
     oferta: `Cuántas listas y candidatos se presentaron en ${ELECCION[estado.nivel]} ${enRegion(estado.region)}, y cuántas mujeres, jóvenes y personas de comunidades nativas.`,
@@ -758,7 +774,7 @@ function tarjetas() {
     tarjeta("ganador-tipo", "¿Quién gobierna cada lugar?", "Tipo de organización que ganó en cada lugar, en la elección elegida. Haz clic en un lugar para ver su votación en Resultados.")
       .replace('<div class="grafico" id="g-ganador-tipo"></div>', `<div class="mapa-lado">${htmlMapa("resumen")}<aside class="reparto" id="reparto"></aside></div>`) +
     tarjeta("evol-tipos", "Gobiernos ganados por cada tipo de organización, de 2002 a 2026", "Porcentaje de los gobiernos que ganó cada tipo de organización, en cada elección.") +
-    tarjeta("top-org", "¿Qué organizaciones ganaron más gobiernos?", "Número de gobiernos que ganó cada organización en la elección elegida (las 10 primeras).");
+    tarjeta("top-org", "", "");
   document.getElementById("c-resultados").innerHTML =
     tarjeta("mapa-res", "¿Quién ganó y por cuánto?", "Ganador de cada lugar, la diferencia con el segundo o cuán repartido estuvo el voto. Haz clic en un lugar para ver su votación.",
       { controles: local("mr", "Ver", '<div class="segmentado claro" data-mapa-res></div>') }).replace('<div class="grafico" id="g-mapa-res"></div>', htmlMapa("resultados"))
