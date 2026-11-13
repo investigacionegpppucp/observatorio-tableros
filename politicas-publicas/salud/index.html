@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salud | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Fuentes del manual de marca: Montserrat (títulos y texto) y Source Serif 4 (palabra clave) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=219d2ac">
+  <link rel="stylesheet" href="../../comun/tema.css?v=219d2ac">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=219d2ac">
+  <link rel="stylesheet" href="../educacion/estilos.css?v=219d2ac">
+  <link rel="stylesheet" href="../seguridad-ciudadana/estilos.css?v=219d2ac">
+  <link rel="stylesheet" href="estilos.css?v=219d2ac">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Salud</h1>
+        <p class="subtitulo">De qué se enferma la gente y cuánto se atiende, con qué establecimientos y personal cuenta el sistema, y cuánto se invierte en salud, en el Perú y en cada región.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ámbito, región, año y comparación: los arma tablero.js -->
+  <section class="filtros" id="filtros" aria-label="Filtros"></section>
+
+  <nav class="modulos" role="tablist" aria-label="Módulos">
+    <button role="tab" id="tab-atenciones" aria-controls="m-atenciones" data-modulo="atenciones">Atenciones</button>
+    <button role="tab" id="tab-recursos" aria-controls="m-recursos" data-modulo="recursos">Recursos</button>
+    <button role="tab" id="tab-presupuesto" aria-controls="m-presupuesto" data-modulo="presupuesto">Presupuesto</button>
+  </nav>
+
+  <!-- Las tarjetas de cada pestaña las arma tablero.js -->
+  <main>
+    <section class="modulo" id="m-atenciones" role="tabpanel" aria-labelledby="tab-atenciones">
+      <p class="resumen" id="r-atenciones" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-3" id="k-atenciones"></div>
+      <div id="c-atenciones"></div>
+    </section>
+    <section class="modulo" id="m-recursos" role="tabpanel" aria-labelledby="tab-recursos" hidden>
+      <p class="resumen" id="r-recursos" aria-live="polite"></p>
+      <div class="kpis kpis-3" id="k-recursos"></div>
+      <div id="c-recursos"></div>
+    </section>
+    <section class="modulo" id="m-presupuesto" role="tabpanel" aria-labelledby="tab-presupuesto" hidden>
+      <p class="resumen" id="r-presupuesto" aria-live="polite"></p>
+      <div class="kpis kpis-3" id="k-presupuesto"></div>
+      <div id="c-presupuesto"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuentes:</strong> Ministerio de Salud, Sistema de Información HIS (morbilidad y atenciones de consulta externa, vía REUNIS) e INFORHUS (recursos humanos); Superintendencia Nacional de Salud (SUSALUD), Registro Nacional de IPRESS (RENIPRESS); Ministerio de Economía y Finanzas, datos abiertos de presupuesto y ejecución del gasto (función Salud). Cálculos del Observatorio.</p>
+    <p><strong>Morbilidad y atenciones:</strong> consulta externa de los establecimientos que registran en el HIS, casi todos del Minsa y los gobiernos regionales. «Personas» cuenta a cada paciente una vez al año en cada establecimiento. «Diagnósticos» cuenta las consultas en que se registró un diagnóstico definitivo: una persona puede sumar varias. Los grupos de enfermedad son los capítulos de la CIE-10. Desde 2023 el HIS registra más personas con diagnóstico por un cambio de registro.</p>
+    <p><strong>Región:</strong> la del establecimiento. Lima Metropolitana es la provincia de Lima y Lima Provincias el resto del departamento; en el presupuesto Lima va entera, porque el MEF solo da el departamento. Las tasas por habitante usan la población del Minsa. El año en curso es parcial. Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Salud</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=219d2ac"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=219d2ac"></script>
+  <script src="../../comun/config.js?v=219d2ac"></script>
+  <script src="../../comun/base.js?v=219d2ac"></script>
+  <script src="../../comun/graficos.js?v=219d2ac"></script>
+  <script src="../../comun/mapa.js?v=219d2ac"></script>
+  <script src="../../comun/filtros.js?v=219d2ac"></script>
+  <script src="tablero.js?v=219d2ac"></script>
+</body>
+</html>
