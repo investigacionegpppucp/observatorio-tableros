@@ -123,8 +123,9 @@ window.Obs = window.Obs || {};
   };
 
   Obs.Mapa = class {
-    constructor(id, geo, { alClic = () => {}, nombre = (r) => r, globo = null } = {}) {
+    constructor(id, geo, { alClic = () => {}, nombre = (r) => r, globo = null, borde = "#ffffff" } = {}) {
       this.id = id;
+      this.borde = borde;   // color del límite entre polígonos
       this.geo = geo;
       this.alClic = alClic;
       this.nombre = nombre;
@@ -189,7 +190,7 @@ window.Obs = window.Obs || {};
       const v = this.ultimo.valores.get(r);
       capa.setStyle({
         fillColor: v != null ? this.ultimo.color(v) : "#ccd3dd", fillOpacity: 1,
-        color: elegida ? Obs.tema().navy : "#ffffff", weight: elegida ? 3 : 0.9,
+        color: elegida ? Obs.tema().navy : this.borde, weight: elegida ? 3 : 0.9,
       });
       if (elegida) capa.bringToFront();
     }

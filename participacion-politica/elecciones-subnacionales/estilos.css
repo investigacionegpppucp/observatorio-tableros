@@ -48,3 +48,7 @@
 .rayado { background: repeating-linear-gradient(45deg, #b9c2cf 0 3px, #ffffff 3px 6px) !important; }
 .recuadro-lima[hidden] { display: none !important; }
 .nota-nivel { display: block; margin-top: 6px; font-size: 14px; color: var(--texto-suave); }
+/* Mapa más alto cuando va al lado de otra tarjeta, para que ambas columnas queden parejas */
+@media (min-width: 1101px) { .dos-col .mapa-solo .mapa-geo { height: 560px; } .dos-col { align-items: stretch; } }
+/* Ranking largo al lado del mapa: se desplaza dentro de la tarjeta */
+@media (min-width: 1101px) { .dos-col .desliza { max-height: 660px; overflow-y: auto; padding-right: 4px; } }

@@ -78,7 +78,7 @@ window.Obs = window.Obs || {};
        detalle     función(item) con una línea más para el tooltip (por ejemplo, el número de casos) */
   Obs.barras = (id, items, opciones = {}) => {
     const t = Obs.tema();
-    const { formato = (v) => Obs.fmtN(v), nombre = "", comparacion = null, seleccion = null, alClic = null, color = t.unica, limite = null, ordenar = true, detalle = null } = opciones;
+    const { formato = (v) => Obs.fmtN(v), nombre = "", comparacion = null, seleccion = null, alClic = null, color = t.unica, limite = null, ordenar = true, detalle = null, compacto = false } = opciones;
     let datos = items.filter((d) => d.valor != null && (d.valor > 0 || d.comp > 0));
     if (ordenar) datos.sort((a, b) => b.valor - a.valor);
     if (limite) datos = datos.slice(0, limite);
@@ -98,7 +98,9 @@ window.Obs = window.Obs || {};
       }
       return n;
     };
-    const fila = Math.max(angosto ? 44 : 34, Math.max(...datos.map((d) => lineas(d.etiqueta))) * 18 + 8);
+    // compacto: filas bajas para listas largas de nombres cortos (p. ej., las 25 regiones)
+    const fila = compacto ? Math.max(angosto ? 30 : 24, Math.max(...datos.map((d) => lineas(d.etiqueta))) * 17 + 6)
+      : Math.max(angosto ? 44 : 34, Math.max(...datos.map((d) => lineas(d.etiqueta))) * 18 + 8);
     el.style.height = `${Math.max(160, datos.length * fila + 16)}px`;
     const g = Obs.grafico(id);
     g.resize();
@@ -128,7 +130,7 @@ window.Obs = window.Obs || {};
       },
       series: [
         {
-          type: "bar", barMaxWidth: 18, barCategoryGap: "36%", cursor: alClic ? "pointer" : "default",
+          type: "bar", barMaxWidth: compacto ? 14 : 18, barCategoryGap: compacto ? "28%" : "36%", cursor: alClic ? "pointer" : "default",
           data: datos.map((d) => ({
             value: d.valor,
             itemStyle: { color: d.color ?? color, borderRadius: [0, 2, 2, 0], opacity: seleccion && !seleccion.has(d.clave) ? 0.25 : 1 },
