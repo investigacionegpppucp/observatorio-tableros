@@ -88,23 +88,38 @@ function electosDe(a, r = estado.region) {
   return es.filter((e) => e.region === rd);
 }
 
-/* Colores fijos de los partidos principales: los de cada partido según sus logos (Wikipedia).
-   Avanza País va en su rosado (su azul se confunde con Somos Perú) y Acción Popular en gris muy oscuro. */
+/* Colores de los partidos: los de sus logos (Wikipedia, Wikidata o el logo). Cada partido tiene su color principal y,
+   si lo tiene, otros de su logo: en cada elección se usa el principal salvo que se parezca demasiado al de un partido
+   con más escaños; entonces se prueba el siguiente. */
 const COLOR_PARTIDO = [
-  [/FUERZA (POPULAR|2011)/, "#E9511B"], [/APRISTA/, "#FF0000"], [/^ACCION POPULAR/, "#2B2B2B"], [/POPULAR CRISTIANO/, "#00924B"],
-  [/UNION POR EL PERU/, "#3C40A8"], [/SOMOS PERU/, "#20488E"], [/NACIONALISTA|GANA PERU/, "#E34234"], [/FRENTE AMPLIO/, "#006400"],
-  [/KAMBIO/, "#E2007A"], [/FRENTE POPULAR AGRICOLA|FREPAP/, "#283896"], [/MORADO/, "#7026A8"], [/PERU LIBRE/, "#E80000"],
-  [/RENOVACION POPULAR/, "#0D76A0"], [/AVANZA PAIS/, "#E5057C"], [/JUNTOS POR EL PERU/, "#5CBE12"], [/BUEN GOBIERNO/, "#F9D502"],
-  [/OBRAS/, "#2E6213"], [/AHORA NACION/, "#F80000"],
+  [/FUERZA (POPULAR|2011)/, ["#E9511B"]], [/APRISTA/, ["#FF0000"]], [/^ACCION POPULAR/, ["#2B2B2B"]], [/POPULAR CRISTIANO/, ["#00924B"]],
+  [/UNION POR EL PERU/, ["#3C40A8", "#D91023", "#FAAC1E"]], [/SOMOS PERU/, ["#20488E", "#FB1320"]], [/NACIONALISTA|GANA PERU/, ["#E34234"]],
+  [/FRENTE AMPLIO/, ["#006400", "#ED1F24"]], [/KAMBIO/, ["#E2007A", "#0CC9FF"]], [/FRENTE POPULAR AGRICOLA|FREPAP/, ["#283896"]],
+  [/MORADO/, ["#7026A8"]], [/PERU LIBRE/, ["#E80000", "#FBB508"]], [/RENOVACION POPULAR/, ["#0D76A0"]], [/AVANZA PAIS/, ["#173F94", "#E5057C"]],
+  [/JUNTOS POR EL PERU/, ["#5CBE12", "#ED1F24"]], [/BUEN GOBIERNO/, ["#F9D502", "#DB1D1D"]], [/OBRAS/, ["#2E6213"]], [/AHORA NACION/, ["#F80000"]],
+  [/PERU POSIBLE/, ["#007244"]], [/MORALIZADOR/, ["#FF69B4"]], [/CAMBIO 90/, ["#FFA500"]], [/PODEMOS/, ["#0B4E9D", "#E09540"]],
+  [/UNIDAD NACIONAL/, ["#138A0F", "#0A3BA0", "#F2353B"]], [/SOLIDARIDAD NACIONAL/, ["#FFED00"]], [/ALIANZA PARA EL PROGRESO/, ["#1E5BA8", "#E8413A"]],
+  [/RESTAURACION NACIONAL/, ["#EAC15C"]],
 ];
-// Para los partidos que aún no tienen su color: tonos que no se confunden con los anteriores
+// Decisiones puntuales: en 2020 Somos Perú va en rojo (se confundía con FREPAP y UPP); en 2021, en azul (para distinguirse de Perú Libre)
+const COLOR_ANIO = { 2020: [[/SOMOS PERU/, "#FB1320"]], 2021: [[/SOMOS PERU/, "#20488E"]] };
 const PALETA_EXTRA = ["#a16207", "#9d174d", "#4d7c0f", "#57534e", "#c2410c", "#6d28d9", "#0e7490", "#155e75"];
 const sinTildes = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-const colorFijo = (org) => COLOR_PARTIDO.find(([re]) => re.test(sinTildes(org)))?.[1] ?? null;
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const distancia = (a, b) => { const [x, y] = [rgb(a), rgb(b)]; return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
 function coloresDe(a) {
-  const m = new Map();
+  const m = new Map(), usados = [];
   let k = 0;
-  escanosDe(a).forEach((e) => m.set(e.organizacion, colorFijo(e.organizacion) ?? PALETA_EXTRA[k++] ?? C.otros));
+  for (const e of escanosDe(a)) {
+    const org = sinTildes(e.organizacion);
+    const fijo = (COLOR_ANIO[a] ?? []).find(([re]) => re.test(org))?.[1];
+    const opciones = fijo ? [fijo] : COLOR_PARTIDO.find(([re]) => re.test(org))?.[1] ?? [PALETA_EXTRA[k++] ?? C.otros];
+    // El primero que no se parezca a los ya usados; si todos se parecen, el más distinto
+    const lejos = (c) => Math.min(Infinity, ...usados.map((u) => distancia(c, u)));
+    const color = opciones.find((c) => lejos(c) >= 70) ?? [...opciones].sort((x, y) => lejos(y) - lejos(x))[0];
+    m.set(e.organizacion, color);
+    usados.push(color);
+  }
   return m;
 }
 
@@ -211,32 +226,36 @@ function tablaOrdenable(id, columnas, datosTabla, { inicial, claveFila, descripc
 /* ---------------------------------------------------------
    Hemiciclo: un punto por escaño, en filas semicirculares, de izquierda a derecha por organización
    --------------------------------------------------------- */
+/* Hemiciclo ordenado: filas concéntricas con los escaños a igual distancia (el método de los diagramas de
+   parlamento de Wikipedia); los escaños se ordenan por ángulo, así cada organización ocupa una cuña. */
+const TOTALES_FILAS = [3, 15, 33, 61, 95, 138, 189, 247, 313, 388, 469, 559, 657, 762, 876, 997];
 function hemiciclo(el, grupos, { resaltar = null } = {}) {
   const total = grupos.reduce((s, g) => s + g.n, 0);
   if (!total) { el.innerHTML = ""; return; }
-  const filas = total > 100 ? 8 : total > 60 ? 6 : 5;
-  const R = 100, r0 = 38;
-  const radios = Array.from({ length: filas }, (_, i) => r0 + ((R - r0) * (i + 0.5)) / filas);
-  const largo = radios.reduce((s, r) => s + r, 0);
-  let cupos = radios.map((r) => Math.round((total * r) / largo));
-  cupos[cupos.length - 1] += total - cupos.reduce((s, c) => s + c, 0);
-  const puntos = [];
-  radios.forEach((r, i) => {
-    const n = cupos[i];
-    for (let k = 0; k < n; k++) {
-      const ang = Math.PI - (Math.PI * (k + 0.5)) / n;
-      puntos.push({ x: 110 + r * Math.cos(ang), y: 108 - r * Math.sin(ang), ang });
+  const filas = TOTALES_FILAS.findIndex((t) => t >= total) + 1 || TOTALES_FILAS.length;
+  const rad = 0.4 / filas, puntos = [];
+  let puestos = 0;
+  for (let i = 1; i <= filas; i++) {
+    const R = filas === 1 ? 0.5 : (3 * filas + 4 * i - 2) / (4 * filas);
+    const J = i === filas ? total - puestos
+      : Math.round((total / TOTALES_FILAS[filas - 1]) * Math.PI / (2 * Math.asin(2 / (3 * filas + 4 * i - 2))));
+    puestos += J;
+    for (let j = 0; j < J; j++) {
+      const ang = J === 1 ? Math.PI / 2 : (j * (Math.PI - 2 * Math.sin(rad / R))) / (J - 1) + Math.sin(rad / R);
+      puntos.push({ ang, x: R * Math.cos(ang), y: R * Math.sin(ang) });
     }
-  });
-  puntos.sort((a, b) => b.ang - a.ang);
-  const rp = Math.min(5.2, ((R - r0) / filas) * 0.42);
+  }
+  puntos.sort((a, b) => b.ang - a.ang || b.y - a.y);
+  // A coordenadas del SVG: ancho 220; el arco exterior (más el radio de un escaño) ocupa 100 unidades
+  const esc = 100 / ((7 * filas - 2) / (4 * filas) + rad);
+  const X = (x) => 110 + x * esc, Y = (y) => 104 - y * esc;
   let i = 0;
   const svg = grupos.flatMap((g) => Array.from({ length: g.n }, (_, k) => {
     const p = puntos[i++], apagado = resaltar && !resaltar(g, k);
-    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${rp.toFixed(2)}" fill="${g.color}" opacity="${apagado ? 0.18 : 1}"><title>${Obs.escapar(g.etiqueta)}</title></circle>`;
+    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${(rad * esc * 0.92).toFixed(2)}" fill="${g.color}" opacity="${apagado ? 0.18 : 1}"><title>${Obs.escapar(g.etiqueta)}</title></circle>`;
   })).join("");
-  el.innerHTML = `<svg viewBox="0 0 220 116" role="img" aria-label="Hemiciclo: ${grupos.map((g) => `${g.etiqueta} ${g.n}`).join(", ")}">${svg}` +
-    `<text x="110" y="104" text-anchor="middle" class="hemi-total">${total}</text><text x="110" y="114" text-anchor="middle" class="hemi-etq">escaños</text></svg>`;
+  el.innerHTML = `<svg viewBox="0 0 220 112" role="img" aria-label="Hemiciclo: ${grupos.map((g) => `${g.etiqueta} ${g.n}`).join(", ")}">${svg}` +
+    `<text x="110" y="100" text-anchor="middle" class="hemi-total">${total}</text><text x="110" y="109" text-anchor="middle" class="hemi-etq">escaños</text></svg>`;
 }
 
 /* ---------------------------------------------------------
