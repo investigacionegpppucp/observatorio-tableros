@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bibliotecas municipales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Avenir es la tipografía institucional; sin licencia web se usa Nunito Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=04edc88">
+  <link rel="stylesheet" href="../../comun/tema.css?v=04edc88">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=04edc88">
+  <link rel="stylesheet" href="estilos.css?v=04edc88">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Bibliotecas municipales</h1>
+        <p class="subtitulo">Cuántas municipalidades del Perú tienen una biblioteca y con qué cuentan esas bibliotecas, de 2004 a 2026, según el Registro Nacional de Municipalidades.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <div class="filtro"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+    <div class="filtro"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+    <div class="filtro"><span class="etiqueta" id="lbl-tipo">Municipalidades</span><div class="segmentado" id="f-tipo" role="group" aria-labelledby="lbl-tipo"></div></div>
+  </section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-cobertura" aria-controls="m-cobertura" data-modulo="cobertura">¿Cuántas tienen biblioteca?</button>
+    <button role="tab" id="tab-servicios" aria-controls="m-servicios" data-modulo="servicios">¿Con qué cuentan?</button>
+  </nav>
+
+  <main>
+    <!-- ================= COBERTURA ================= -->
+    <section class="modulo" id="m-cobertura" role="tabpanel" aria-labelledby="tab-cobertura">
+      <p class="resumen" id="r-cobertura" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-cobertura"></div>
+      <article class="tarjeta">
+        <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
+        <div class="ley" id="ley-evol"></div>
+        <div class="grafico" id="g-evol"></div>
+        <p class="pista">Haz clic en un año para elegirlo.</p>
+      </article>
+    </section>
+
+    <!-- ================= SERVICIOS ================= -->
+    <section class="modulo" id="m-servicios" role="tabpanel" aria-labelledby="tab-servicios" hidden>
+      <p class="resumen" id="r-servicios" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-servicios"></div>
+      <article class="tarjeta">
+        <header><h3 id="t-serv-evol"></h3><p id="d-serv-evol"></p></header>
+        <div class="grafico" id="g-serv-evol"></div>
+        <p class="pista">Haz clic en un año para elegirlo; en la leyenda, para ocultar o mostrar una línea.</p>
+      </article>
+      <article class="tarjeta">
+        <header><h3>¿Cuántos libros y computadoras tienen?</h3><p id="d-medianas"></p></header>
+        <div class="grafico bajo" id="g-medianas"></div>
+      </article>
+    </section>
+
+    <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
+    <article class="tarjeta">
+      <header><h3 id="t-mapa"></h3><p>Cuanto más oscura la región, mayor el porcentaje. Lima Metropolitana y el Callao se muestran ampliados en el recuadro. Haz clic en una región para verla en todo el tablero; otro clic vuelve al Perú.</p></header>
+      <div class="controles"><div class="filtro-local"><label for="f-mapa">Indicador</label><select id="f-mapa"></select></div></div>
+      <p class="lectura" id="l-mapa" aria-live="polite"></p>
+      <div class="mapa-y-tabla">
+        <div><div id="mapa-regiones"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+        <div><div class="grafico alto" id="g-regiones"></div></div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Registro Nacional de Municipalidades (RENAMU), 2004-2026. Los años 2025 y 2026 se procesaron desde los microdatos del INEI.</p>
+    <p><strong>Notas:</strong> Cada año corresponde a la edición del RENAMU, que recoge lo ocurrido el año anterior (el RENAMU 2026 informa sobre 2025). Municipalidades provinciales y distritales; no incluye las de centros poblados.
+      «Tiene biblioteca» es la municipalidad que tuvo al menos una biblioteca municipal. Los servicios se calculan sobre las municipalidades con biblioteca: lectura en sala, personal exclusivo, computadoras operativas y computadoras con acceso a internet. La lectura en sala, el personal y las computadoras se preguntan desde 2006, y las computadoras con internet desde 2008.
+      Libros: mediana del número de ejemplares de libros de las bibliotecas que informaron (no hay dato para 2018); computadoras: mediana de computadoras operativas. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos procesados el <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Bibliotecas municipales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=04edc88"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=04edc88"></script>
+  <script src="../../comun/config.js?v=04edc88"></script>
+  <script src="../../comun/base.js?v=04edc88"></script>
+  <script src="../../comun/graficos.js?v=04edc88"></script>
+  <script src="../../comun/mapa.js?v=04edc88"></script>
+  <script src="../../comun/descarga.js?v=04edc88"></script>
+  <script src="tablero.js?v=04edc88"></script>
+</body>
+</html>
