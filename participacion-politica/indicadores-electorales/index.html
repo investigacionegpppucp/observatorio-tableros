@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indicadores electorales | Observatorio para la Democracia y Gobernabilidad</title>
+  <!-- Fuentes del manual de marca: Montserrat (títulos y texto) y Source Serif 4 (palabra clave) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=06be421">
+  <link rel="stylesheet" href="../../comun/tema.css?v=06be421">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=06be421">
+  <link rel="stylesheet" href="estilos.css?v=06be421">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <div>
+        <h1>Indicadores electorales</h1>
+        <p class="subtitulo">Qué tan concentrado, reñido y repartido ha sido el voto en las elecciones generales, regionales y municipales del Perú, de 2000 a 2026.</p>
+      </div>
+      <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
+        Descargar datos
+      </button>
+    </div>
+  </header>
+
+  <section class="filtros" id="filtros" aria-label="Filtros">
+    <!-- Elecciones generales -->
+    <div class="filtro" data-modulo-filtro="generales">
+      <span class="etiqueta" id="lbl-eleccion">Elección</span>
+      <div class="segmentado" id="f-eleccion" role="group" aria-labelledby="lbl-eleccion"></div>
+    </div>
+    <!-- Elecciones regionales y municipales -->
+    <div class="filtro" data-modulo-filtro="subnacionales">
+      <span class="etiqueta" id="lbl-nivel">Elección</span>
+      <div class="segmentado" id="f-nivel" role="group" aria-labelledby="lbl-nivel"></div>
+    </div>
+    <div class="filtro" data-modulo-filtro="subnacionales"><label for="f-region">Ámbito</label><select id="f-region"></select></div>
+    <div class="filtro" data-modulo-filtro="subnacionales"><label for="f-anio">Año</label><select id="f-anio" class="corto"></select></div>
+  </section>
+
+  <nav class="modulos" role="tablist" aria-label="Temas">
+    <button role="tab" id="tab-generales" aria-controls="m-generales" data-modulo="generales">Elecciones generales</button>
+    <button role="tab" id="tab-subnacionales" aria-controls="m-subnacionales" data-modulo="subnacionales">Elecciones regionales y municipales</button>
+  </nav>
+
+  <main>
+    <!-- ================= ELECCIONES GENERALES ================= -->
+    <section class="modulo" id="m-generales" role="tabpanel" aria-labelledby="tab-generales">
+      <p class="resumen" id="r-generales" aria-live="polite">Cargando datos…</p>
+      <div class="kpis kpis-4" id="k-generales"></div>
+      <article class="tarjeta">
+        <header><h3 id="t-conc"></h3><p id="d-conc"></p></header>
+        <div class="ley" id="ley-conc"></div>
+        <div class="grafico" id="g-conc"></div>
+      </article>
+      <div class="par" id="par-nep">
+        <article class="tarjeta">
+          <header><h3 id="t-nep">Número efectivo de partidos</h3><p id="d-nep"></p></header>
+          <div class="grafico bajo" id="g-nep"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3 id="t-org">Organizaciones que participaron</h3><p id="d-org"></p></header>
+          <div class="grafico bajo" id="g-org"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3 id="t-tabla-g"></h3><p id="d-tabla-g"></p></header>
+        <div class="tabla-caja" id="t-generales"></div>
+      </article>
+    </section>
+
+    <!-- ================= ELECCIONES REGIONALES Y MUNICIPALES ================= -->
+    <section class="modulo" id="m-subnacionales" role="tabpanel" aria-labelledby="tab-subnacionales" hidden>
+      <p class="resumen" id="r-sub" aria-live="polite"></p>
+      <div class="kpis kpis-4" id="k-sub"></div>
+      <article class="tarjeta">
+        <header><h3 id="t-mapa"></h3><p id="d-mapa"></p></header>
+        <div class="controles">
+          <div class="filtro-local" role="group" aria-labelledby="lbl-ind"><span id="lbl-ind">Indicador</span><div class="segmentado claro" id="f-indicador"></div></div>
+        </div>
+        <p class="lectura" id="l-mapa" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-sub"></div><div class="leyenda-mapa" id="ley-mapa"></div></div>
+          <div><div id="g-lado"></div><div class="grafico" id="g-dist" hidden></div></div>
+        </div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-evol"></h3><p id="d-evol"></p></header>
+        <div class="ley" id="ley-evol"></div>
+        <div class="grafico bajo" id="g-evol"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-tabla-s"></h3><p id="d-tabla-s"></p></header>
+        <div class="tabla-caja" id="t-sub"></div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>Fuente:</strong> Jurado Nacional de Elecciones, Infogob (2000-2022); Oficina Nacional de Procesos Electorales, ONPE (2026).</p>
+    <p><strong>Elaboración:</strong> Observatorio para la Democracia y Gobernabilidad, Escuela de Gobierno y Políticas Públicas, PUCP.</p>
+    <p><strong>Notas:</strong></p>
+    <ul class="notas" id="notas"></ul>
+    <p>Datos actualizados al <span id="actualizado"></span>.</p>
+    <p><strong>Cómo citar:</strong> Aragón, J., Cruz, M., Alcántara, K. y Gutiérrez, N. (2026). <em>Indicadores electorales</em> [tablero de datos]. Observatorio para la Democracia y Gobernabilidad, Escuela de Gobierno y Políticas Públicas, PUCP. https://democracia-gobernabilidad.pucp.edu.pe/participaci%C3%B3n/elecciones/indicadores-electorales</p>
+  </footer>
+
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=06be421"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=06be421"></script>
+  <script src="../../comun/config.js?v=06be421"></script>
+  <script src="../../comun/base.js?v=06be421"></script>
+  <script src="../../comun/graficos.js?v=06be421"></script>
+  <script src="../../comun/mapa.js?v=06be421"></script>
+  <script src="../../comun/descarga.js?v=06be421"></script>
+  <script src="tablero.js?v=06be421"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+/* =========================================================
+   Estilos propios del tablero de Indicadores electorales.
+   Lo compartido (franja, filtros, pestañas, tarjetas, mapa, ranking,
+   botones «segmentado claro», tabla centrada) está en comun/estilos.css.
+   ========================================================= */
+.cabecera-interior { padding-bottom: 12px; }
+.filtro[hidden] { display: none; }
+
+/* Cuatro cifras clave; en celular, 2 × 2 */
+.kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .kpis-4 { gap: 10px; }
+  .kpis-4 .kpi { padding: 12px; }
+  .kpis-4 .kpi-valor { font-size: 24px; }
+  .kpis-4 .kpi-etiqueta, .kpis-4 .kpi-pie, .kpis-4 .kpi-cambio { font-size: 13px; }
+}
+.kpi-valor.texto { font-size: 26px; }
+/* Flecha de cambio neutra: que un indicador suba o baje no es bueno ni malo */
+.kpi-cambio { color: var(--texto-suave); font-weight: 600; }
+
+/* Par de gráficos (NEP y organizaciones) */
+.par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.par[hidden] { display: none; }
+.par > .tarjeta { margin-bottom: 0; }
+@media (max-width: 900px) { .par { grid-template-columns: 1fr; } }
+
+/* Leyendas de líneas */
+.ley { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; font-size: 14px; color: var(--texto-suave); font-weight: 600; }
+.ley:empty { display: none; }
+.ley i.l { display: inline-block; width: 20px; height: 0; border-top: 3px solid; margin-right: 6px; vertical-align: 4px; }
+
+/* Mapa: escala continua y casos especiales (anulada, capital, sin elección) */
+.lectura { margin: 14px 0 0; font-size: 16px; line-height: 1.5; max-width: 900px; }
+.lectura:empty { display: none; }
+.mapa-y-tabla > div { min-width: 0; }
+.mapa-nivel[hidden] { display: none; }
+.ley-continua { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.ley-continua i { display: block; width: 180px; max-width: 50vw; height: 12px; border-radius: 3px; border: 1px solid var(--linea); }
+.ley-extra { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 13px; color: var(--texto-suave); }
+.ley-extra span { display: inline-flex; align-items: center; gap: 6px; }
+.ley-extra i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+#g-dist { height: 360px; margin-top: 0; }
+.sin-recuadro .recuadro-lima { display: none; }
+/* El margen se escribe «36.1 p. p.»: columna de valores más ancha */
+#g-lado.ranking { --valor: 84px; }
+
+/* Tablas */
+.tabla-caja { max-height: 560px; overflow: auto; border: 1px solid var(--linea); border-radius: var(--radio); margin-top: 12px; container-type: inline-size; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tabla tbody tr[tabindex] { cursor: pointer; }
+.tabla tbody tr[tabindex]:hover td { background: var(--fondo); }
+.tabla tr.elegida td { font-weight: 800; background: rgba(40, 65, 221, 0.08); color: var(--azul); }
+.tabla small { display: block; font-size: 13px; font-weight: 400; color: var(--texto-suave); }
+.tabla.ordenable th { padding: 0; }
+.tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.75; }
+.tabla.ordenable th[aria-sort="none"] .flecha { opacity: 0.4; }
+/* En celular, la tabla de lugares muestra solo la columna del indicador elegido en el mapa */
+@container (max-width: 620px) {
+  #t-sub[data-ver="concentracion"] .num:not(.c-concentracion),
+  #t-sub[data-ver="margen"] .num:not(.c-margen),
+  #t-sub[data-ver="nep"] .num:not(.c-nep),
+  #t-sub[data-ver="organizaciones"] .num:not(.c-organizaciones) { display: none; }
+  #t-generales .c-nep, #t-generales .c-organizaciones { display: none; } /* están en los gráficos de arriba */
+  .tabla th.num { white-space: normal; }
+  .tabla.ordenable th button { padding: 8px 6px; font-size: 13px; }
+  .tabla td { padding: 9px 6px; }
+}
+@media (max-width: 560px) {
+  .filtros .segmentado { width: 100%; flex-wrap: wrap; }
+  .filtros .segmentado button { flex: 1 1 auto; min-width: 0; }
+}
