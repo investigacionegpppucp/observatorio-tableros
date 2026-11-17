@@ -94,15 +94,16 @@ function electosDe(a, r = estado.region) {
 const COLOR_PARTIDO = [
   [/FUERZA (POPULAR|2011)/, ["#E9511B"]], [/APRISTA/, ["#FF0000"]], [/^ACCION POPULAR/, ["#2B2B2B"]], [/POPULAR CRISTIANO/, ["#00924B"]],
   [/UNION POR EL PERU/, ["#3C40A8", "#D91023", "#FAAC1E"]], [/SOMOS PERU/, ["#20488E", "#FB1320"]], [/NACIONALISTA|GANA PERU/, ["#E34234"]],
-  [/FRENTE AMPLIO/, ["#006400", "#ED1F24"]], [/KAMBIO/, ["#E2007A", "#0CC9FF"]], [/FRENTE POPULAR AGRICOLA|FREPAP/, ["#283896"]],
+  [/FRENTE AMPLIO/, ["#006400", "#ED1F24"]], [/KAMBIO/, ["#E2007A", "#0CC9FF"]], [/FRENTE POPULAR AGRICOLA|FREPAP/, ["#00009B"]],
   [/MORADO/, ["#7026A8"]], [/PERU LIBRE/, ["#E80000", "#FBB508"]], [/RENOVACION POPULAR/, ["#0D76A0"]], [/AVANZA PAIS/, ["#173F94", "#E5057C"]],
   [/JUNTOS POR EL PERU/, ["#5CBE12", "#ED1F24"]], [/BUEN GOBIERNO/, ["#F9D502", "#DB1D1D"]], [/OBRAS/, ["#2E6213"]], [/AHORA NACION/, ["#F80000"]],
   [/PERU POSIBLE/, ["#007244"]], [/MORALIZADOR/, ["#FF69B4"]], [/CAMBIO 90/, ["#FFA500"]], [/PODEMOS/, ["#0B4E9D", "#E09540"]],
   [/UNIDAD NACIONAL/, ["#138A0F", "#0A3BA0", "#F2353B"]], [/SOLIDARIDAD NACIONAL/, ["#FFED00"]], [/ALIANZA PARA EL PROGRESO/, ["#1E5BA8", "#E8413A"]],
-  [/RESTAURACION NACIONAL/, ["#EAC15C"]],
+  [/RESTAURACION NACIONAL/, ["#EAC15C"]], [/DEMOCRACIA DIRECTA/, ["#FFF000", "#FE0000"]],
 ];
-// Decisiones puntuales: en 2020 Somos Perú va en rojo (se confundía con FREPAP y UPP); en 2021, en azul (para distinguirse de Perú Libre)
-const COLOR_ANIO = { 2020: [[/SOMOS PERU/, "#FB1320"]], 2021: [[/SOMOS PERU/, "#20488E"]] };
+// Decisiones puntuales: en 2020 Somos Perú va en rojo (se confundía con FREPAP y UPP); en 2021, en azul (para distinguirse de Perú Libre).
+// En 2020 hay muchos rojos y naranjas en el mapa: Perú Libre va en un rojo oscuro y Podemos en un tono claro de su azul.
+const COLOR_ANIO = { 2020: [[/SOMOS PERU/, "#FB1320"], [/PERU LIBRE/, "#8B0000"], [/PODEMOS/, "#5BA4E6"]], 2021: [[/SOMOS PERU/, "#20488E"]] };
 const PALETA_EXTRA = ["#a16207", "#9d174d", "#4d7c0f", "#57534e", "#c2410c", "#6d28d9", "#0e7490", "#155e75"];
 const sinTildes = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -110,8 +111,16 @@ const distancia = (a, b) => { const [x, y] = [rgb(a), rgb(b)]; return Math.hypot
 function coloresDe(a) {
   const m = new Map(), usados = [];
   let k = 0;
-  for (const e of escanosDe(a)) {
-    const org = sinTildes(e.organizacion);
+  // Primero las que tienen escaños (por escaños); luego las que sin escaños fueron las más votadas en alguna región (para el mapa)
+  const conEsc = escanosDe(a).map((e) => e.organizacion), ganadoras = new Map();
+  for (const v of VOT) {
+    if (v.anio !== a || v.tipo !== "organizacion" || v.region === PE || v.camara === "Senado nacional") continue;
+    const k = `${v.camara}|${v.region}`;
+    if (!ganadoras.has(k) || ganadoras.get(k).votos < v.votos) ganadoras.set(k, v);
+  }
+  const sinEsc = [...ganadoras.values()].map((v) => v.organizacion).filter((o) => !conEsc.includes(o));
+  for (const nombre of [...new Set([...conEsc, ...sinEsc])]) {
+    const e = { organizacion: nombre }, org = sinTildes(nombre);
     const fijo = (COLOR_ANIO[a] ?? []).find(([re]) => re.test(org))?.[1];
     const opciones = fijo ? [fijo] : COLOR_PARTIDO.find(([re]) => re.test(org))?.[1] ?? [PALETA_EXTRA[k++] ?? C.otros];
     // El primero que no se parezca a los ya usados; si todos se parecen, el más distinto
@@ -184,44 +193,114 @@ function lineas(id, anios, series, { formato = pct, eje = pct0, aria = "" } = {}
   el.setAttribute("aria-label", aria);
 }
 
-/* Tabla ordenable con buscador. columnas: [{ clave, titulo, num, valor(f), html(f) }] */
-function tablaOrdenable(id, columnas, datosTabla, { inicial, claveFila, descripcion, buscar = null }) {
+/* Tabla ordenable con buscador. columnas: [{ clave, titulo, num, valor(f), html(f), filtro }]
+   Con `filtro: true`, el título de la columna abre un menú como el de una tabla dinámica de Excel:
+   ordenar y elegir qué valores mostrar. Los filtros solo afectan a esta tabla. */
+const FILTROS = {};
+function tablaOrdenable(id, columnas, datosTabla, opciones) {
+  const { inicial, descripcion, buscar = null, unidad = "filas" } = opciones;
   const el = document.getElementById(id);
   const orden = (ORDEN[id] ??= { ...inicial });
+  const filtros = (FILTROS[id] ??= {});
   const col = columnas.find((c) => c.clave === orden.clave) ?? columnas[0];
   const cmp = (a, b) => {
     const x = col.valor(a), y = col.valor(b);
     if (x == null || x === "" || y == null || y === "") return (x == null || x === "") - (y == null || y === "");
     return (typeof x === "string" ? x.localeCompare(y, "es") : x - y) * orden.dir;
   };
-  const datos = [...datosTabla].sort(cmp);
+  const pasa = (f, salvo) => Object.entries(filtros).every(([k, sel]) => k === salvo || sel.has(String(columnas.find((c) => c.clave === k).valor(f))));
+  const datos = datosTabla.filter((f) => pasa(f)).sort(cmp);
+  const nFiltros = Object.keys(filtros).length;
   const th = columnas.map((c) => {
-    const activo = c.clave === col.clave;
-    return `<th class="${c.num ? "num" : ""}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-orden="${c.clave}">${c.titulo}<span class="flecha" aria-hidden="true">${activo ? (orden.dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
+    const activo = c.clave === col.clave, filtrada = !!filtros[c.clave];
+    const flecha = activo ? (orden.dir === 1 ? "▲" : "▼") : c.filtro ? "" : "▲▼";
+    const icono = c.filtro ? `<span class="embudo${filtrada ? " activo" : ""}" aria-hidden="true">${filtrada ? "●" : "▾"}</span>` : "";
+    const attrs = c.filtro ? `data-menu="${c.clave}" aria-haspopup="true" aria-expanded="false"` : `data-orden="${c.clave}"`;
+    return `<th class="${c.num ? "num" : ""}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" ${attrs}>${c.titulo}<span class="flecha" aria-hidden="true">${flecha}</span>${icono}</button></th>`;
   }).join("");
   const tr = datos.map((f) => `<tr data-texto="${Obs.escapar(columnas.filter((c) => !c.num).map((c) => String(c.valor(f) ?? "")).join(" ").toLowerCase())}">` +
     columnas.map((c) => `<td class="${c.num ? "num" : ""}">${c.html(f)}</td>`).join("") + "</tr>").join("");
   const caja = buscar ? `<div class="buscador-tabla"><label for="${id}-buscar">Buscar</label><input id="${id}-buscar" type="search" placeholder="${buscar}" autocomplete="off" value="${Obs.escapar(BUSCAR[id] ?? "")}"></div>` : "";
-  el.innerHTML = caja + `<div class="tabla-desliza"><table class="tabla ordenable"><caption class="solo-lectores">${descripcion}. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>` +
-    `<p class="tabla-vacia" hidden>Ninguna fila coincide con la búsqueda.</p></div>`;
+  const estadoFiltros = columnas.some((c) => c.filtro) ? `<p class="tabla-filtros"><span data-cuenta></span>${nFiltros ? ` <button type="button" class="quitar-filtros">Quitar filtros</button>` : ""}</p>` : "";
+  el.innerHTML = caja + estadoFiltros + `<div class="tabla-desliza"><table class="tabla ordenable"><caption class="solo-lectores">${descripcion}. Los títulos de columna ordenan y filtran la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>` +
+    `<p class="tabla-vacia" hidden>Ninguna fila coincide con la búsqueda o los filtros.</p></div>`;
+  const rehacer = (foco) => { cerrarMenus(); tablaOrdenable(id, columnas, datosTabla, opciones); if (foco) el.querySelector(foco)?.focus(); };
   const filtrar = () => {
     const q = (BUSCAR[id] ?? "").trim().toLowerCase();
     let visibles = 0;
     el.querySelectorAll("tbody tr").forEach((r) => { const ok = !q || r.dataset.texto.includes(q); r.hidden = !ok; visibles += ok; });
     el.querySelector(".tabla-vacia").hidden = visibles > 0;
+    const cuenta = el.querySelector("[data-cuenta]");
+    if (cuenta) cuenta.innerHTML = visibles === datosTabla.length ? `${n0(visibles)} ${unidad}` : `Mostrando <strong>${n0(visibles)}</strong> de ${n0(datosTabla.length)} ${unidad}`;
   };
   filtrar();
   const input = el.querySelector("input[type=search]");
   if (input) input.oninput = () => { BUSCAR[id] = input.value; filtrar(); };
+  const quitar = el.querySelector(".quitar-filtros");
+  if (quitar) quitar.onclick = () => { FILTROS[id] = {}; rehacer(); };
+  const ordenarPor = (c, dir) => { ORDEN[id] = { clave: c.clave, dir }; };
   el.querySelector("thead").onclick = (e) => {
-    const b = e.target.closest("button[data-orden]");
+    const b = e.target.closest("button[data-orden], button[data-menu]");
     if (!b) return;
-    const c = columnas.find((x) => x.clave === b.dataset.orden);
-    ORDEN[id] = orden.clave === c.clave ? { clave: c.clave, dir: -orden.dir } : { clave: c.clave, dir: c.num ? -1 : 1 };
-    tablaOrdenable(id, columnas, datosTabla, { inicial, claveFila, descripcion, buscar });
-    el.querySelector(`button[data-orden="${c.clave}"]`)?.focus();
+    if (b.dataset.orden) {
+      const c = columnas.find((x) => x.clave === b.dataset.orden);
+      ordenarPor(c, orden.clave === c.clave ? -orden.dir : c.num ? -1 : 1);
+      return rehacer(`button[data-orden="${c.clave}"]`);
+    }
+    abrirMenu(b, columnas.find((x) => x.clave === b.dataset.menu));
   };
+
+  function abrirMenu(boton, c) {
+    cerrarMenus();
+    // Valores posibles con los demás filtros aplicados (como en Excel)
+    const cuenta = new Map();
+    datosTabla.filter((f) => pasa(f, c.clave)).forEach((f) => { const v = String(c.valor(f)); cuenta.set(v, (cuenta.get(v) ?? 0) + 1); });
+    const valores = [...cuenta.keys()].sort((x, y) => (c.num ? Number(y) - Number(x) : x.localeCompare(y, "es")));
+    const sel = new Set(filtros[c.clave] ?? valores);
+    const [txtAsc, txtDesc] = c.num ? ["De menor a mayor", "De mayor a menor"] : ["De la A a la Z", "De la Z a la A"];
+    const menu = document.createElement("div");
+    menu.className = "menu-filtro";
+    menu.setAttribute("role", "dialog");
+    menu.setAttribute("aria-label", `Ordenar y filtrar: ${c.titulo}`);
+    menu.innerHTML = `<p class="mf-titulo">Ordenar</p>
+      <div class="mf-orden"><button type="button" data-dir="1">${txtAsc}</button><button type="button" data-dir="-1">${txtDesc}</button></div>
+      <p class="mf-titulo">Mostrar</p>
+      ${valores.length > 8 ? `<input type="search" class="mf-buscar" placeholder="Buscar ${c.titulo.toLowerCase()}" aria-label="Buscar en la lista">` : ""}
+      <label class="mf-todos"><input type="checkbox" data-todos> Seleccionar todo</label>
+      <div class="mf-lista">${valores.map((v) => `<label data-v="${Obs.escapar(v.toLowerCase())}"><input type="checkbox" value="${Obs.escapar(v)}"${sel.has(v) ? " checked" : ""}> <span>${Obs.escapar(v)}</span><em>${n0(cuenta.get(v))}</em></label>`).join("")}</div>
+      <div class="mf-acciones"><button type="button" data-limpiar>Limpiar</button><button type="button" data-aplicar class="mf-aplicar">Aplicar</button></div>`;
+    // En la página (no dentro de la tabla, que recorta lo que sobresale); se ubica bajo el título y dentro de la pantalla
+    document.body.appendChild(menu);
+    const r = boton.getBoundingClientRect(), ancho = Math.min(300, window.innerWidth - 16);
+    menu.style.width = `${ancho}px`;
+    menu.style.left = `${window.scrollX + Math.max(8, Math.min(r.left, window.innerWidth - ancho - 8))}px`;
+    menu.style.top = `${window.scrollY + r.bottom + 4}px`;
+    boton.setAttribute("aria-expanded", "true");
+    const checks = [...menu.querySelectorAll(".mf-lista input")], todos = menu.querySelector("[data-todos]");
+    const visiblesCh = () => checks.filter((x) => !x.closest("label").hidden);
+    const sincronizar = () => { const v = visiblesCh(); todos.checked = v.length > 0 && v.every((x) => x.checked); todos.indeterminate = !todos.checked && v.some((x) => x.checked); menu.querySelector("[data-aplicar]").disabled = !v.some((x) => x.checked); };
+    sincronizar();
+    menu.querySelector(".mf-lista").onchange = sincronizar;
+    todos.onchange = () => { visiblesCh().forEach((x) => (x.checked = todos.checked)); sincronizar(); };
+    const busca = menu.querySelector(".mf-buscar");
+    if (busca) busca.oninput = () => { const q = busca.value.trim().toLowerCase(); checks.forEach((x) => { const l = x.closest("label"); l.hidden = !!q && !l.dataset.v.includes(q); }); sincronizar(); };
+    menu.querySelectorAll("[data-dir]").forEach((b) => (b.onclick = () => { ordenarPor(c, Number(b.dataset.dir)); rehacer(`button[data-menu="${c.clave}"]`); }));
+    menu.querySelector("[data-limpiar]").onclick = () => { delete filtros[c.clave]; rehacer(`button[data-menu="${c.clave}"]`); };
+    menu.querySelector("[data-aplicar]").onclick = () => {
+      // Con texto en el buscador, como en Excel, solo cuentan los valores que se ven
+      const elegidos = checks.filter((x) => x.checked && !x.closest("label").hidden).map((x) => x.value);
+      if (elegidos.length === valores.length) delete filtros[c.clave]; else filtros[c.clave] = new Set(elegidos);
+      rehacer(`button[data-menu="${c.clave}"]`);
+    };
+    menu.onkeydown = (e) => { if (e.key === "Escape") { cerrarMenus(); boton.focus(); } };
+    (busca ?? menu.querySelector("[data-dir]")).focus();
+  }
 }
+function cerrarMenus() {
+  document.querySelectorAll(".menu-filtro").forEach((m) => m.remove());
+  document.querySelectorAll("[data-menu][aria-expanded=true]").forEach((b) => b.setAttribute("aria-expanded", "false"));
+}
+document.addEventListener("click", (e) => { if (!e.target.closest(".menu-filtro, [data-menu]")) cerrarMenus(); });
 
 /* ---------------------------------------------------------
    Hemiciclo: un punto por escaño, en filas semicirculares, de izquierda a derecha por organización
@@ -252,10 +331,25 @@ function hemiciclo(el, grupos, { resaltar = null } = {}) {
   let i = 0;
   const svg = grupos.flatMap((g) => Array.from({ length: g.n }, (_, k) => {
     const p = puntos[i++], apagado = resaltar && !resaltar(g, k);
-    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${(rad * esc * 0.92).toFixed(2)}" fill="${g.color}" opacity="${apagado ? 0.18 : 1}"><title>${Obs.escapar(g.etiqueta)}</title></circle>`;
+    const per = g.personas?.[k];
+    const info = per ? `<strong>${Obs.escapar(per.nombre)}</strong><span>${Obs.escapar(g.etiqueta)}</span><span>${Obs.escapar(nombreRegion(per.region))}${per.votos ? ` · ${n0(per.votos)} votos` : ""}</span>` : `<strong>${Obs.escapar(g.etiqueta)}</strong>`;
+    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${(rad * esc * 0.92).toFixed(2)}" fill="${g.color}" opacity="${apagado ? 0.18 : 1}" data-info="${Obs.escapar(info)}"></circle>`;
   })).join("");
   el.innerHTML = `<svg viewBox="0 0 220 112" role="img" aria-label="Hemiciclo: ${grupos.map((g) => `${g.etiqueta} ${g.n}`).join(", ")}">${svg}` +
-    `<text x="110" y="100" text-anchor="middle" class="hemi-total">${total}</text><text x="110" y="109" text-anchor="middle" class="hemi-etq">escaños</text></svg>`;
+    `<text x="110" y="100" text-anchor="middle" class="hemi-total">${total}</text><text x="110" y="109" text-anchor="middle" class="hemi-etq">escaños</text></svg><div class="hemi-tip" hidden></div>`;
+  // Al pasar el cursor por un escaño: nombre del congresista, organización, región y votos
+  const tip = el.querySelector(".hemi-tip"), svgEl = el.querySelector("svg");
+  svgEl.onmousemove = (e) => {
+    const c = e.target.closest("circle[data-info]");
+    if (!c) { tip.hidden = true; return; }
+    tip.innerHTML = c.dataset.info;
+    tip.hidden = false;
+    const caja = el.getBoundingClientRect(), r = c.getBoundingClientRect();
+    const x = r.left + r.width / 2 - caja.left, y = r.top - caja.top;
+    tip.style.left = `${Math.min(Math.max(x, tip.offsetWidth / 2), caja.width - tip.offsetWidth / 2)}px`;
+    tip.style.top = `${y - 8}px`;
+  };
+  svgEl.onmouseleave = () => { tip.hidden = true; };
 }
 
 /* ---------------------------------------------------------
@@ -277,7 +371,10 @@ function pintarHemiciclo() {
   const id = "hemiciclo", a = estado.anio, r = estado.region, es = escanosDe(a), col = coloresDe(a);
   const rd = regionDatos(r, a, "Congreso");
   const deLaRegion = (org) => (r === PE ? null : ELE.filter((e) => e.anio === a && e.camara === camaraEsc(a) && e.organizacion === org && e.region === rd).length);
-  const grupos = es.map((e) => ({ org: e.organizacion, etiqueta: titulo(e.organizacion), n: e.escanos, color: col.get(e.organizacion), region: deLaRegion(e.organizacion) }));
+  // Congresistas de cada organización, en el orden de sus escaños: primero los de la región elegida (los resaltados), luego por votos
+  const personasDe = (org) => ELE.filter((e) => e.anio === a && e.camara === camaraEsc(a) && e.organizacion === org)
+    .sort((x, y) => (r !== PE ? (y.region === rd) - (x.region === rd) : 0) || (y.votos || 0) - (x.votos || 0));
+  const grupos = es.map((e) => ({ org: e.organizacion, etiqueta: titulo(e.organizacion), n: e.escanos, color: col.get(e.organizacion), region: deLaRegion(e.organizacion), personas: personasDe(e.organizacion) }));
   hemiciclo(document.getElementById("hemi"), grupos, {
     resaltar: r !== PE || estado.partido ? (g, k) => (estado.partido ? g.org === estado.partido : true) && (r === PE || k < g.region) : null,
   });
@@ -352,39 +449,49 @@ function pintarMapa() {
    --------------------------------------------------------- */
 function pintarMatriz() {
   const id = "matriz", r = estado.region;
-  // Columnas: cada elección (2026: Diputados y Senado)
-  const cols = ANIOS.flatMap((a) => (es2026(a) ? [{ a, cam: "Diputados", etq: `${a} D` }, { a, cam: "Senado", etq: `${a} S` }] : [{ a, cam: "Congreso", etq: String(a) }]));
+  // Columnas: cada elección (2026 suma Diputados y Senado)
+  const cols = ANIOS.map((a) => ({ a, cams: es2026(a) ? ["Diputados", "Senado"] : ["Congreso"] }));
   const valor = (org, c) => {
-    if (r === PE) return ESC.find((e) => e.anio === c.a && e.camara === c.cam && e.organizacion === org)?.escanos ?? 0;
+    if (r === PE) return ESC.filter((e) => e.anio === c.a && c.cams.includes(e.camara) && e.organizacion === org).reduce((s, e) => s + e.escanos, 0);
     const rd = regionDatos(r, c.a, "Congreso");
-    return ELE.filter((e) => e.anio === c.a && e.camara === c.cam && e.organizacion === org && e.region === rd).length;
+    return ELE.filter((e) => e.anio === c.a && c.cams.includes(e.camara) && e.organizacion === org && e.region === rd).length;
   };
   const orgs = [...new Set(ESC.map((e) => e.organizacion))].map((o) => ({ o, t: cols.reduce((s, c) => s + valor(o, c), 0) })).filter((x) => x.t > 0).sort((x, y) => y.t - x.t);
   const max = Math.max(1, ...orgs.flatMap((x) => cols.map((c) => valor(x.o, c))));
   const fondo = (v) => (v ? Obs.colorContinuo(v, [0, max], C.escala) : "transparent");
-  document.getElementById(`g-${id}`).innerHTML = orgs.length ? `<div class="tabla-desliza"><table class="tabla matriz"><thead><tr><th>Organización</th>${cols.map((c) => `<th class="num">${c.etq}</th>`).join("")}</tr></thead><tbody>` +
-    orgs.map((x) => `<tr><td>${Obs.escapar(titulo(x.o))}</td>${cols.map((c) => { const v = valor(x.o, c); return `<td class="num"${v ? ` style="background:${fondo(v)};color:${Obs.colorOscuro(fondo(v)) ? "#fff" : "inherit"}"` : ""}>${v || ""}</td>`; }).join("")}</tr>`).join("") +
-    "</tbody></table></div>" : `<p class="pista">No hay escaños de esta región en los datos.</p>`;
+  document.getElementById(`g-${id}`).innerHTML = orgs.length ? `<div class="tabla-desliza"><table class="tabla matriz"><thead><tr><th>Organización</th>${cols.map((c) => `<th class="num">${c.a}</th>`).join("")}<th class="num total">Total</th></tr></thead><tbody>` +
+    orgs.map((x) => `<tr><td>${Obs.escapar(titulo(x.o))}</td>${cols.map((c) => { const v = valor(x.o, c); return `<td class="num"${v ? ` style="background:${fondo(v)};color:${Obs.colorOscuro(fondo(v)) ? "#fff" : "inherit"}"` : ""}>${v || ""}</td>`; }).join("")}<td class="num total">${n0(x.t)}</td></tr>`).join("") +
+    `</tbody><tfoot><tr><td>Total de congresistas</td>${cols.map((c) => `<td class="num">${n0(orgs.reduce((s, x) => s + valor(x.o, c), 0))}</td>`).join("")}<td class="num total">${n0(orgs.reduce((s, x) => s + x.t, 0))}</td></tr></tfoot></table></div>` : `<p class="pista">No hay escaños de esta región en los datos.</p>`;
   lectura(id, `${destacar(n0(orgs.length))} organizaciones obtuvieron al menos un escaño ${enRegion(r)} entre 2001 y 2026.`);
-  nota(id, "Los nombres de las organizaciones son los de cada elección: una misma organización puede aparecer con nombres distintos (por ejemplo, Fuerza 2011 y Fuerza Popular). 2026: D = Diputados, S = Senado.");
+  nota(id, "Los nombres de las organizaciones son los de cada elección: una misma organización puede aparecer con nombres distintos (por ejemplo, Fuerza 2011 y Fuerza Popular). 2026: suma de diputados y senadores. Total: congresistas que obtuvo cada organización en todas las elecciones.");
 }
 
 function pintarEvolHistorico() {
   const r = estado.region, anios = ANIOS;
-  const cam = (a) => (es2026(a) ? "Diputados" : "Congreso");
-  const ingresan = (a, reg) => (reg === PE ? ESC.filter((e) => e.anio === a && e.camara === cam(a)).length
-    : new Set(ELE.filter((e) => e.anio === a && e.camara === cam(a) && e.region === regionDatos(reg, a, "Congreso")).map((e) => e.organizacion)).size);
+  // 2026: se cuentan juntas las dos cámaras (una organización cuenta una vez aunque esté en ambas)
+  const cams = (a) => (es2026(a) ? ["Diputados", "Senado"] : ["Congreso"]);
+  const ingresan = (a, reg) => new Set((reg === PE ? ESC.filter((e) => e.anio === a && cams(a).includes(e.camara))
+    : ELE.filter((e) => e.anio === a && cams(a).includes(e.camara) && e.region === regionDatos(reg, a, "Congreso"))).map((e) => sinTildes(e.organizacion))).size;
   const guardar = estado.camara;
-  estado.camara = "Diputados";
-  const postulan = (a, reg) => resumenVotos(a, reg)?.listas ?? null;
+  const postulan = (a, reg) => {
+    const orgs = new Set();
+    for (const c of es2026(a) ? ["Diputados", "Senado"] : ["Diputados"]) { estado.camara = c; resumenVotos(a, reg)?.org.forEach((v) => orgs.add(sinTildes(v.organizacion))); }
+    estado.camara = guardar;
+    return orgs.size || null;
+  };
   lineas("g-partidos", anios, [
     { nombre: "Recibieron votos", color: C.categorias[0], valores: anios.map((a) => postulan(a, r)) },
     { nombre: "Ingresaron", color: C.categorias[1], valores: anios.map((a) => ingresan(a, r)) },
   ], { formato: n0, eje: n0, aria: "Organizaciones que recibieron votos y que ingresaron, por elección" });
-  const inv = (a, reg) => resumenVotos(a, reg)?.invalidos ?? null;
+  // 2026: promedio de las dos cámaras (Senado: distrito único en el Perú; distrito múltiple en una región)
+  const invCamara = (a, reg, cam) => { const g = estado.camara; estado.camara = cam; const v = resumenVotos(a, reg)?.invalidos ?? null; estado.camara = g; return v; };
+  const inv = (a, reg) => {
+    if (!es2026(a)) return invCamara(a, reg, "Diputados");
+    const v = [invCamara(a, reg, "Diputados"), invCamara(a, reg, "Senado")].filter((x) => x != null);
+    return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
+  };
   lineas("g-invalidos", anios, [{ nombre: r === PE ? "Perú" : nombreRegion(r), color: C.categorias[0], valores: anios.map((a) => inv(a, r)) }]
     .concat(r !== PE ? [{ nombre: "Perú", color: C.textoSuave, punteada: true, valores: anios.map((a) => inv(a, PE)) }] : []), { aria: "Votos en blanco y nulos por elección" });
-  estado.camara = guardar;
   const elect = (a, reg) => { const es = ELE.filter((e) => e.anio === a && (reg === PE || e.region === regionDatos(reg, a, "Congreso"))); return es.length ? es.filter((e) => e.sexo === "Mujer").length / es.length : null; };
   lineas("g-mujeres", anios, [
     { nombre: "Candidatas (Perú)", color: C.categorias[2], valores: anios.map((a) => MUJ.find((m) => m.anio === a)?.p_mujer_candidatas ?? null) },
@@ -392,10 +499,10 @@ function pintarEvolHistorico() {
   ], { aria: "Mujeres candidatas y electas por elección" });
   const p0 = postulan(2001, r), i0 = ingresan(2001, r), pU = postulan(ANIOS.at(-1), r), iU = ingresan(ANIOS.at(-1), r);
   lectura("partidos", `${EnRegion(r)}, en 2001 recibieron votos ${destacar(n0(p0))} organizaciones e ingresaron ${destacar(n0(i0))}; en ${ANIOS.at(-1)}, ${destacar(n0(pU))} y ${destacar(n0(iU))}.`);
-  nota("partidos", "2026: Cámara de Diputados." + (r !== PE ? " En una región, «ingresaron» son las organizaciones que obtuvieron escaños en ella." : ""));
+  nota("partidos", "2026: Cámara de Diputados y Senado juntos; cada organización se cuenta una vez." + (r !== PE ? " En una región, «ingresaron» son las organizaciones que obtuvieron escaños en ella." : ""));
   const x = inv(estado.anio, r);
   lectura("invalidos", x != null ? `${EnRegion(r)}, en ${estado.anio}, ${destacar(pct(x))} de los votos al Congreso fueron en blanco o nulos.` : "");
-  nota("invalidos", "Porcentaje de los votos emitidos. 2026: Cámara de Diputados.");
+  nota("invalidos", "Porcentaje de los votos emitidos. 2026: promedio de la Cámara de Diputados y el Senado.");
   const m = MUJ.find((y) => y.anio === estado.anio), e = elect(estado.anio, r);
   lectura("mujeres", e != null ? `En ${estado.anio}, las mujeres fueron ${m?.p_mujer_candidatas ? `el ${destacar(pct(m.p_mujer_candidatas))} de los candidatos y ` : ""}el ${destacar(pct(e))} de los electos ${enRegion(r)}.` : "");
   nota("mujeres", "Candidatas: solo para el total del Perú; aún no hay datos de 2026. Electas: congresistas que juraron (2026: senadores y diputados). Desde 2021 rige la paridad y alternancia en las listas.");
@@ -408,13 +515,13 @@ function pintarCongresistas() {
   const r = estado.region;
   const filas = ELE.filter((e) => r === PE || e.region === regionDatos(r, e.anio, "Congreso"));
   tablaOrdenable("g-lista", [
-    { clave: "anio", titulo: "Elección", num: true, valor: (f) => f.anio, html: (f) => String(f.anio) },
-    { clave: "camara", titulo: "Cámara", valor: (f) => f.camara, html: (f) => f.camara },
-    { clave: "region", titulo: "Región", valor: (f) => nombreRegion(f.region), html: (f) => Obs.escapar(nombreRegion(f.region)) },
+    { clave: "anio", titulo: "Elección", num: true, filtro: true, valor: (f) => f.anio, html: (f) => String(f.anio) },
+    { clave: "camara", titulo: "Cámara", filtro: true, valor: (f) => f.camara, html: (f) => f.camara },
+    { clave: "region", titulo: "Región", filtro: true, valor: (f) => nombreRegion(f.region), html: (f) => Obs.escapar(nombreRegion(f.region)) },
     { clave: "nombre", titulo: "Congresista", valor: (f) => f.nombre, html: (f) => Obs.escapar(f.nombre) + (f.nota ? `<br><small>${Obs.escapar(f.nota)}</small>` : "") },
-    { clave: "org", titulo: "Organización", valor: (f) => titulo(f.organizacion), html: (f) => Obs.escapar(titulo(f.organizacion)) },
+    { clave: "org", titulo: "Organización", filtro: true, valor: (f) => titulo(f.organizacion), html: (f) => Obs.escapar(titulo(f.organizacion)) },
     { clave: "votos", titulo: "Votos preferenciales", num: true, valor: (f) => f.votos || null, html: (f) => (f.votos ? n0(f.votos) : "—") },
-  ], filas, { inicial: { clave: "anio", dir: -1 }, claveFila: (f) => `${f.anio}-${f.nombre}`, descripcion: "Congresistas por elección", buscar: "Nombre, organización o región" });
+  ], filas, { inicial: { clave: "anio", dir: -1 }, claveFila: (f) => `${f.anio}-${f.nombre}`, descripcion: "Congresistas por elección", buscar: "Nombre, organización o región", unidad: "congresistas" });
   lectura("lista", `${destacar(n0(filas.length))} congresistas ${r === PE ? "" : `de ${nombreRegion(r)} `}juraron entre 2001 y 2026.`);
   nota("lista", "Congresistas que juraron al inicio de cada periodo (fuente provisional: Wikipedia). Votos preferenciales: los de su distrito electoral.");
 
@@ -439,7 +546,6 @@ function pintarCongresistas() {
     { clave: "orgs", titulo: "Organizaciones", valor: (f) => f.orgs, html: (f) => Obs.escapar(f.orgs) },
   ], reel, { inicial: { clave: "veces", dir: -1 }, claveFila: (f) => f.nombre, descripcion: "Congresistas reelectos", buscar: "Nombre u organización" });
   lectura("reelectos", `${destacar(n0(reel.length))} congresistas ${r === PE ? "" : `con paso por ${nombreRegion(r)} `}fueron elegidos en más de una elección entre 2001 y 2026.`);
-  nota("reelectos", "Se cuenta como la misma persona cuando el nombre coincide; puede haber nombres escritos distinto entre elecciones.");
 }
 
 /* ---------------------------------------------------------
