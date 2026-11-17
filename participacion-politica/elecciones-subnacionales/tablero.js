@@ -319,6 +319,19 @@ function agregarLimites(mapa, nivel, region) {
     }
   }
 }
+/* Elecciones anuladas por el JNE y posibles nulidades (2026, mientras el JNE no resuelva) */
+const CAUSAL = {
+  inasistencia: { corto: "por inasistencia", largo: "Más de la mitad de los electores no votó." },
+  nulos_blancos: { corto: "por votos nulos y en blanco", largo: "Los votos nulos y en blanco superaron los dos tercios de los votos emitidos." },
+  irregularidades: { corto: "por irregularidades", largo: "Graves irregularidades que cambiaron el resultado." },
+  violencia: { corto: "por actos de violencia", largo: "Actos de violencia o destrucción del material electoral." },
+  no_detallada: { corto: "", largo: "La fuente no detalla la causal." },
+  sin_actas: { corto: "", largo: "Todavía no hay actas contabilizadas." },
+};
+const causalCorta = (f) => CAUSAL[f.causal]?.corto ?? "";
+const estadoEleccion = (f) => (f.anulada ? `Anulada ${causalCorta(f)}`.trim() : f.nulidad === "posible" ? `Posible nulidad ${causalCorta(f)}`.trim() : "");
+const COLOR_ANULADA = "#e7b9c3";
+
 function pintarMapaGeo(m, { valores, color, texto }) {
   // En distritos con una provincia elegida, el mapa muestra solo esa provincia
   const nivel = estado.nivel, region = provinciaActiva() ?? estado.region, caja = document.getElementById(`mapa-${m}`);
@@ -344,10 +357,16 @@ function pintarMapaGeo(m, { valores, color, texto }) {
   // Capitales de provincia en el mapa distrital: no eligen alcalde distrital (gris, con su propio texto)
   const CAPITAL = "capital";
   if (nivel === "distrital") geoDe(nivel, region).features.forEach((f) => { const c = f.properties.region; if (f.properties.tipo === "region" && c.endsWith("01") && !v.has(c)) v.set(c, CAPITAL); });
-  const colorF = (x) => (x === CAPITAL ? "#ccd3dd" : color(x));
-  const textoF = (x) => (x === CAPITAL ? "Capital de provincia: no elige alcalde distrital" : texto(x));
-  document.getElementById(`leymapa-${m}`).innerHTML = nivel === "distrital"
-    ? '<span><i style="background:#ccd3dd"></i>Capital de provincia: no elige alcalde distrital (la gobierna la municipalidad provincial)</span>' : "";
+  // Elecciones anuladas: rosado, con la causal en el texto
+  const anuladas = new Map(filas(estado.anio, nivel, PE).filter((f) => f.anulada && f.ubigeo).map((f) => [claveGeo(f.ubigeo, nivel), f]));
+  anuladas.forEach((f, c) => v.set(c, { anuladaJNE: f }));
+  const esAnulada = (x) => Boolean(x?.anuladaJNE);
+  const colorF = (x) => (x === CAPITAL ? "#ccd3dd" : esAnulada(x) ? COLOR_ANULADA : color(x));
+  const textoF = (x) => (x === CAPITAL ? "Capital de provincia: no elige alcalde distrital" : esAnulada(x) ? `Elección ${estadoEleccion(x.anuladaJNE).toLowerCase()}` : texto(x));
+  const enVista = [...anuladas.values()].some((f) => region === PE || String(f.ubigeo).startsWith(region));
+  document.getElementById(`leymapa-${m}`).innerHTML = (nivel === "distrital"
+    ? '<span><i style="background:#ccd3dd"></i>Capital de provincia: no elige alcalde distrital (la gobierna la municipalidad provincial)</span>' : "") +
+    (enVista ? `<span><i style="background:${COLOR_ANULADA}"></i>Elección anulada por el JNE</span>` : "");
   const elegida = nivel === "regional" ? null : estado.lugar;
   // Con una región elegida, el mapa no vuelve a mostrar todo el Perú al repintarse
   const M = mapas[k], fb = M.principal.fitBounds;
@@ -502,7 +521,11 @@ function pintarDetalle() {
     final = g.ganador_fue === "pendiente" ? `Segunda vuelta pendiente entre ${titulo(g.primero)} y ${titulo(g.segundo)}` :
       g.ganador_fue === "segundo" ? `${titulo(g.ganador)} (ganó la segunda vuelta; fue segundo en la primera)` : g.segunda_vuelta ? `${titulo(g.ganador)} (ganó la segunda vuelta; fue primero en la primera)` : titulo(g.ganador);
   }
-  ficha.innerHTML = f.anulada ? `<div><span>Elección</span><strong>Anulada o sin datos</strong></div>` :
+  const bn = f.emitidos ? (f.blancos + f.nulos) / f.emitidos : null;
+  ficha.innerHTML = f.anulada ?
+    `<div><span>Elección</span><strong>Anulada por el JNE</strong></div>` +
+    `<div><span>Causal</span><strong>${CAUSAL[f.causal]?.largo ?? "—"}</strong></div>` +
+    `<div><span>Participación · blancos y nulos</span><strong>${pct(f.participacion)} · ${pct(bn)}</strong></div>` :
     `<div><span>${g ? "Ganador final" : "Ganador"}</span><strong>${Obs.escapar(final || titulo(f.primero))}</strong></div>` +
     `<div><span>Diferencia con el segundo</span><strong>${pts(f.margen)}</strong></div>` +
     `<div><span>Participación · listas</span><strong>${pct(f.participacion)} · ${n0(f.listas)}</strong></div>`;
@@ -516,10 +539,12 @@ function pintarDetalle() {
   }
   Obs.barras(`g-${id}`, items, { formato: pct, limite: 12, detalle: (d) => d.detalle });
   leyendaTipos(`ley-${id}`, [...new Set(items.slice(0, 12).map((d) => d.detalle.split(" · ")[1].replace(" (estimado)", "")))]);
-  lectura(id, f.anulada ? "" : `${destacar(Obs.escapar(titulo(f.primero)))} sacó el ${destacar(pct(f.pct_primero))} de los votos válidos` +
+  lectura(id, f.anulada ? (f.complementaria ? `En su lugar se eligió a las autoridades en las Elecciones Municipales Complementarias (${Obs.escapar(f.complementaria)}).` : "") : `${destacar(Obs.escapar(titulo(f.primero)))} sacó el ${destacar(pct(f.pct_primero))} de los votos válidos` +
     (f.segundo ? `, frente al ${pct(f.pct_segundo)} de ${Obs.escapar(titulo(f.segundo))}` : "") + ".");
-  nota(id, estado.nivel === "distrital" ? "En los distritos solo se muestran las dos organizaciones más votadas." :
-    f.actas_pct < 100 ? `Conteo al ${n1(f.actas_pct)} % de actas.` : "");
+  const notaNulidad = f.anulada ? "Votación de la elección anulada, solo como referencia: no eligió autoridades. " :
+    f.nulidad === "posible" ? `Posible nulidad: ${CAUSAL[f.causal].largo.replace(/^./, (c) => c.toLowerCase())} El JNE aún debe pronunciarse. ` : "";
+  nota(id, notaNulidad + (estado.nivel === "distrital" ? "En los distritos solo se muestran las dos organizaciones más votadas." :
+    f.actas_pct < 100 ? `Conteo al ${n1(f.actas_pct)} % de actas.` : ""));
 }
 
 function pintarTablaResultados() {
@@ -553,14 +578,16 @@ function pintarTablaResultados() {
   $("header p", card).textContent = `Organización ganadora, su porcentaje de votos válidos y la diferencia con el segundo, ${enAmbito()}.`;
   tablaOrdenable(`g-${id}`, [
     { clave: "lugar", titulo: titulo(LUGAR[estado.nivel]), valor: (f) => nombreFila(f), html: (f) => Obs.escapar(nombreFila(f)) + (estado.region === PE ? `<br><small>${Obs.escapar(nombreRegion(f.dep))}</small>` : "") },
-    { clave: "ganador", titulo: "Organización ganadora", valor: (f) => titulo(f.primero), html: (f) => (f.anulada ? "Anulada o sin datos" : Obs.escapar(titulo(f.primero))) },
+    { clave: "ganador", titulo: "Organización ganadora", valor: (f) => titulo(f.primero), html: (f) => (f.anulada ? Obs.escapar(estadoEleccion(f)) : Obs.escapar(titulo(f.primero)) + (f.nulidad === "posible" ? `<br><small>${estadoEleccion(f)}</small>` : "")) },
     { clave: "tipo", titulo: "Tipo de organización", valor: (f) => (f.anulada ? "" : f.tipo_primero), html: (f) => (f.anulada ? "—" : pill(f.tipo_primero)) },
     { clave: "p1", titulo: "% de votos", num: true, valor: (f) => (f.anulada ? null : +f.pct_primero), html: (f) => (f.anulada ? "—" : pct(f.pct_primero)) },
     { clave: "margen", titulo: "Diferencia", num: true, valor: (f) => (f.anulada ? null : +f.margen), html: (f) => (f.anulada ? "—" : pts(f.margen)) },
   ], fs, { inicial: { clave: "margen", dir: 1 }, claveFila: (f) => f.ubigeo, elegida: estado.lugar, alClic: (u) => elegirLugar(u), buscar: `Nombre ${estado.nivel === "provincial" ? "de la provincia" : "del distrito"} u organización`, descripcion: `Ganadores por ${LUGAR[estado.nivel]}, ${estado.anio}` });
   const ajustadas = fs.filter((f) => !f.anulada && f.margen !== "" && +f.margen < 0.02).length;
   lectura(id, `${EnAmbito()}, en ${destacar(n0(ajustadas))} ${LUGAR[estado.nivel] === "provincia" ? "provincias" : "distritos"} el ganador sacó menos de 2 puntos de ventaja.`);
-  nota(id, "");
+  const an = fs.filter((f) => f.anulada).length, pos = fs.filter((f) => f.nulidad === "posible").length;
+  nota(id, (an ? `${n0(an)} ${an === 1 ? "elección fue anulada" : "elecciones fueron anuladas"} por el JNE: no cuentan en los promedios. ` : "") +
+    (pos ? `${n0(pos)} con posible nulidad, a la espera del JNE.` : ""));
 }
 
 function pintarCompetencia() {
@@ -865,6 +892,7 @@ Obs.iniciar(TABLERO, async () => {
     const x = { ...f, anio: +f.anio, ubigeo: String(f.ubigeo ?? "") };
     num.forEach((k) => { x[k] = f[k] === "" || f[k] == null ? null : +f[k]; });
     x.anulada = f.anulada === true || f.anulada === "TRUE" || f.anulada === "true";
+    x.nulidad = f.nulidad || ""; x.causal = f.causal || ""; x.complementaria = f.complementaria || "";
     x.segunda_vuelta = f.segunda_vuelta === true || f.segunda_vuelta === "TRUE" || f.segunda_vuelta === "true";
     x.dep = x.ubigeo ? x.ubigeo.slice(0, 2) : depPorNombre[sinTilde(String(f.region))] ?? "";
     return x;

@@ -147,3 +147,10 @@
 @media (max-width: 900px) { .tabla-caja.tabla-lado { max-height: 520px; } }
 .ley i.l.punteada { border-top-style: dashed; }
 .ley i.l.multi { height: 3px; border: 0; vertical-align: 3px; }
+
+/* Elecciones anuladas (JNE) y posibles nulidades */
+.nota-ficha { margin: 16px 0 0; font-size: 15px; line-height: 1.5; color: var(--texto-suave); max-width: 900px; }
+.nota-ficha:empty { display: none; }
+.tabla-lado .tabla td small.anulada, .tabla-lado .tabla td small.posible { display: block; margin: 2px 0 0; font-weight: 600; }
+.tabla-lado .tabla td small.anulada { color: #a3364f; }
+.tabla-lado .tabla td small.posible { color: #8a5a00; }

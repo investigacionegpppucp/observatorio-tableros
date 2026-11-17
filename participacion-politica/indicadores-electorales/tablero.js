@@ -265,6 +265,17 @@ function pintarSub() {
   pintarFicha();
 }
 
+/* Elecciones anuladas por el JNE (sin indicadores) y posibles nulidades de 2026 (con indicadores, señaladas) */
+const CAUSAL = {
+  inasistencia: "votó menos de la mitad de los electores",
+  nulos_blancos: "los votos nulos y en blanco superaron los dos tercios de los emitidos",
+  irregularidades: "graves irregularidades",
+  violencia: "actos de violencia o destrucción del material electoral",
+  no_detallada: "", sin_actas: "aún sin actas contabilizadas",
+};
+const conCausal = (f) => (CAUSAL[f.causal] ? `: ${CAUSAL[f.causal]}` : "");
+const marcaNulidad = (f) => (f.anulada ? `Anulada por el JNE${conCausal(f)}` : f.nulidad === "posible" ? `Posible nulidad${conCausal(f)}` : "");
+
 /* Mapa (regiones, provincias o distritos) y, al lado, ranking (regiones) o distribución (provincias y distritos) */
 const nivelGeo = (nivel) => (nivel.startsWith("regional") ? "regional" : nivel);
 const claveGeo = (f) => (f.nivel.startsWith("regional") ? DEP_GEO[f.dep] : f.ubigeo);
@@ -296,11 +307,11 @@ function pintarMapaSub() {
     (ng === "regional" ? "" : region === PE ? ` Para ver ${LUGARES[nivel]} con más detalle, elija una región en «Ámbito».` : "");
   const vs = validas.map((f) => f[k]), min = Math.min(...vs), max = Math.max(...vs);
   const valores = new Map(validas.map((f) => [claveGeo(f), f[k]]));
-  const ANULADA = "anulada", CAPITAL = "capital";
-  fs.filter((f) => f.anulada && f.ubigeo).forEach((f) => valores.set(f.ubigeo, ANULADA));
+  const CAPITAL = "capital";
+  fs.filter((f) => f.anulada && f.ubigeo).forEach((f) => valores.set(f.ubigeo, f));
   if (nivel === "distrital") geoDe(ng, regionMapa).features.forEach((f) => { const c = f.properties.region; if (f.properties.tipo === "region" && c.endsWith("01") && !valores.has(c)) valores.set(c, CAPITAL); });
-  const color = (v) => (v === ANULADA ? "#e7b9c3" : v === CAPITAL ? "#ccd3dd" : colorContinuo(max > min ? (v - min) / (max - min) : 1));
-  const texto = (v) => (v === ANULADA ? "Elección anulada" : v === CAPITAL ? "Capital de provincia: elige alcalde provincial" : ind.fmt(v));
+  const color = (v) => (v?.anulada ? "#e7b9c3" : v === CAPITAL ? "#ccd3dd" : colorContinuo(max > min ? (v - min) / (max - min) : 1));
+  const texto = (v) => (v?.anulada ? `Elección anulada${conCausal(v)}` : v === CAPITAL ? "Capital de provincia: elige alcalde provincial" : ind.fmt(v));
   const caja = $("#mapa-sub"), clave = `${ng}-${regionMapa}`;
   caja.querySelectorAll(":scope > .mapa-nivel").forEach((d) => (d.hidden = d.dataset.clave !== clave));
   let div = caja.querySelector(`.mapa-nivel[data-clave="${clave}"]`);
@@ -321,7 +332,7 @@ function pintarMapaSub() {
   M.principal.setMaxZoom(regionMapa.length === 4 ? 12 : 9);
   if (regionMapa !== PE) { delete M.principal.fitBounds; M.principal.fitBounds(L.geoJSON(geoDe(ng, regionMapa)).getBounds(), { padding: [12, 12] }); }
   $("#ley-mapa").innerHTML = validas.length ? `<div class="ley-continua"><span>${ind.fmt(min)}</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${ind.fmt(max)}</span></div>` +
-    `<div class="ley-extra">${fs.some((f) => f.anulada) ? '<span><i style="background:#e7b9c3"></i>Elección anulada</span>' : ""}` +
+    `<div class="ley-extra">${fs.some((f) => f.anulada) ? '<span><i style="background:#e7b9c3"></i>Elección anulada por el JNE (sin indicadores)</span>' : ""}` +
     (nivel === "distrital" ? '<span><i style="background:#ccd3dd"></i>Capital de provincia (elige alcalde provincial)</span>' : "") +
     (ng === "regional" ? '<span><i style="background:#ccd3dd"></i>Sin elección (Lima Metropolitana no elige gobierno regional' + (nivel === "regional2" ? "; regiones sin segunda vuelta" : "") + ")</span>" : "") + "</div>" : "";
   const orden = [...validas].sort((a, b) => b[k] - a[k]);
@@ -388,6 +399,13 @@ function pintarFicha() {
     caja.dataset.claves = claves.join();
   }
   caja.style.setProperty("--columnas", claves.length);
+  // Años en que el JNE anuló la elección del lugar: sin indicadores, y la línea se corta
+  const anuladas = filasLugar.filter((f) => f.anulada), posible = filasLugar.find((f) => f.nulidad === "posible");
+  const listaAnios = (xs) => xs.join(", ").replace(/, ([^,]*)$/, " y $1");
+  $("#n-ficha").innerHTML = (anuladas.length ? `El JNE anuló la elección de ${Obs.escapar(nombreL)} en ${listaAnios(anuladas.map((f) => `${f.anio}${CAUSAL[f.causal] ? ` (${CAUSAL[f.causal]})` : ""}`))}: ` +
+      `${anuladas.length === 1 ? "ese año no tiene" : "esos años no tienen"} indicadores y las autoridades se eligieron en elecciones complementarias.` : "") +
+    (posible ? ` En ${posible.anio}, posible nulidad${conCausal(posible)}; el JNE aún debe pronunciarse.` : "");
+
   for (const k of claves) {
     const ind = INDICADORES[k];
     const peru = anios.map((a) => valorRegion(a, nivel, PE, k));
@@ -402,7 +420,7 @@ function pintarFicha() {
     const pctEje = k === "concentracion" || k === "margen";
     lineas(`fg-${k}`, anios.map(String), series, {
       min: 0, max: k === "concentracion" ? 1 : null, intervalo: k === "concentracion" ? 0.25 : null,
-      fmtEje: (x) => (pctEje ? `${Math.round(x * 100)} %` : Obs.fmtN(x, 0)), compacto: claves.length > 1, conectar: !seg, resaltar: String(anio),
+      fmtEje: (x) => (pctEje ? `${Math.round(x * 100)} %` : Obs.fmtN(x, 0)), compacto: claves.length > 1, conectar: !seg && !anuladas.length, resaltar: String(anio),
     });
   }
 }
@@ -419,8 +437,9 @@ function pintarTablaSub(fs) {
   if (pintarTablaSub.k !== `${nivel}|${k}`) { ORDEN["t-sub"] = { clave: k, dir: -1 }; pintarTablaSub.k = `${nivel}|${k}`; }
   tablaOrdenable("t-sub", [
     { clave: "lugar", titulo: LUGAR[nivel], valor: nombreFila,
-      html: (f) => Obs.escapar(nombreFila(f)) + (conRegion ? `<small>${Obs.escapar(nivel === "distrital" ? `${titulo(f.provincia)}${region === PE ? `, ${nombreRegion(f.dep)}` : ""}` : nombreRegion(f.dep))}</small>` : "") },
-    col("concentracion", (f) => (f.anulada ? "Anulada" : pct(f.concentracion))),
+      html: (f) => Obs.escapar(nombreFila(f)) + (conRegion ? `<small>${Obs.escapar(nivel === "distrital" ? `${titulo(f.provincia)}${region === PE ? `, ${nombreRegion(f.dep)}` : ""}` : nombreRegion(f.dep))}</small>` : "") +
+        (marcaNulidad(f) ? `<small class="${f.anulada ? "anulada" : "posible"}">${marcaNulidad(f)}</small>` : "") },
+    col("concentracion", (f) => (f.anulada ? "—" : pct(f.concentracion))),
     col("margen", (f) => (f.anulada ? "—" : pp(f.margen))),
     col("nep", (f) => (f.anulada ? "—" : n2(f.nep))),
     col("organizaciones", (f) => n0(f.organizaciones)),
