@@ -195,7 +195,7 @@ function lineas(id, anios, series, { min = 0, max = null, intervalo = null, fmtE
       formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.map((p) => `<br>${p.marker}${p.seriesName}: <strong>${series[p.seriesIndex].fmt(p.value)}</strong>`).join("") },
     grid: compacto ? { left: 40, right: 64, top: 12, bottom: 26 } : { left: 48, right: 72, top: 16, bottom: 30 },
     xAxis: { type: "category", data: anios, boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
-      axisLabel: txt(compacto ? { fontSize: 12, interval: (i) => i === 0 || i === anios.length - 1 || anios[i] === resaltar, formatter: (x) => (x === resaltar ? `{b|${x}}` : x), rich: { b: txt({ fontSize: 12, color: C.texto, fontWeight: 800 }) } } : {}) },
+      axisLabel: txt(compacto ? { fontSize: 12, interval: 0, formatter: (x) => (x === resaltar ? `{b|${x}}` : x), rich: { b: txt({ fontSize: 12, color: C.texto, fontWeight: 800 }) } } : {}) },
     yAxis: { type: "value", min, max, ...(intervalo ? { interval: intervalo } : { splitNumber: compacto ? 3 : 5 }), splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: fmtEje, ...(compacto ? { fontSize: 12 } : {}) }) },
     series: series.map((s) => ({
       name: s.nombre, type: "line", data: s.datos, symbol: "circle", symbolSize: compacto ? 6 : 7, connectNulls: conectar,
@@ -374,13 +374,14 @@ function pintarFicha() {
   $("#atajos").hidden = hay;
 
   const claves = seg ? ["margen"] : ["concentracion", "margen", "nep", "organizaciones"];
-  const colorR = C.navy;
+  // La serie principal va con el color de su indicador (el de la línea de arriba de cada gráfico); en la leyenda, una muestra con los cuatro
+  const multi = `<i class="l multi" style="background:linear-gradient(90deg,${claves.map((k, i) => `${C.tema[k]} ${(i / claves.length) * 100}% ${((i + 1) / claves.length) * 100}%`).join(",")})"></i>`;
   const GRIS_CLARO = "#c3c9d3";
   $("#ley-ficha").innerHTML = lugar
-    ? `<span><i class="l" style="border-color:${colorR}"></i>${nombreL}</span><span><i class="l" style="border-color:${C.gris}"></i>${nombreRegion(region)} (mediana)</span>` +
+    ? `<span>${multi}${nombreL}</span><span><i class="l" style="border-color:${C.gris}"></i>${nombreRegion(region)} (mediana)</span>` +
       `<span><i class="l punteada" style="border-color:${GRIS_CLARO}"></i>Perú (mediana)</span>`
-    : (hay ? `<span><i class="l" style="border-color:${colorR}"></i>${nombreRegion(region)}${regional ? "" : " (mediana)"}</span>` : "") +
-      `<span><i class="l ${hay ? "" : "sola"}" style="border-color:${hay ? C.gris : colorR}"></i>Perú (mediana de ${LOS[nivel]})</span>`;
+    : (hay ? `<span>${multi}${nombreRegion(region)}${regional ? "" : " (mediana)"}</span>` : "") +
+      `<span>${hay ? `<i class="l" style="border-color:${C.gris}"></i>` : multi}Perú (mediana de ${LOS[nivel]})</span>`;
   const caja = $("#ficha-graficos");
   if (caja.dataset.claves !== claves.join()) {
     caja.innerHTML = claves.map((k) => `<div class="mini" style="--c:${C.tema[k]}"><h4>${INDICADORES[k].nombre}</h4><div class="grafico mini-g" id="fg-${k}"></div></div>`).join("");
@@ -393,11 +394,11 @@ function pintarFicha() {
     const propia = hay ? anios.map((a) => valorRegion(a, nivel, region, k)) : null;
     // Solo la serie principal lleva la cifra al final de la línea (las demás están en el tooltip)
     const series = lugar ? [
-      { nombre: nombreL, color: colorR, datos: anios.map((a) => { const f = filasLugar.find((x) => x.anio === a); return f && !f.anulada ? f[k] : null; }), fmt: ind.fmt },
+      { nombre: nombreL, color: C.tema[k], datos: anios.map((a) => { const f = filasLugar.find((x) => x.anio === a); return f && !f.anulada ? f[k] : null; }), fmt: ind.fmt },
       { nombre: `${nombreRegion(region)} (mediana)`, color: C.gris, datos: propia, fmt: ind.fmt, sinEtiqueta: true },
       { nombre: "Perú (mediana)", color: GRIS_CLARO, datos: peru, fmt: ind.fmt, sinEtiqueta: true, tipo: "dashed" },
-    ] : [...(propia ? [{ nombre: nombreRegion(region), color: colorR, datos: propia, fmt: ind.fmt }] : []),
-      { nombre: "Perú (mediana)", color: hay ? C.gris : colorR, datos: peru, fmt: ind.fmt, sinEtiqueta: hay }];
+    ] : [...(propia ? [{ nombre: nombreRegion(region), color: C.tema[k], datos: propia, fmt: ind.fmt }] : []),
+      { nombre: "Perú (mediana)", color: hay ? C.gris : C.tema[k], datos: peru, fmt: ind.fmt, sinEtiqueta: hay }];
     const pctEje = k === "concentracion" || k === "margen";
     lineas(`fg-${k}`, anios.map(String), series, {
       min: 0, max: k === "concentracion" ? 1 : null, intervalo: k === "concentracion" ? 0.25 : null,
