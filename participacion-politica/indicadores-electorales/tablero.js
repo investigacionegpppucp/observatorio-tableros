@@ -44,24 +44,24 @@ const INDICADORES = {
 const DEFINICIONES = {
   concentracion: {
     titulo: "Concentración",
-    texto: "Porcentaje de los votos válidos que suman las dos organizaciones más votadas. Alta: pocas dominan la elección. Baja: el voto está más repartido.",
-    cuenta: () => [`60 %`, "+", `20 %`, "=", `80 %`], pie: () => "Si la primera obtiene 60 % y la segunda 20 %. En segunda vuelta siempre es 100 %.",
+    texto: "Porcentaje de los votos válidos que obtienen, en total, los dos partidos más votados. En segunda vuelta siempre es 100 %, porque solo participan dos opciones. Una concentración alta indica que pocos partidos dominan el sistema, y una baja, que los votos están más repartidos entre diversas opciones.",
+    cuenta: () => [`60 %`, "+", `20 %`, "=", `80 %`], pie: () => "Por ejemplo, si el partido A obtiene 60 % de los votos válidos y el partido B 20 %, la concentración es 80 %.",
   },
   margen: {
     titulo: "Margen de victoria",
-    texto: "Diferencia entre el porcentaje de votos válidos de la organización más votada y el de la segunda. Bajo: elección reñida. Alto: predominio de la más votada.",
-    cuenta: () => [`60 %`, "−", `20 %`, "=", `40 p. p.`], pie: () => "Con los mismos votos del ejemplo anterior. Antes se llamaba «competitividad».",
+    texto: "Mide el grado de rivalidad entre las principales opciones políticas. Se calcula como la diferencia entre el porcentaje de votos válidos del partido más votado y el del segundo. A mayor margen, menor competitividad, porque predomina el más votado. Un margen bajo refleja una contienda más reñida y un voto más distribuido.",
+    cuenta: () => [`60 %`, "−", `20 %`, "=", `40 p. p.`], pie: () => "Con el mismo ejemplo, el margen es de 40 puntos porcentuales.",
   },
   nep: {
     titulo: "Número efectivo de partidos",
-    texto: "Cuántos partidos de igual tamaño producirían el mismo reparto del voto. Bajo: pocas organizaciones concentran los votos. Alto: el voto se dispersa entre muchas.",
+    texto: "Indica cuántos partidos de igual tamaño producirían el mismo reparto del voto. Un valor bajo significa que pocas organizaciones concentran los votos, y uno alto, que el voto se dispersa entre muchas.",
     cuenta: () => ["3 partidos con 33 %", "→", "3"], pie: () => "Se calcula como 1 entre la suma de los cuadrados de la proporción de votos de cada organización.",
   },
   organizaciones: {
     titulo: "Organizaciones",
-    texto: "Partidos, movimientos y alianzas que se presentaron. Muchas: oferta amplia, pero también fragmentación. Pocas: un sistema más consolidado o una oferta limitada.",
+    texto: "Partidos, movimientos y alianzas que se presentaron a la elección. Muchas organizaciones suponen una oferta amplia, pero también fragmentación. Pocas pueden indicar un sistema más consolidado o una oferta limitada.",
     cuenta: (f) => (f ? [`${n0(f.organizaciones)} organizaciones`, "→", `${n2(f.nep)} efectivas`] : null),
-    pie: (f) => (f ? `En ${f.anio}: la distancia entre ambas cifras indica que la mayoría recibió pocos votos.` : ""),
+    pie: (f) => (f ? `En ${f.anio}, la distancia entre ambas cifras indica que la mayoría recibió pocos votos.` : ""),
   },
 };
 /* Panel de definiciones: cada una con una barra del color de su línea en el gráfico (también sirve de leyenda)
@@ -260,7 +260,7 @@ function pintarSub() {
   if (!disp.includes(estado.indicador)) estado.indicador = "margen";
   $("#f-indicador").innerHTML = botones(disp.map((k) => [k, INDICADORES[k].nombre]), estado.indicador, "ind");
   const d = DEFINICIONES[estado.indicador];
-  $("#def-ind").innerHTML = `<strong>${d.titulo}:</strong> ${d.texto}`;
+  $("#def-ind").innerHTML = `<strong>${d.titulo}.</strong> ${d.texto}`;
   pintarMapaSub();
   pintarFicha();
 }

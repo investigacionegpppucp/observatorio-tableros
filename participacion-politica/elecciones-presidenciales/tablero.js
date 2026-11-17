@@ -211,7 +211,12 @@ function columnasNoValidoRegion(id, filas) {
   // a la izquierda, espacio para el nombre girado de la primera región
   const izq = 64, der = 8, espacio = (el.clientWidth - izq - der) / filas.length, anchoCol = espacio * 0.62;
   if (espacio < 30) return barrasNoValido(id, filas);
-  const angostas = espacio < 46; // el total no cabe en horizontal sobre la columna: va en vertical
+  // Totales siempre en horizontal: se elige el tamaño de letra más grande (13 a 11 px) que deja aire entre uno y otro
+  const medir = document.createElement("canvas").getContext("2d");
+  const anchoCon = (px) => { medir.font = `800 ${px}px ${C.fuente}`; return Math.max(...filas.map((f) => medir.measureText(pct(f.blanco + f.nulo)).width)); };
+  const letraTotal = [13, 12, 11].find((px) => anchoCon(px) + 8 <= espacio) ?? 11;
+  // Si ni con 11 px caben (pantallas angostas), pasa a barras horizontales, como en el celular
+  if (anchoCon(11) + 8 > espacio) return barrasNoValido(id, filas);
   el.style.height = "480px";
   const gr = graf(id); gr.resize();
   const max = Math.max(...filas.map((f) => f.blanco + f.nulo)) * 1.1;
@@ -224,7 +229,7 @@ function columnasNoValidoRegion(id, filas) {
   gr.setOption({ ...BASE(),
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
       formatter: (ps) => { const f = filas[ps[0].dataIndex]; return `<strong>${f.tip}</strong><br>En blanco: ${pct(f.blanco)}<br>Nulos: ${pct(f.nulo)}<br>Total no válido: <strong>${pct(f.blanco + f.nulo)}</strong>`; } },
-    grid: { left: izq, right: der, top: angostas ? 56 : 40, bottom: 110 },
+    grid: { left: izq, right: der, top: 40, bottom: 110 },
     xAxis: { type: "category", data: filas.map((f) => f.eje), ...eje({ splitLine: { show: false } }),
       axisLabel: txt({ color: C.texto, fontWeight: 700, interval: 0, rotate: 45, margin: 10 }) },
     yAxis: { type: "value", max, show: false },
@@ -233,8 +238,8 @@ function columnasNoValidoRegion(id, filas) {
       { type: "bar", stack: "t", data: filas.map((f) => ({ value: f.nulo, itemStyle: { color: tenue(f) ? "#d6e2b5" : C.nu1, borderRadius: [3, 3, 0, 0] }, label: dentro(f, f.nulo) })) },
       // total encima de cada columna (12 px: es un ranking regional)
       { type: "bar", stack: "t", silent: true, itemStyle: { color: "transparent" }, data: filas.map(() => 0.0001),
-        label: { show: true, position: "top", distance: 4, rotate: angostas ? 90 : 0, align: angostas ? "left" : "center", verticalAlign: "middle",
-          ...txt({ color: C.texto, fontWeight: 800, fontSize: angostas ? 12 : 14 }), formatter: (p) => pct(filas[p.dataIndex].blanco + filas[p.dataIndex].nulo) } },
+        label: { show: true, position: "top", distance: 8, align: "center", verticalAlign: "bottom",
+          ...txt({ color: C.texto, fontWeight: 800, fontSize: letraTotal }), formatter: (p) => pct(filas[p.dataIndex].blanco + filas[p.dataIndex].nulo) } },
     ],
   }, true);
 }
@@ -243,15 +248,18 @@ function columnasNoValidoRegion(id, filas) {
    filas: [{ clave, eje, sub, blanco, nulo, tip, resaltar }] */
 function barrasNoValido(id, filas) {
   const el = document.getElementById(id);
-  el.style.height = `${filas.length * 34 + 20}px`;
+  el.style.height = `${filas.length * (filas.length > 12 ? 28 : 34) + 20}px`;
   const gr = graf(id); gr.resize();
-  const izq = 110, der = 64, ancho = el.clientWidth - izq - der;
+  // Margen izquierdo según el nombre más largo (p. ej., «Lima Provincias», «Madre de Dios»)
+  const medir = document.createElement("canvas").getContext("2d");
+  medir.font = `700 14px ${C.fuente}`;
+  const izq = Math.ceil(Math.max(90, ...filas.map((f) => medir.measureText(f.eje).width)) + 16), der = 64, ancho = el.clientWidth - izq - der;
   const max = Math.max(...filas.map((f) => f.blanco + f.nulo)) * 1.05;
   const cabe = (v) => (v / max) * ancho >= 40;
   const tono = (f, claro, pleno) => (f.sub ? claro : pleno);
   const atenuar = filas.some((f) => f.resaltar);
   const op = (f) => (atenuar && !f.resaltar ? 0.35 : 1); // las demás regiones van en tonos claros, con texto oscuro
-  const dentro = (oscuro) => ({ show: true, position: "inside", fontFamily: C.fuente, fontSize: 11, fontWeight: 600, color: oscuro ? C.navy : "#fff" });
+  const dentro = (oscuro) => ({ show: true, position: "inside", fontFamily: C.fuente, fontSize: 12, fontWeight: 600, color: oscuro ? C.navy : "#fff" });
   gr.setOption({ ...BASE(),
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
       formatter: (ps) => { const f = filas[ps[0].dataIndex]; return `<strong>${f.tip}</strong><br>En blanco: ${pct(f.blanco)}<br>Nulos: ${pct(f.nulo)}<br>Total no válido: <strong>${pct(f.blanco + f.nulo)}</strong>`; } },
@@ -260,11 +268,11 @@ function barrasNoValido(id, filas) {
     yAxis: { type: "category", inverse: true, data: filas.map((f) => f.clave), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: { formatter: (v, k) => (filas[k].sub ? `{s|${filas[k].eje}}` : `{a|${filas[k].eje}}`), rich: { a: txt({ color: C.texto, fontWeight: 700 }), s: txt() } } },
     series: [
-      { type: "bar", stack: "t", barWidth: 22, data: filas.map((f) => ({ value: f.blanco, itemStyle: { color: op(f) < 1 ? "#c9d3f3" : tono(f, C.bl2, C.bl1) },
+      { type: "bar", stack: "t", barWidth: filas.length > 12 ? 18 : 22, data: filas.map((f) => ({ value: f.blanco, itemStyle: { color: op(f) < 1 ? "#c9d3f3" : tono(f, C.bl2, C.bl1) },
           label: { ...dentro(f.sub || op(f) < 1), formatter: () => (cabe(f.blanco) ? pct(f.blanco, 1) : "") } })) },
-      { type: "bar", stack: "t", barWidth: 22, data: filas.map((f) => ({ value: f.nulo, itemStyle: { color: op(f) < 1 ? "#d6e2b5" : tono(f, C.nu2, C.nu1), borderRadius: [0, 3, 3, 0] },
+      { type: "bar", stack: "t", barWidth: filas.length > 12 ? 18 : 22, data: filas.map((f) => ({ value: f.nulo, itemStyle: { color: op(f) < 1 ? "#d6e2b5" : tono(f, C.nu2, C.nu1), borderRadius: [0, 3, 3, 0] },
           label: { ...dentro(f.sub || op(f) < 1), formatter: () => (cabe(f.nulo) ? pct(f.nulo, 1) : "") } })) },
-      { type: "bar", stack: "t", barWidth: 22, silent: true, itemStyle: { color: "transparent" }, data: filas.map(() => 0.0001),
+      { type: "bar", stack: "t", barWidth: filas.length > 12 ? 18 : 22, silent: true, itemStyle: { color: "transparent" }, data: filas.map(() => 0.0001),
         label: { show: true, position: "right", distance: 6, ...txt({ color: C.texto, fontWeight: 800 }), formatter: (p) => pct(filas[p.dataIndex].blanco + filas[p.dataIndex].nulo) } },
     ],
   }, true);
