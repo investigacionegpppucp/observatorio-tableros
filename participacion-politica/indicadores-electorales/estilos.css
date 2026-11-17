@@ -61,7 +61,6 @@
 .ley-extra { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 13px; color: var(--texto-suave); }
 .ley-extra span { display: inline-flex; align-items: center; gap: 6px; }
 .ley-extra i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-#g-dist { height: 360px; margin-top: 0; }
 .sin-recuadro .recuadro-lima { display: none; }
 /* El margen se escribe «36.1 p. p.»: columna de valores más ancha */
 #g-lado.ranking { --valor: 84px; }
@@ -114,11 +113,11 @@
 .atajo button:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; border-radius: 2px; }
 .atajo em { font-style: normal; font-variant-numeric: tabular-nums; }
 .ley i.l.sola { border-top-width: 3px; }
-.ficha-graficos { display: grid; grid-template-columns: repeat(var(--columnas, 4), minmax(0, 1fr)); gap: 12px 20px; margin-top: 12px; }
+/* Ficha: los cuatro gráficos de dos en dos (uno solo, a todo el ancho) */
+.ficha-graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; margin-top: 12px; }
 .mini h4 { margin: 0; padding-top: 10px; border-top: 3px solid var(--c); font-family: var(--fuente-titulos); font-size: 16px; color: var(--navy); }
-.grafico.mini-g { height: 220px; margin-top: 4px; }
+.grafico.mini-g { height: 260px; margin-top: 4px; }
 .ficha-graficos[style*="--columnas: 1"] { grid-template-columns: minmax(0, 1fr); }
-@media (max-width: 1100px) { .ficha-graficos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .ficha-graficos { grid-template-columns: minmax(0, 1fr); } }
 
 /* Selector de región dentro de la ficha (mismo aspecto que los demás selectores de tarjeta) */
@@ -131,3 +130,19 @@
 .filtro-local select:focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
 #f-region-ficha { min-width: 220px; }
 @media (max-width: 560px) { .ficha-cabeza .filtro-local, #f-region-ficha { width: 100%; } }
+
+/* Lista de provincias o distritos al lado del mapa: se lee como una lista, no como una tabla.
+   Encabezado claro, filas de una línea, cifra a la derecha y el lugar elegido marcado con una barra lima */
+.tabla-caja.tabla-lado { margin-top: 0; max-height: 600px; border: 0; border-top: 2px solid var(--navy); border-radius: 0; }
+.tabla-lado .tabla th { background: #fff; color: var(--navy); border-bottom: 1px solid var(--linea); box-shadow: 0 1px 0 var(--linea); }
+.tabla-lado .tabla.ordenable th button { color: var(--navy); padding: 10px 8px; font-size: 14px; }
+.tabla-lado .tabla.ordenable th button:focus-visible { outline-color: var(--azul); }
+.tabla-lado .tabla.ordenable th.num button { justify-content: flex-end; }
+.tabla-lado .tabla td { padding: 9px 8px; border-bottom: 1px solid var(--linea); font-size: 15px; }
+.tabla-lado .tabla td.num { text-align: right; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla-lado .tabla td small { display: inline; margin-left: 8px; font-size: 13px; color: var(--texto-suave); }
+.tabla-lado .tabla tbody tr[tabindex]:hover td { background: var(--fondo); }
+.tabla-lado .tabla tr.elegida td { background: #fff; color: var(--navy); font-weight: 800; }
+.tabla-lado .tabla tr.elegida td:first-child { box-shadow: inset 4px 0 0 var(--lima); }
+@media (max-width: 900px) { .tabla-caja.tabla-lado { max-height: 520px; } }
+.ley i.l.punteada { border-top-style: dashed; }

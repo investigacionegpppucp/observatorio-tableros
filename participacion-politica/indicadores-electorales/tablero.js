@@ -85,7 +85,7 @@ const sinTilde = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase()
 const DEP_GEO = Object.fromEntries(Object.entries(DEPS).map(([c, n]) => [c, c === "15" ? "LIMA PROVINCIAS" : sinTilde(n)]));
 const GEO_DEP = Object.fromEntries(Object.entries(DEP_GEO).map(([c, n]) => [n, c]));
 
-const estado = { modulo: "generales", eleccion: "presidencial1", nivel: "regional", region: PE, anio: null, indicador: "margen", lugar: null };
+const estado = { modulo: "generales", eleccion: "presidencial1", nivel: "regional", region: PE, provincia: null, anio: null, indicador: "margen", lugar: null };
 let G = [], S = [], C, GEO = {};
 const mapas = {}, GEO_FILTRADO = new Map(), NOMBRE_LUGAR = new Map(), ORDEN = {};
 
@@ -199,7 +199,7 @@ function lineas(id, anios, series, { min = 0, max = null, intervalo = null, fmtE
     yAxis: { type: "value", min, max, ...(intervalo ? { interval: intervalo } : { splitNumber: compacto ? 3 : 5 }), splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: fmtEje, ...(compacto ? { fontSize: 12 } : {}) }) },
     series: series.map((s) => ({
       name: s.nombre, type: "line", data: s.datos, symbol: "circle", symbolSize: compacto ? 6 : 7, connectNulls: conectar,
-      lineStyle: { width: 2.5, color: s.color }, itemStyle: { color: s.color },
+      lineStyle: { width: s.tipo ? 2 : 2.5, color: s.color, type: s.tipo ?? "solid" }, itemStyle: { color: s.color }, z: s.sinEtiqueta ? 1 : 3,
       endLabel: { show: !s.sinEtiqueta, formatter: (p) => s.fmt(p.value), ...txt({ color: s.color, fontWeight: 800, ...(compacto ? { fontSize: 12 } : {}) }) },
     })),
   }, true);
@@ -209,12 +209,18 @@ function lineas(id, anios, series, { min = 0, max = null, intervalo = null, fmtE
    Elecciones regionales y municipales
    --------------------------------------------------------- */
 const aniosNivel = (nivel) => [...new Set(S.filter((f) => f.nivel === nivel).map((f) => f.anio))].sort((a, b) => a - b);
-const filasSub = (anio, nivel, region) => S.filter((f) => f.anio === anio && f.nivel === nivel && (region === PE || f.dep === region));
+// ámbito: PE, una región (código de 2 dígitos) o una provincia (4 dígitos, para los distritos)
+const enAlcance = (f, amb) => amb === PE || (amb.length === 2 ? f.dep === amb : String(f.ubigeo).startsWith(amb));
+const filasSub = (anio, nivel, amb) => S.filter((f) => f.anio === anio && f.nivel === nivel && enAlcance(f, amb));
+// Ámbito de la vista: en distritos, la provincia elegida (si hay); si no, la región
+const ambito = () => (estado.nivel === "distrital" && estado.provincia ? estado.provincia : estado.region);
+const nombreAmbito = (c) => (c === PE ? "Perú" : c.length === 4 ? `la provincia de ${NOMBRE_LUGAR.get(c) ?? c}` : nombreRegion(c));
+const enAmbitoV = (c) => (c === PE ? "en el Perú" : `en ${nombreAmbito(c)}`);
 const regionalNivel = () => estado.nivel.startsWith("regional");
 
 function pintarSub() {
-  const { nivel, region, anio } = estado, ind = INDICADORES[estado.indicador];
-  const fs = filasSub(anio, nivel, region), validas = fs.filter((f) => !f.anulada);
+  const { nivel, region, anio } = estado, ind = INDICADORES[estado.indicador], amb = ambito();
+  const fs = filasSub(anio, nivel, amb), validas = fs.filter((f) => !f.anulada);
   const unaRegion = regionalNivel() && region !== PE;
   const f1 = unaRegion ? fs[0] : null;
   const med = (k) => mediana(validas.map((f) => f[k]));
@@ -228,11 +234,11 @@ function pintarSub() {
     $("#r-sub").innerHTML = `En ${NOMBRE_NIVEL[nivel]} de ${nombreRegion(region)} de ${anio}, las dos organizaciones más votadas sumaron ${destacar(pct(f1.concentracion))} de los votos válidos ` +
       `y el margen entre ellas fue de ${destacar(pp(f1.margen))}.` + (nivel === "regional" ? ` El número efectivo de partidos fue ${destacar(n2(f1.nep))}, con ${f1.organizaciones} organizaciones.` : "");
   } else {
-    $("#r-sub").innerHTML = `En ${NOMBRE_NIVEL[nivel]} de ${anio} ${enAmbito(region)}, en la mitad de ${LOS[nivel].replace(/ (\S+)$/, ` ${validas.length} $1`)} el margen entre los dos primeros fue menor de ${destacar(pp(med("margen")))}` +
+    $("#r-sub").innerHTML = `En ${NOMBRE_NIVEL[nivel]} de ${anio} ${enAmbitoV(amb)}, en la mitad de ${LOS[nivel].replace(/ (\S+)$/, ` ${validas.length} $1`)} el margen entre los dos primeros fue menor de ${destacar(pp(med("margen")))}` +
       (nivel === "regional2" ? "." : `, y el número efectivo de partidos, mayor de ${destacar(n2(med("nep")))}.`) +
       (reñidas ? ` En ${reñidas} el margen fue menor de 5 puntos porcentuales.` : "") + (anuladas ? ` En ${anuladas} la elección se anuló.` : "");
   }
-  const nombreAmb = region === PE ? "del Perú" : `de ${nombreRegion(region)}`;
+  const nombreAmb = amb === PE ? "del Perú" : `de ${nombreAmbito(amb)}`;
   kpis("#k-sub", unaRegion ? (f1 ? [
     { etiqueta: `Concentración, ${anio}`, valor: pct(f1.concentracion), pie: `<span class="kpi-pie">Mediana de las regiones: ${pct(mediana(filasSub(anio, nivel, PE).map((f) => f.concentracion)))}</span>` },
     { etiqueta: `Margen de victoria, ${anio}`, valor: pp(f1.margen), pie: `<span class="kpi-pie">Mediana de las regiones: ${pp(mediana(filasSub(anio, nivel, PE).map((f) => f.margen)))}</span>` },
@@ -257,7 +263,6 @@ function pintarSub() {
   $("#def-ind").innerHTML = `<strong>${d.titulo}:</strong> ${d.texto}`;
   pintarMapaSub();
   pintarFicha();
-  pintarTablaSub(fs);
 }
 
 /* Mapa (regiones, provincias o distritos) y, al lado, ranking (regiones) o distribución (provincias y distritos) */
@@ -283,7 +288,7 @@ function colorContinuo(t) {
 function pintarMapaSub() {
   const { nivel, region, anio } = estado, k = estado.indicador, ind = INDICADORES[k], ng = nivelGeo(nivel);
   // En el mapa regional se ven siempre todas las regiones (la elegida, resaltada); en provincias y distritos, solo la región elegida
-  const regionMapa = ng === "regional" ? PE : region;
+  const regionMapa = ng === "regional" ? PE : ambito();
   const fs = filasSub(anio, nivel, regionMapa);
   const validas = fs.filter((f) => !f.anulada && f[k] != null);
   $("#t-mapa").textContent = `${ind.nombre} en ${NOMBRE_NIVEL[nivel]}, ${anio}`;
@@ -309,9 +314,11 @@ function pintarMapaSub() {
   }
   const M = mapas[clave];
   // El recuadro de Lima y Callao solo tiene sentido en el mapa de todo el país o de Lima o el Callao
-  div.classList.toggle("sin-recuadro", regionMapa !== PE && regionMapa !== "15" && regionMapa !== "07");
+  div.classList.toggle("sin-recuadro", regionMapa !== PE && !regionMapa.startsWith("15") && !regionMapa.startsWith("07"));
   if (regionMapa !== PE) M.principal.fitBounds = () => M.principal;
   M.pintar({ valores, color, texto, elegida: ng === "regional" ? (region === PE ? null : DEP_GEO[region]) : estado.lugar });
+  // Una provincia es más chica que una región: se permite acercar más (el mapa común llega hasta 9)
+  M.principal.setMaxZoom(regionMapa.length === 4 ? 12 : 9);
   if (regionMapa !== PE) { delete M.principal.fitBounds; M.principal.fitBounds(L.geoJSON(geoDe(ng, regionMapa)).getBounds(), { padding: [12, 12] }); }
   $("#ley-mapa").innerHTML = validas.length ? `<div class="ley-continua"><span>${ind.fmt(min)}</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${ind.fmt(max)}</span></div>` +
     `<div class="ley-extra">${fs.some((f) => f.anulada) ? '<span><i style="background:#e7b9c3"></i>Elección anulada</span>' : ""}` +
@@ -319,44 +326,19 @@ function pintarMapaSub() {
     (ng === "regional" ? '<span><i style="background:#ccd3dd"></i>Sin elección (Lima Metropolitana no elige gobierno regional' + (nivel === "regional2" ? "; regiones sin segunda vuelta" : "") + ")</span>" : "") + "</div>" : "";
   const orden = [...validas].sort((a, b) => b[k] - a[k]);
   $("#l-mapa").innerHTML = orden.length > 1 ? `Va de ${destacar(ind.fmt(orden.at(-1)[k]))} en ${nombreFila(orden.at(-1))} a ${destacar(ind.fmt(orden[0][k]))} en ${nombreFila(orden[0])}.` +
-    (ng === "regional" ? "" : ` La mediana es ${ind.fmt(mediana(vs))}.`) : "";
+    (ng === "regional" ? "" : ` La mediana es ${ind.fmt(mediana(vs))}`.replace(/\.?$/, ".")) : "";
 
   // Al lado: ranking de regiones, o distribución de provincias o distritos
   const ranking = ng === "regional";
   $("#g-lado").hidden = !ranking;
-  $("#g-dist").hidden = ranking;
+  $("#t-sub").hidden = ranking;
   if (ranking) {
     Obs.ranking("g-lado", validas.map((f) => ({ clave: f.dep, etiqueta: nombreRegion(f.dep), valor: f[k] })), {
       formato: ind.fmt, nombre: ind.nombre, color: C.tema[k], elegida: region === PE ? null : region, alClic: elegirRegion,
       referencia: { valor: mediana(vs), etiqueta: "Mediana" },
     });
-  } else pintarDistribucion(validas.map((f) => f[k]), k);
+  } else pintarTablaSub(fs);
 }
-/* Histograma: cuántas provincias o distritos caen en cada tramo del indicador, con la mediana marcada */
-function pintarDistribucion(vs, k) {
-  const ind = INDICADORES[k];
-  const enteros = k === "organizaciones";
-  const lo = Math.min(...vs), hi = Math.max(...vs);
-  const n = enteros ? Math.min(20, hi - lo + 1) : 12, paso = enteros ? Math.ceil((hi - lo + 1) / n) : (hi - lo) / n || 1;
-  const tramos = Array.from({ length: n }, (_, i) => ({ a: lo + i * paso, b: lo + (i + 1) * paso, c: 0 }));
-  vs.forEach((v) => { const i = Math.min(n - 1, Math.floor((v - lo) / paso)); tramos[i].c++; });
-  const etq = (t) => (enteros ? (paso === 1 ? n0(t.a) : `${n0(t.a)}-${n0(t.b - 1)}`) : `${ind.fmt(t.a)}`);
-  const med = mediana(vs), iMed = Math.min(n - 1, Math.floor((med - lo) / paso));
-  const g = Obs.grafico("g-dist");
-  g.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    title: { text: `Cuántos ${LUGARES[estado.nivel]} hay en cada tramo`, left: 0, top: 0, textStyle: txt({ color: C.texto, fontWeight: 700, fontSize: 15 }) },
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
-      formatter: (ps) => { const t = tramos[ps[0].dataIndex]; return `<strong>${enteros ? etq(t) : `${ind.fmt(t.a)} a ${ind.fmt(t.b)}`}</strong><br>${n0(t.c)} ${LUGARES[estado.nivel]}`; } },
-    grid: { left: 44, right: 12, top: 40, bottom: 56 },
-    xAxis: { type: "category", data: tramos.map(etq), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ rotate: 45, fontSize: 12 }) },
-    yAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
-    series: [{ type: "bar", barCategoryGap: "12%", data: tramos.map((t, i) => ({ value: t.c, itemStyle: { color: i === iMed ? C.navy : C.tema[k], borderRadius: [2, 2, 0, 0] } })) }],
-  }, true);
-  $("#g-dist").setAttribute("aria-label", `Distribución: la mediana es ${ind.fmt(med)} (barra oscura).`);
-}
-
-/* Evolución 2002-2026: la región elegida (su valor o la mediana de sus provincias o distritos) frente a la mediana del Perú */
 /* Ficha regional: los cuatro indicadores de la región elegida (su valor, o la mediana de sus provincias o distritos),
    2002-2026, frente a la mediana del Perú. Sin región elegida, muestra el Perú y atajos a regiones destacadas. */
 function valorRegion(anio, nivel, reg, k) {
@@ -367,8 +349,17 @@ function pintarFicha() {
   const anios = aniosNivel(nivel);
   const regional = regionalNivel();
   const de = regional ? "" : ` (mediana de sus ${LUGARES[nivel]})`;
-  $("#t-ficha").textContent = hay ? `Ficha de ${nombreRegion(region)}: ${NOMBRE_NIVEL[nivel].replace(/^(la|las) /, "")}` : `Ficha regional: ${NOMBRE_NIVEL[nivel].replace(/^(la|las) /, "")}`;
-  $("#d-ficha").textContent = hay ? `Cada indicador de ${nombreRegion(region)}${de}, frente a la mediana del Perú, ${anios[0]}-${anios.at(-1)}.`
+  const eleccion = NOMBRE_NIVEL[nivel].replace(/^(la|las) /, "");
+  // Provincia o distrito elegido (en el mapa o en la lista): su serie, por su código, frente a su región y al Perú
+  const lugar = !regional && estado.lugar ? estado.lugar : null;
+  const filasLugar = lugar ? S.filter((f) => f.nivel === nivel && f.ubigeo === lugar) : [];
+  const ref = filasLugar.at(-1);
+  const nombreL = lugar ? NOMBRE_LUGAR.get(lugar) ?? (ref ? nombreFila(ref) : lugar) : "";
+  const dondeL = ref ? (nivel === "distrital" ? `${titulo(ref.provincia)}, ${nombreRegion(ref.dep)}` : nombreRegion(ref.dep)) : "";
+  $("#t-ficha").textContent = lugar ? `Ficha de ${nombreL} (${dondeL}): ${eleccion}`
+    : hay ? `Ficha de ${nombreRegion(region)}: ${eleccion}` : `Ficha regional: ${eleccion}`;
+  $("#d-ficha").textContent = lugar ? `Cada indicador de ${nombreL}, frente a la mediana de ${LOS[nivel]} de ${nombreRegion(region)} y del Perú, ${anios[0]}-${anios.at(-1)}.`
+    : hay ? `Cada indicador de ${nombreRegion(region)}${de}, frente a la mediana del Perú, ${anios[0]}-${anios.at(-1)}.`
     : `Mediana del Perú en cada elección, ${anios[0]}-${anios.at(-1)}. Al elegir una región, se compara con ella.`;
   $("#f-region-ficha").value = region;
 
@@ -384,8 +375,12 @@ function pintarFicha() {
 
   const claves = seg ? ["margen"] : ["concentracion", "margen", "nep", "organizaciones"];
   const colorR = C.navy;
-  $("#ley-ficha").innerHTML = (hay ? `<span><i class="l" style="border-color:${colorR}"></i>${nombreRegion(region)}${regional ? "" : " (mediana)"}</span>` : "") +
-    `<span><i class="l ${hay ? "" : "sola"}" style="border-color:${hay ? C.gris : colorR}"></i>Perú (mediana de ${LOS[nivel]})</span>`;
+  const GRIS_CLARO = "#c3c9d3";
+  $("#ley-ficha").innerHTML = lugar
+    ? `<span><i class="l" style="border-color:${colorR}"></i>${nombreL}</span><span><i class="l" style="border-color:${C.gris}"></i>${nombreRegion(region)} (mediana)</span>` +
+      `<span><i class="l punteada" style="border-color:${GRIS_CLARO}"></i>Perú (mediana)</span>`
+    : (hay ? `<span><i class="l" style="border-color:${colorR}"></i>${nombreRegion(region)}${regional ? "" : " (mediana)"}</span>` : "") +
+      `<span><i class="l ${hay ? "" : "sola"}" style="border-color:${hay ? C.gris : colorR}"></i>Perú (mediana de ${LOS[nivel]})</span>`;
   const caja = $("#ficha-graficos");
   if (caja.dataset.claves !== claves.join()) {
     caja.innerHTML = claves.map((k) => `<div class="mini" style="--c:${C.tema[k]}"><h4>${INDICADORES[k].nombre}</h4><div class="grafico mini-g" id="fg-${k}"></div></div>`).join("");
@@ -396,37 +391,43 @@ function pintarFicha() {
     const ind = INDICADORES[k];
     const peru = anios.map((a) => valorRegion(a, nivel, PE, k));
     const propia = hay ? anios.map((a) => valorRegion(a, nivel, region, k)) : null;
-    // Con una región elegida, solo ella lleva la cifra al final de la línea (la del Perú está en el tooltip)
-    const series = [...(propia ? [{ nombre: nombreRegion(region), color: colorR, datos: propia, fmt: ind.fmt }] : []),
+    // Solo la serie principal lleva la cifra al final de la línea (las demás están en el tooltip)
+    const series = lugar ? [
+      { nombre: nombreL, color: colorR, datos: anios.map((a) => { const f = filasLugar.find((x) => x.anio === a); return f && !f.anulada ? f[k] : null; }), fmt: ind.fmt },
+      { nombre: `${nombreRegion(region)} (mediana)`, color: C.gris, datos: propia, fmt: ind.fmt, sinEtiqueta: true },
+      { nombre: "Perú (mediana)", color: GRIS_CLARO, datos: peru, fmt: ind.fmt, sinEtiqueta: true, tipo: "dashed" },
+    ] : [...(propia ? [{ nombre: nombreRegion(region), color: colorR, datos: propia, fmt: ind.fmt }] : []),
       { nombre: "Perú (mediana)", color: hay ? C.gris : colorR, datos: peru, fmt: ind.fmt, sinEtiqueta: hay }];
     const pctEje = k === "concentracion" || k === "margen";
     lineas(`fg-${k}`, anios.map(String), series, {
       min: 0, max: k === "concentracion" ? 1 : null, intervalo: k === "concentracion" ? 0.25 : null,
-      fmtEje: (x) => (pctEje ? `${Math.round(x * 100)} %` : Obs.fmtN(x, 0)), compacto: true, conectar: !seg, resaltar: String(anio),
+      fmtEje: (x) => (pctEje ? `${Math.round(x * 100)} %` : Obs.fmtN(x, 0)), compacto: claves.length > 1, conectar: !seg, resaltar: String(anio),
     });
   }
 }
 
-/* Tabla de los lugares del ámbito elegido */
+/* Al lado del mapa de provincias o distritos: la lista de lugares con sus indicadores, ordenada por el elegido.
+   Un clic en una fila resalta el lugar en el mapa. */
 function pintarTablaSub(fs) {
-  const { nivel, region, anio } = estado;
-  $("#t-tabla-s").textContent = `${LUGAR[nivel] === "Región" ? "Regiones" : titulo(LUGARES[nivel])}${region === PE || regionalNivel() ? "" : ` de ${nombreRegion(region)}`}, ${anio}`;
-  $("#d-tabla-s").textContent = `Indicadores de ${NOMBRE_NIVEL[nivel]} en cada ${LUGAR[nivel].toLowerCase()}. Las elecciones anuladas no tienen indicadores.`;
-  const filas = regionalNivel() ? filasSub(anio, nivel, PE) : fs;
-  const seg = nivel === "regional2";
+  const { nivel, region } = estado, k = estado.indicador;
+  // Debajo del nombre, dónde queda (salvo que ya esté filtrado por esa provincia)
+  const conRegion = (nivel === "distrital" && !estado.provincia) || region === PE;
+  const corta = { concentracion: "Concentración", margen: "Margen", nep: "NEP", organizaciones: "Organizaciones" };
+  const col = (c, html) => ({ clave: c, titulo: corta[c], num: true, valor: (f) => f[c], html, activa: c === k });
+  // Al cambiar de indicador, la lista vuelve a ordenarse por él (de mayor a menor)
+  if (pintarTablaSub.k !== `${nivel}|${k}`) { ORDEN["t-sub"] = { clave: k, dir: -1 }; pintarTablaSub.k = `${nivel}|${k}`; }
   tablaOrdenable("t-sub", [
-    { clave: "lugar", titulo: LUGAR[nivel], valor: nombreFila, html: (f) => Obs.escapar(nombreFila(f)) + (nivel === "distrital" || (nivel === "provincial" && region === PE) ? `<small>${Obs.escapar(nivel === "distrital" ? `${titulo(f.provincia)}, ${nombreRegion(f.dep)}` : nombreRegion(f.dep))}</small>` : "") },
-    { clave: "concentracion", titulo: "Concentración", num: true, valor: (f) => f.concentracion, html: (f) => (f.anulada ? "Anulada" : pct(f.concentracion)) },
-    { clave: "margen", titulo: "Margen de victoria", num: true, valor: (f) => f.margen, html: (f) => (f.anulada ? "—" : pp(f.margen)) },
-    ...(seg ? [] : [
-      { clave: "nep", titulo: "Número efectivo de partidos", num: true, valor: (f) => f.nep, html: (f) => (f.anulada ? "—" : n2(f.nep)) },
-      { clave: "organizaciones", titulo: "Organizaciones", num: true, valor: (f) => f.organizaciones, html: (f) => n0(f.organizaciones) },
-    ]),
-  ], filas, {
-    inicial: { clave: "margen", dir: 1 }, claveFila: (f) => (regionalNivel() ? f.dep : f.ubigeo), alClic: regionalNivel() ? elegirRegion : null,
-    elegida: regionalNivel() ? (region === PE ? null : region) : estado.lugar, descripcion: $("#t-tabla-s").textContent,
+    { clave: "lugar", titulo: LUGAR[nivel], valor: nombreFila,
+      html: (f) => Obs.escapar(nombreFila(f)) + (conRegion ? `<small>${Obs.escapar(nivel === "distrital" ? `${titulo(f.provincia)}${region === PE ? `, ${nombreRegion(f.dep)}` : ""}` : nombreRegion(f.dep))}</small>` : "") },
+    col("concentracion", (f) => (f.anulada ? "Anulada" : pct(f.concentracion))),
+    col("margen", (f) => (f.anulada ? "—" : pp(f.margen))),
+    col("nep", (f) => (f.anulada ? "—" : n2(f.nep))),
+    col("organizaciones", (f) => n0(f.organizaciones)),
+  ], fs, {
+    inicial: { clave: k, dir: -1 }, claveFila: (f) => f.ubigeo, alClic: elegirLugar, elegida: estado.lugar,
+    descripcion: `${titulo(LUGARES[nivel])}${region === PE ? "" : ` de ${nombreRegion(region)}`}, ${estado.anio}`,
   });
-  $("#t-sub").dataset.ver = estado.indicador;
+  $("#t-sub").dataset.ver = k;
 }
 
 /* ---------------------------------------------------------
@@ -444,11 +445,11 @@ function tablaOrdenable(id, columnas, filas, { inicial, claveFila = () => "", el
   });
   const th = columnas.map((c) => {
     const activo = c.clave === col.clave;
-    return `<th class="${c.num ? "num" : ""} c-${c.clave}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-orden="${c.clave}">${c.titulo}<span class="flecha" aria-hidden="true">${activo ? (orden.dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
+    return `<th class="${c.num ? "num" : ""} c-${c.clave}${c.activa ? " activa" : ""}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-orden="${c.clave}">${c.titulo}<span class="flecha" aria-hidden="true">${activo ? (orden.dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
   }).join("");
   const tr = datos.map((f) => {
     const k = String(claveFila(f));
-    return `<tr data-k="${Obs.escapar(k)}"${alClic && k ? ' tabindex="0"' : ""}${k && k === elegida ? ' class="elegida"' : ""}>` + columnas.map((c) => `<td class="${c.num ? "num" : ""} c-${c.clave}">${c.html(f)}</td>`).join("") + "</tr>";
+    return `<tr data-k="${Obs.escapar(k)}"${alClic && k ? ' tabindex="0"' : ""}${k && k === elegida ? ' class="elegida"' : ""}>` + columnas.map((c) => `<td class="${c.num ? "num" : ""} c-${c.clave}${c.activa ? " activa" : ""}">${c.html(f)}</td>`).join("") + "</tr>";
   }).join("");
   el.innerHTML = `<table class="tabla ordenable centrada"><caption class="solo-lectores">${Obs.escapar(descripcion)}. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
   el.querySelector("thead").onclick = (e) => {
@@ -478,8 +479,13 @@ function render() {
   document.querySelectorAll("[data-modulo-filtro]").forEach((f) => (f.hidden = f.dataset.moduloFiltro !== estado.modulo));
   // Etiqueta de la región elegida, con su ✕ para volver a todo el Perú
   $("#filtro-viendo").hidden = estado.modulo !== "subnacionales" || estado.region === PE;
-  $("#chip-region").innerHTML = `${nombreRegion(estado.region)} <span aria-hidden="true">✕</span>`;
-  $("#chip-region").setAttribute("aria-label", `Quitar ${nombreRegion(estado.region)}: volver a todo el Perú`);
+  // La ✕ quita lo último que se eligió: el lugar, luego la provincia, luego la región
+  const conLugar = estado.lugar && !regionalNivel(), conProv = !conLugar && estado.provincia && estado.nivel === "distrital";
+  const nombreChip = conLugar ? `${NOMBRE_LUGAR.get(estado.lugar) ?? estado.lugar}, ${nombreRegion(estado.region)}`
+    : conProv ? `${NOMBRE_LUGAR.get(estado.provincia) ?? estado.provincia}, ${nombreRegion(estado.region)}` : nombreRegion(estado.region);
+  $("#chip-region").innerHTML = `${nombreChip} <span aria-hidden="true">✕</span>`;
+  $("#chip-region").setAttribute("aria-label", `Quitar ${nombreChip}: volver a ${conLugar || conProv ? nombreRegion(estado.region) : "todo el Perú"}`);
+  pintarFiltrosLugar();
   $("#m-generales").hidden = estado.modulo !== "generales";
   $("#m-subnacionales").hidden = estado.modulo !== "subnacionales";
   $("#f-eleccion").innerHTML = botones(ELECCIONES, estado.eleccion, "eleccion");
@@ -496,10 +502,35 @@ function render() {
     region: estado.modulo === "subnacionales" && estado.region !== PE ? estado.region : null,
     anio: estado.modulo === "subnacionales" && estado.anio !== anios.at(-1) ? estado.anio : null,
     indicador: estado.modulo === "subnacionales" && estado.indicador !== "margen" ? estado.indicador : null,
+    provincia: estado.modulo === "subnacionales" && estado.nivel === "distrital" ? estado.provincia : null,
+    lugar: estado.modulo === "subnacionales" && !regionalNivel() ? estado.lugar : null,
   });
 }
 function actualizar(parche) { Object.assign(estado, parche); render(); }
-const elegirRegion = (c) => actualizar({ region: c === estado.region ? PE : c, lugar: null });
+const elegirRegion = (c) => actualizar({ region: c === estado.region ? PE : c, provincia: null, lugar: null });
+
+/* Filtros de provincia y distrito (solo en las elecciones provinciales y distritales, con una región elegida) */
+function opcionesLugares(nivel, amb) {
+  const vistos = new Map();
+  S.filter((f) => f.nivel === nivel && f.ubigeo && enAlcance(f, amb)).forEach((f) => vistos.set(f.ubigeo, NOMBRE_LUGAR.get(f.ubigeo) ?? nombreFila(f)));
+  return [...vistos].sort((x, y) => x[1].localeCompare(y[1], "es"));
+}
+function pintarFiltrosLugar() {
+  const sub = estado.modulo === "subnacionales", { nivel, region } = estado;
+  const conProv = sub && region !== PE && (nivel === "provincial" || nivel === "distrital"), conDist = sub && region !== PE && nivel === "distrital";
+  $("#filtro-prov").hidden = !conProv;
+  $("#filtro-dist").hidden = !conDist;
+  if (conProv) {
+    const provs = opcionesLugares("provincial", region);
+    $("#f-prov").innerHTML = `<option value="">Todas</option>` + provs.map(([u, n]) => `<option value="${u}">${Obs.escapar(n)}</option>`).join("");
+    $("#f-prov").value = (nivel === "provincial" ? estado.lugar : estado.provincia) ?? "";
+  }
+  if (conDist) {
+    const dists = opcionesLugares("distrital", estado.provincia ?? region);
+    $("#f-dist").innerHTML = `<option value="">Todos</option>` + dists.map(([u, n]) => `<option value="${u}">${Obs.escapar(n)}</option>`).join("");
+    $("#f-dist").value = estado.lugar ?? "";
+  }
+}
 // En provincias y distritos, un clic en el mapa elige la región de ese lugar (y lo resalta)
 const elegirLugar = (u) => actualizar({ region: String(u).slice(0, 2), lugar: u === estado.lugar ? null : u });
 
@@ -520,12 +551,15 @@ Obs.iniciar(TABLERO, async () => {
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
   $("#actualizado").textContent = aa ? `${dd} de ${MESES[mm - 1]} de ${aa}` : "—";
-  const opcionesRegion = `<option value="${PE}">Todas (Perú)</option>` + Object.entries(DEPS).map(([c, nm]) => `<option value="${c}">${nm}</option>`).join("");
+  const opcionesRegion = `<option value="${PE}">Todas (Perú)</option>` + Object.entries(DEPS).sort((x, y) => x[1].localeCompare(y[1], "es")).map(([c, nm]) => `<option value="${c}">${nm}</option>`).join("");
   $("#f-region").innerHTML = opcionesRegion;
   $("#f-region-ficha").innerHTML = opcionesRegion.replace("Todas (Perú)", "Elegir una región");
-  $("#f-region-ficha").onchange = (e) => actualizar({ region: e.target.value, lugar: null });
-  $("#chip-region").onclick = () => actualizar({ region: PE, lugar: null });
-  $("#atajos").onclick = (e) => { const b = e.target.closest("button[data-region]"); if (b) actualizar({ region: b.dataset.region, lugar: null }); };
+  $("#f-region-ficha").onchange = (e) => actualizar({ region: e.target.value, provincia: null, lugar: null });
+  $("#chip-region").onclick = () => (estado.lugar && !regionalNivel() ? actualizar({ lugar: null })
+    : estado.provincia && estado.nivel === "distrital" ? actualizar({ provincia: null }) : actualizar({ region: PE, provincia: null, lugar: null }));
+  $("#f-prov").onchange = (e) => (estado.nivel === "provincial" ? actualizar({ lugar: e.target.value || null }) : actualizar({ provincia: e.target.value || null, lugar: null }));
+  $("#f-dist").onchange = (e) => actualizar({ lugar: e.target.value || null, provincia: e.target.value ? e.target.value.slice(0, 4) : estado.provincia });
+  $("#atajos").onclick = (e) => { const b = e.target.closest("button[data-region]"); if (b) actualizar({ region: b.dataset.region, provincia: null, lugar: null }); };
 
   // Estado inicial desde la URL
   const p = Obs.parametros();
@@ -535,15 +569,17 @@ Obs.iniciar(TABLERO, async () => {
   if (DEPS[p.get("region")]) estado.region = p.get("region");
   if (INDICADORES[p.get("indicador")]) estado.indicador = p.get("indicador");
   estado.anio = +p.get("anio") || null;
+  if (/^\d{4}$/.test(p.get("provincia") ?? "") && p.get("provincia").startsWith(estado.region)) estado.provincia = p.get("provincia");
+  if (/^\d{4,6}$/.test(p.get("lugar") ?? "") && p.get("lugar").startsWith(estado.region)) estado.lugar = p.get("lugar");
 
   // Controles
-  $("#f-region").onchange = (e) => actualizar({ region: e.target.value, lugar: null });
-  $("#f-anio").onchange = (e) => actualizar({ anio: +e.target.value, lugar: null });
+  $("#f-region").onchange = (e) => actualizar({ region: e.target.value, provincia: null, lugar: null });
+  $("#f-anio").onchange = (e) => actualizar({ anio: +e.target.value });
   document.addEventListener("click", (e) => {
     const b = e.target.closest("#f-eleccion button, #f-nivel button, #f-indicador button");
     if (!b) return;
     if (b.dataset.eleccion) actualizar({ eleccion: b.dataset.eleccion });
-    else if (b.dataset.nivel) actualizar({ nivel: b.dataset.nivel, lugar: null });
+    else if (b.dataset.nivel) actualizar({ nivel: b.dataset.nivel, provincia: null, lugar: null });
     else actualizar({ indicador: b.dataset.ind });
   });
   const pestanas = [...document.querySelectorAll(".modulos button")];

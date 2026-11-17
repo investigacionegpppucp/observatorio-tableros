@@ -35,6 +35,8 @@ window.Obs = window.Obs || {};
   };
 
   Obs.grafico = (id) => {
+    // Si el elemento se volvió a crear (el tablero rehízo ese HTML), el gráfico anterior apunta a uno que ya no está
+    if (graficos[id] && graficos[id].getDom() !== document.getElementById(id)) { graficos[id].dispose(); delete graficos[id]; }
     if (!graficos[id]) {
       const el = document.getElementById(id);
       graficos[id] = echarts.init(el, null, { renderer: "svg" });
