@@ -48,7 +48,7 @@ const PLURAL = { "Partido político": "partidos políticos", "Movimiento regiona
   "Lista independiente": "listas independientes", "Organización local": "organizaciones locales" };
 
 const estado = {
-  modulo: "resumen", nivel: "regional", region: PE, anio: null, lugar: null,
+  modulo: "resumen", nivel: "regional", region: PE, provincia: null, anio: null, lugar: null,
   mapa: { resultados: "ganador", participacion: "participacion" },
 };
 
@@ -78,6 +78,11 @@ function titulo(s) {
 const nombreRegion = (c) => (c === PE ? "Perú" : DEPS[c] ?? c);
 const enRegion = (c) => (c === PE ? "en el Perú" : `en ${nombreRegion(c)}`);
 const EnRegion = (c) => (c === PE ? "En el Perú" : `En ${nombreRegion(c)}`);
+// Ámbito de la vista: la región, o la provincia elegida en las elecciones distritales (los datos se acotan a ella)
+const provinciaActiva = () => (estado.nivel === "distrital" && estado.provincia && estado.modulo !== "oferta" ? estado.provincia : null);
+const nombreAmbito = () => (provinciaActiva() ? `la provincia de ${nombreLugar(estado.provincia)}` : nombreRegion(estado.region));
+const enAmbito = () => (estado.region === PE ? "en el Perú" : `en ${nombreAmbito()}`);
+const EnAmbito = () => (estado.region === PE ? "En el Perú" : `En ${nombreAmbito()}`);
 const ANIO_PARCIAL = () => Math.max(...LUG.filter((f) => f.actas_pct < 100).map((f) => f.anio), 0) || null;
 const etqAnio = (a) => (a === ANIO_PARCIAL() ? `${a} (conteo en curso)` : String(a));
 const colorTipo = (t) => (t === PENDIENTE ? "#b9c2cf" : C.categorias[TIPOS.indexOf(t)] ?? C.otros);
@@ -92,7 +97,11 @@ const nombreFila = (f) => (f.nivel === "regional" ? nombreRegion(f.dep) : f.ubig
 const dep = (f) => f.dep;
 function filas(anio = estado.anio, nivel = estado.nivel, region = estado.region) {
   const t = POR.get(`${anio}|${nivel}`) ?? [];
-  return region === PE ? t : t.filter((f) => dep(f) === region);
+  if (region === PE) return t;
+  // En las elecciones distritales, la provincia elegida acota los distritos de su región
+  // (salvo en Oferta, cuyos datos de listas y candidatos solo están por región)
+  const prov = nivel === "distrital" && region === estado.region && estado.modulo !== "oferta" ? estado.provincia : null;
+  return t.filter((f) => dep(f) === region && (!prov || String(f.ubigeo).startsWith(prov)));
 }
 function agregado(fs) {
   const ok = fs.filter((f) => !f.anulada);
@@ -311,7 +320,8 @@ function agregarLimites(mapa, nivel, region) {
   }
 }
 function pintarMapaGeo(m, { valores, color, texto }) {
-  const nivel = estado.nivel, region = estado.region, caja = document.getElementById(`mapa-${m}`);
+  // En distritos con una provincia elegida, el mapa muestra solo esa provincia
+  const nivel = estado.nivel, region = provinciaActiva() ?? estado.region, caja = document.getElementById(`mapa-${m}`);
   const clave = `${nivel}-${region}`;
   caja.querySelectorAll(":scope > .mapa-nivel").forEach((d) => (d.hidden = d.dataset.clave !== clave));
   let div = caja.querySelector(`.mapa-nivel[data-clave="${clave}"]`);
@@ -365,7 +375,7 @@ function pintarResumenKpis() {
   const a = estado.anio, ag = agregado(filas()), c = cuotaTipos(a), o = ofertaDe(a);
   const mov = c ? c.cuota("Movimiento regional") : null;
   document.getElementById("k-resumen").innerHTML =
-    kpi("Electores", cuenta(ag?.electores), { pie: `${{ regional: "elección regional", provincial: "elección provincial", distrital: "elección distrital" }[estado.nivel]}, ${estado.region === PE ? "todo el Perú" : nombreRegion(estado.region)}` }) +
+    kpi("Electores", cuenta(ag?.electores), { pie: `${{ regional: "elección regional", provincial: "elección provincial", distrital: "elección distrital" }[estado.nivel]}, ${estado.region === PE ? "todo el Perú" : nombreAmbito()}` }) +
     kpi("Participación", pct(ag?.participacion), { pie: "votos emitidos entre electores" }) +
     kpi("Listas en competencia", n0(o?.listas ?? ag?.listas), { pie: `en ${n0(ag?.lugares)} ${ag?.lugares === 1 ? LUGAR[estado.nivel] : LUGAR[estado.nivel] === "región" ? "regiones" : LUGAR[estado.nivel] + "s"}` }) +
     kpi(estado.nivel === "regional" ? "Ganados por movimientos regionales" : "Ganadas por movimientos regionales", pct0(mov), { pie: c ? `${n0(c.n("Movimiento regional"))} de ${n0(c.total)} ${GOBIERNO[estado.nivel]}` : "" });
@@ -384,7 +394,7 @@ function pintarMapaGanador(m, id) {
 function pintarReparto(gs) {
   const el = document.getElementById("reparto"), total = gs.length;
   const cuenta = TIPOS.concat(PENDIENTE).map((t) => ({ t, n: gs.filter((g) => g.tipo === t).length })).filter((x) => x.n);
-  el.innerHTML = total ? `<p class="reparto-total"><strong>${n0(total)}</strong> ${GOBIERNO[estado.nivel]} ${enRegion(estado.region)}</p>` +
+  el.innerHTML = total ? `<p class="reparto-total"><strong>${n0(total)}</strong> ${GOBIERNO[estado.nivel]} ${enAmbito()}</p>` +
     `<div class="reparto-barra" role="img" aria-label="${cuenta.map((x) => `${x.t}: ${x.n}`).join(", ")}">${cuenta.map((x) =>
       `<span class="${x.t === PENDIENTE ? "rayado" : ""}" style="flex:${x.n};background:${colorTipo(x.t)}"></span>`).join("")}</div>` +
     `<ul class="reparto-lista">${cuenta.map((x) => `<li><i class="${x.t === PENDIENTE ? "rayado" : ""}" style="background:${colorTipo(x.t)}"></i><span>${Obs.escapar(x.t)}</span><strong>${n0(x.n)}</strong><em>${pct0(x.n / total)}</em></li>`).join("")}</ul>` : "";
@@ -397,7 +407,7 @@ function pintarGanadorTipo() {
   pintarReparto(gs);
   if (!c) { lectura(id, ""); return; }
   const orden = TIPOS.filter((t) => c.n(t)).sort((x, y) => c.n(y) - c.n(x));
-  lectura(id, `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}, ${orden.map((t, i) => `${i === orden.length - 1 && i ? "y " : ""}${destacar(PLURAL[t])} ganaron ${destacar(`${n0(c.n(t))}`)} (${pct0(c.cuota(t))})`).join(", ")} de ${n0(c.total)} ${GOBIERNO[estado.nivel]}` +
+  lectura(id, `${EnAmbito()}, en ${ELECCION[estado.nivel]} de ${etqAnio(estado.anio)}, ${orden.map((t, i) => `${i === orden.length - 1 && i ? "y " : ""}${destacar(PLURAL[t])} ganaron ${destacar(`${n0(c.n(t))}`)} (${pct0(c.cuota(t))})`).join(", ")} de ${n0(c.total)} ${GOBIERNO[estado.nivel]}` +
     (pend ? `. En ${destacar(n0(pend))} regiones falta la segunda vuelta` : "") + ".");
   nota(id, estado.nivel === "regional" ? "Ganador final: en las regiones con segunda vuelta, quien la ganó (fuente provisional: Wikipedia). Lima Metropolitana no elige gobernador." :
     estado.nivel === "distrital" ? "Las capitales de provincia no tienen alcalde distrital: las gobierna la municipalidad provincial (en gris en el mapa)." : "");
@@ -409,7 +419,7 @@ function pintarEvolTipos() {
     color: C.categorias[i], valores: ANIOS.map((a) => { const c = cuotaTipos(a); return c ? c.cuota(t) : null; }) }))
     .filter((s) => s.valores.some((v) => v));
   apiladas(`g-${id}`, TIPOS.map((t, i) => ({ nombre: t, color: C.categorias[i], valores: ANIOS.map((a) => cuotaTipos(a)?.n(t) ?? 0) })),
-    { cien: true, aria: `Porcentaje de ${GOBIERNO[estado.nivel]} ganados por tipo de organización, por elección, ${enRegion(estado.region)}` });
+    { cien: true, aria: `Porcentaje de ${GOBIERNO[estado.nivel]} ganados por tipo de organización, por elección, ${enAmbito()}` });
   leyendaTipos(`ley-${id}`, series.map((s) => TIPOS[C.categorias.indexOf(s.color)]));
   const p = (a, t) => cuotaTipos(a)?.cuota(t);
   const a0 = ANIOS.find((a) => p(a, "Movimiento regional") != null), a1 = estado.anio;
@@ -435,9 +445,9 @@ function pintarTopOrganizaciones(id = "top-org", limite = 10) {
   const items = [...m].map(([org, x]) => ({ clave: org, etiqueta: titulo(org), valor: x.n, color: colorTipo(x.tipo), detalle: x.tipo }));
   const total = gs.length;
   Obs.barras(`g-${id}`, items, { formato: n0, limite, detalle: (d) => d.detalle });
-  document.getElementById(`g-${id}`).setAttribute("aria-label", `Organizaciones que más ${GOBIERNO[estado.nivel]} ganaron, ${enRegion(estado.region)}, ${estado.anio}`);
+  document.getElementById(`g-${id}`).setAttribute("aria-label", `Organizaciones que más ${GOBIERNO[estado.nivel]} ganaron, ${enAmbito()}, ${estado.anio}`);
   const top = items.sort((x, y) => y.valor - x.valor)[0];
-  lectura(id, top ? `${destacar(Obs.escapar(top.etiqueta))} ganó ${destacar(n0(top.valor))} de ${n0(total)} ${GOBIERNO[estado.nivel]} ${enRegion(estado.region)} en ${etqAnio(estado.anio)}.` : "");
+  lectura(id, top ? `${destacar(Obs.escapar(top.etiqueta))} ganó ${destacar(n0(top.valor))} de ${n0(total)} ${GOBIERNO[estado.nivel]} ${enAmbito()} en ${etqAnio(estado.anio)}.` : "");
   leyendaTipos(`ley-${id}`, [...new Set(items.slice(0, limite).map((d) => d.detalle))]);
 }
 
@@ -477,7 +487,7 @@ function pintarDetalle() {
   const h3 = $("h3", card), desc = $("header p", card), ficha = document.getElementById("ficha");
   if (!f) {
     h3.textContent = `¿Qué organizaciones ganaron más ${GOBIERNO[estado.nivel]}?`;
-    desc.textContent = `Número de ${GOBIERNO[estado.nivel]} que ganó cada organización ${enRegion(estado.region)}, en la elección elegida (las 9 primeras). Haz clic en un lugar del mapa o de la tabla para ver su votación.`;
+    desc.textContent = `Número de ${GOBIERNO[estado.nivel]} que ganó cada organización ${enAmbito()}, en la elección elegida (las 9 primeras). Haz clic en un lugar del mapa o de la tabla para ver su votación.`;
     ficha.innerHTML = "";
     nota(id, "");
     return pintarTopOrganizaciones(id, 9);
@@ -540,7 +550,7 @@ function pintarTablaResultados() {
     return;
   }
   $("h3", card).textContent = `¿Quién ganó en cada ${LUGAR[estado.nivel]}?`;
-  $("header p", card).textContent = `Organización ganadora, su porcentaje de votos válidos y la diferencia con el segundo, ${enRegion(estado.region)}.`;
+  $("header p", card).textContent = `Organización ganadora, su porcentaje de votos válidos y la diferencia con el segundo, ${enAmbito()}.`;
   tablaOrdenable(`g-${id}`, [
     { clave: "lugar", titulo: titulo(LUGAR[estado.nivel]), valor: (f) => nombreFila(f), html: (f) => Obs.escapar(nombreFila(f)) + (estado.region === PE ? `<br><small>${Obs.escapar(nombreRegion(f.dep))}</small>` : "") },
     { clave: "ganador", titulo: "Organización ganadora", valor: (f) => titulo(f.primero), html: (f) => (f.anulada ? "Anulada o sin datos" : Obs.escapar(titulo(f.primero))) },
@@ -549,12 +559,12 @@ function pintarTablaResultados() {
     { clave: "margen", titulo: "Diferencia", num: true, valor: (f) => (f.anulada ? null : +f.margen), html: (f) => (f.anulada ? "—" : pts(f.margen)) },
   ], fs, { inicial: { clave: "margen", dir: 1 }, claveFila: (f) => f.ubigeo, elegida: estado.lugar, alClic: (u) => elegirLugar(u), buscar: `Nombre ${estado.nivel === "provincial" ? "de la provincia" : "del distrito"} u organización`, descripcion: `Ganadores por ${LUGAR[estado.nivel]}, ${estado.anio}` });
   const ajustadas = fs.filter((f) => !f.anulada && f.margen !== "" && +f.margen < 0.02).length;
-  lectura(id, `${EnRegion(estado.region)}, en ${destacar(n0(ajustadas))} ${LUGAR[estado.nivel] === "provincia" ? "provincias" : "distritos"} el ganador sacó menos de 2 puntos de ventaja.`);
+  lectura(id, `${EnAmbito()}, en ${destacar(n0(ajustadas))} ${LUGAR[estado.nivel] === "provincia" ? "provincias" : "distritos"} el ganador sacó menos de 2 puntos de ventaja.`);
   nota(id, "");
 }
 
 function pintarCompetencia() {
-  const series = (k) => [{ nombre: nombreRegion(estado.region), color: C.categorias[0], valores: ANIOS.map((a) => agregado(filas(a))?.[k] ?? null) }]
+  const series = (k) => [{ nombre: nombreAmbito(), color: C.categorias[0], valores: ANIOS.map((a) => agregado(filas(a))?.[k] ?? null) }]
     .concat(estado.region !== PE ? [{ nombre: "Perú", color: C.textoSuave, punteada: true, valores: ANIOS.map((a) => agregado(filas(a, estado.nivel, PE))?.[k] ?? null) }] : []);
   lineas("g-margen", series("margen"), { formato: pts, eje: (v) => `${Obs.fmtN(v * 100, 0)} pts`, aria: "Diferencia promedio entre el primero y el segundo, por elección" });
   lineas("g-nep", series("nep"), { formato: n1, eje: n1, aria: "Número efectivo de partidos promedio, por elección" });
@@ -609,7 +619,7 @@ function pintarRankingParticipacion() {
     $("header p", card).textContent = `Cada región ordenada de mayor a menor, en ${etqAnio(estado.anio)}. Haz clic en una para elegirla.`;
   } else {
     items = filas().filter((f) => !f.anulada).map((f, i) => ({ clave: f.ubigeo || `sin-codigo-${i}`, etiqueta: nombreFila(f), valor: +I.valor(f) }));
-    $("h3", card).textContent = `${I.corto} en ${nombreRegion(estado.region)}`;
+    $("h3", card).textContent = `${I.corto} en ${nombreAmbito()}`;
     $("header p", card).textContent = estado.nivel === "regional" ? "Valor de la región en la elección elegida." : `Cada ${LUGAR[estado.nivel]}, de mayor a menor.`;
   }
   const peru = agregado(filas(estado.anio, estado.nivel, PE));
@@ -623,7 +633,7 @@ function pintarRankingParticipacion() {
 }
 
 function pintarEvolParticipacion() {
-  const ser = (fn) => [{ nombre: nombreRegion(estado.region), color: C.categorias[0], valores: ANIOS.map((a) => fn(agregado(filas(a)))) }]
+  const ser = (fn) => [{ nombre: nombreAmbito(), color: C.categorias[0], valores: ANIOS.map((a) => fn(agregado(filas(a)))) }]
     .concat(estado.region !== PE ? [{ nombre: "Perú", color: C.textoSuave, punteada: true, valores: ANIOS.map((a) => fn(agregado(filas(a, estado.nivel, PE)))) }] : []);
   lineas("g-evol-par", ser((x) => x?.participacion ?? null), { aria: "Participación por elección" });
   lineas("g-evol-inv", [
@@ -632,9 +642,9 @@ function pintarEvolParticipacion() {
   ], { aria: "Votos en blanco y nulos por elección" });
   const p = (a) => agregado(filas(a))?.participacion;
   const a0 = ANIOS[0], a1 = estado.anio;
-  if (p(a0) != null && p(a1) != null) lectura("evol-par", `${EnRegion(estado.region)}, la participación pasó de ${destacar(pct(p(a0)))} en ${a0} a ${destacar(pct(p(a1)))} en ${etqAnio(a1)}.`);
+  if (p(a0) != null && p(a1) != null) lectura("evol-par", `${EnAmbito()}, la participación pasó de ${destacar(pct(p(a0)))} en ${a0} a ${destacar(pct(p(a1)))} en ${etqAnio(a1)}.`);
   const x = agregado(filas());
-  if (x) lectura("evol-inv", `${EnRegion(estado.region)}, en ${etqAnio(a1)}, ${destacar(pct(x.invalidos))} de los votos fueron en blanco o nulos.`);
+  if (x) lectura("evol-inv", `${EnAmbito()}, en ${etqAnio(a1)}, ${destacar(pct(x.invalidos))} de los votos fueron en blanco o nulos.`);
   nota("evol-inv", "Porcentaje de los votos emitidos.");
 }
 
@@ -647,7 +657,8 @@ function pintarOfertaKpis() {
     kpi("Listas en competencia", n0(o?.listas), { pie: GOBIERNO[estado.nivel] }) +
     kpi("Candidatos", sinCand ? "—" : n0(o.candidatos), { pie: sinCand ? "aún no hay datos de esta elección" : estado.nivel === "regional" ? "gobernador, vice y consejeros" : "alcaldes y regidores" }) +
     kpi("Mujeres candidatas", sinCand ? "—" : pct(o.mujeres / o.candidatos), { pie: "de todos los candidatos" }) +
-    kpi("Mujeres que encabezan lista", sinCand || !o.cabezas ? "—" : pct(o.cabezasMujeres / o.cabezas), { pie: estado.nivel === "regional" ? "candidatas a gobernadora" : "candidatas a alcaldesa" });
+    kpi(estado.nivel === "regional" ? "Candidatas a la gobernación" : "Candidatas a la alcaldía", sinCand || !o.cabezas ? "—" : pct(o.cabezasMujeres / o.cabezas),
+      { pie: estado.nivel === "regional" ? "de las candidaturas a gobernador regional" : "de las candidaturas a alcalde" });
 }
 function pintarListas() {
   const id = "listas";
@@ -661,13 +672,17 @@ function pintarListas() {
 function pintarMujeres() {
   const id = "mujeres";
   const serie = (fn) => ANIOS.map((a) => { const o = ofertaDe(a); return o ? fn(o) : null; });
-  const series = [{ nombre: "Encabezan lista", color: C.categorias[1], valores: serie((o) => (o.cabezas ? o.cabezasMujeres / o.cabezas : null)) }];
-  if (estado.nivel !== "regional") series.unshift({ nombre: "Todas las candidaturas", color: C.categorias[0], valores: serie((o) => (o.candidatos ? o.mujeres / o.candidatos : null)) });
+  // «Cabeza» en los datos = la candidatura a alcalde (o a gobernador), la primera de la lista municipal o regional
+  const cargo = estado.nivel === "regional" ? "gobernación" : "alcaldía";
+  const series = [{ nombre: `Candidatas a la ${cargo}`, color: C.categorias[1], valores: serie((o) => (o.cabezas ? o.cabezasMujeres / o.cabezas : null)) }];
+  if (estado.nivel !== "regional") series.unshift({ nombre: "Todas las candidaturas (alcaldía y regidurías)", color: C.categorias[0], valores: serie((o) => (o.candidatos ? o.mujeres / o.candidatos : null)) });
   lineas(`g-${id}`, series, { aria: "Porcentaje de mujeres candidatas por elección" });
   const o = ofertaDe(estado.anio);
-  if (o?.cabezas) lectura(id, `En ${etqAnio(estado.anio)}, ${destacar(pct(o.cabezasMujeres / o.cabezas))} de las listas a ${GOBIERNO[estado.nivel]} ${enRegion(estado.region)} estuvieron encabezadas por una mujer` + (o.candidatos && estado.nivel !== "regional" ? `, aunque las mujeres fueron el ${destacar(pct(o.mujeres / o.candidatos))} de todos los candidatos.` : "."));
+  const A = { regional: "la gobernación regional", provincial: "alcaldías provinciales", distrital: "alcaldías distritales" }[estado.nivel];
+  if (o?.cabezas) lectura(id, `En ${etqAnio(estado.anio)}, ${destacar(pct(o.cabezasMujeres / o.cabezas))} de las candidaturas a ${A} ${enRegion(estado.region)} fueron de mujeres` + (o.candidatos && estado.nivel !== "regional" ? `, aunque las mujeres fueron el ${destacar(pct(o.mujeres / o.candidatos))} de todos los candidatos (alcaldía y regidurías).` : "."));
   else lectura(id, "Aún no hay datos de candidatos de esta elección.");
-  nota(id, estado.nivel === "regional" ? "En la elección regional solo se muestran las candidaturas a gobernador: la lista de consejeros no está completa para todos los años." : "La cuota de género exige mujeres en las listas, pero no en el primer lugar.");
+  nota(id, estado.nivel === "regional" ? "En la elección regional solo se muestran las candidaturas a gobernador: la lista de consejeros no está completa para todos los años."
+    : "La paridad y alternancia (desde 2022) rige en las listas de regidores, no en la candidatura a la alcaldía.");
 }
 function pintarJovenes() {
   const id = "jovenes";
@@ -687,13 +702,13 @@ function pintarJovenes() {
    --------------------------------------------------------- */
 function pintarResumen() {
   const m = estado.modulo, el = document.getElementById(`r-${m}`), ag = agregado(filas()), a = estado.anio;
-  if (!ag) { el.textContent = `No hay datos de esta elección ${enRegion(estado.region)}.`; return; }
+  if (!ag) { el.textContent = `No hay datos de esta elección ${enAmbito()}.`; return; }
   const c = cuotaTipos(a);
   const txt = {
-    resumen: `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${destacar(cuenta(ag.electores))}${ag.electores >= 1e6 ? " de" : ""} electores eligieron a los ${CARGO[estado.nivel]} de ${n0(ag.lugares)} ${ag.lugares === 1 ? LUGAR[estado.nivel] : LUGARES[estado.nivel]}. Votó el ${destacar(pct(ag.participacion))}` +
+    resumen: `${EnAmbito()}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${destacar(cuenta(ag.electores))}${ag.electores >= 1e6 ? " de" : ""} electores eligieron a los ${CARGO[estado.nivel]} de ${n0(ag.lugares)} ${ag.lugares === 1 ? LUGAR[estado.nivel] : LUGARES[estado.nivel]}. Votó el ${destacar(pct(ag.participacion))}` +
       (c ? ` y los partidos políticos ganaron el ${destacar(pct0(c.cuota("Partido político")))} ${DE_GOB[estado.nivel]}.` : "."),
-    resultados: `Quién ganó en cada ${LUGAR[estado.nivel]} y por cuánto en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${enRegion(estado.region)}.`,
-    participacion: `${EnRegion(estado.region)}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, votó el ${destacar(pct(ag.participacion))} de los electores y ${destacar(pct(ag.invalidos))} de los votos fueron en blanco o nulos.`,
+    resultados: `Quién ganó en cada ${LUGAR[estado.nivel]} y por cuánto en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, ${enAmbito()}.`,
+    participacion: `${EnAmbito()}, en ${ELECCION[estado.nivel]} de ${etqAnio(a)}, votó el ${destacar(pct(ag.participacion))} de los electores y ${destacar(pct(ag.invalidos))} de los votos fueron en blanco o nulos.`,
     oferta: `Cuántas listas y candidatos se presentaron en ${ELECCION[estado.nivel]} ${enRegion(estado.region)}, y cuántas mujeres, jóvenes y personas de comunidades nativas.`,
   }[m];
   el.innerHTML = txt + notaNivel(a);
@@ -721,6 +736,8 @@ function pintarAvisoCorte() {
    Estado y render
    --------------------------------------------------------- */
 function actualizar(parche) {
+  // Al cambiar de región o de tipo de elección, la provincia elegida deja de valer
+  if (("region" in parche || "nivel" in parche) && !("provincia" in parche)) parche = { ...parche, provincia: null };
   Object.assign(estado, parche);
   if ("nivel" in parche || "anio" in parche || "region" in parche) {
     if (estado.lugar && !filas().some((f) => f.ubigeo === estado.lugar)) estado.lugar = null;
@@ -744,7 +761,32 @@ function sincronizarControles() {
   });
   MODULOS.forEach((m) => (document.getElementById(`m-${m}`).hidden = m !== estado.modulo));
   const lugar = estado.lugar ? ` · ${destacar(Obs.escapar(nombreLugar(estado.lugar)))} <button type="button" class="chip-limpiar" data-quitar-lugar>Quitar</button>` : "";
-  document.getElementById("viendo").innerHTML = `Mostrando: ${destacar(`${NIVEL_NOMBRE[estado.nivel]}, ${nombreRegion(estado.region)}, ${etqAnio(estado.anio)}`)}${lugar}`;
+  const prov = provinciaActiva() ? `, provincia de ${Obs.escapar(nombreLugar(estado.provincia))}` : "";
+  document.getElementById("viendo").innerHTML = `Mostrando: ${destacar(`${NIVEL_NOMBRE[estado.nivel]}, ${nombreRegion(estado.region)}${prov}, ${etqAnio(estado.anio)}`)}${lugar}`;
+  pintarFiltrosLugar();
+}
+
+/* Filtros de provincia y distrito: solo en las elecciones provinciales y distritales, con una región elegida */
+function opcionesLugares(nivel, prefijo) {
+  const vistos = new Map();
+  for (const [k, fs] of POR) if (k.endsWith(`|${nivel}`)) fs.forEach((f) => { if (f.ubigeo && String(f.ubigeo).startsWith(prefijo)) vistos.set(f.ubigeo, nombreLugar(f.ubigeo)); });
+  return [...vistos].sort((x, y) => x[1].localeCompare(y[1], "es"));
+}
+function pintarFiltrosLugar() {
+  const { nivel, region } = estado;
+  // En Oferta no se muestran: sus datos de listas y candidatos solo están por región
+  const oferta = estado.modulo === "oferta";
+  const conProv = !oferta && region !== PE && nivel !== "regional", conDist = !oferta && region !== PE && nivel === "distrital";
+  $("#filtro-prov").hidden = !conProv;
+  $("#filtro-dist").hidden = !conDist;
+  if (conProv) {
+    $("#f-prov").innerHTML = `<option value="">Todas</option>` + opcionesLugares("provincial", region).map(([u, n]) => `<option value="${u}">${Obs.escapar(n)}</option>`).join("");
+    $("#f-prov").value = (nivel === "provincial" ? estado.lugar : estado.provincia) ?? "";
+  }
+  if (conDist) {
+    $("#f-dist").innerHTML = `<option value="">Todos</option>` + opcionesLugares("distrital", estado.provincia ?? region).map(([u, n]) => `<option value="${u}">${Obs.escapar(n)}</option>`).join("");
+    $("#f-dist").value = estado.lugar ?? "";
+  }
 }
 
 function actualizarURL() {
@@ -753,6 +795,7 @@ function actualizarURL() {
     nivel: estado.nivel === "regional" ? null : estado.nivel,
     region: estado.region === PE ? null : estado.region,
     anio: estado.anio === ANIO_DEFECTO ? null : estado.anio,
+    provincia: estado.nivel === "distrital" ? estado.provincia : null,
     lugar: estado.lugar,
   });
 }
@@ -852,6 +895,7 @@ Obs.iniciar(TABLERO, async () => {
   if (DEPS[q.get("region")]) estado.region = q.get("region");
   if (ANIOS.includes(+q.get("anio"))) estado.anio = +q.get("anio");
   if (q.get("lugar")) estado.lugar = q.get("lugar");
+  if (/^\d{4}$/.test(q.get("provincia") ?? "") && q.get("provincia").startsWith(estado.region)) estado.provincia = q.get("provincia");
 
   const filtrosEl = document.getElementById("filtros");
   filtrosEl.innerHTML = `
@@ -861,11 +905,16 @@ Obs.iniciar(TABLERO, async () => {
       <div class="segmentado" id="f-nivel" role="group" aria-labelledby="lbl-nivel">${NIVELES.map((n) => `<button type="button" data-nivel="${n}">${NIVEL_BOTON[n]}</button>`).join("")}</div></div>
     <div class="filtro"><label for="f-region">Región</label>
       <select id="f-region"><option value="${PE}">Todo el Perú</option>${Object.entries(DEPS).sort((x, y) => x[1].localeCompare(y[1], "es")).map(([c, n]) => `<option value="${c}">${n}</option>`).join("")}</select></div>
+    <div class="filtro" id="filtro-prov" hidden><label for="f-prov">Provincia</label><select id="f-prov"></select></div>
+    <div class="filtro" id="filtro-dist" hidden><label for="f-dist">Distrito</label><select id="f-dist"></select></div>
     <p class="viendo" id="viendo" aria-live="polite"></p>`;
   $("#f-anio").onchange = (e) => actualizar({ anio: +e.target.value });
   $("#f-region").onchange = (e) => actualizar({ region: e.target.value, lugar: null });
   $("#f-nivel").onclick = (e) => { const b = e.target.closest("button[data-nivel]"); if (b) actualizar({ nivel: b.dataset.nivel, lugar: null }); };
   $("#viendo").onclick = (e) => { if (e.target.closest("[data-quitar-lugar]")) actualizar({ lugar: null }); };
+  // Provincia: en provinciales elige esa provincia; en distritales acota los distritos. Distrito: elige el distrito.
+  $("#f-prov").onchange = (e) => (estado.nivel === "provincial" ? actualizar({ lugar: e.target.value || null }) : actualizar({ provincia: e.target.value || null, lugar: null }));
+  $("#f-dist").onchange = (e) => actualizar({ lugar: e.target.value || null, provincia: e.target.value ? e.target.value.slice(0, 4) : estado.provincia });
   tarjetas();
 
   const pestanas = [...document.querySelectorAll(".modulos button")];

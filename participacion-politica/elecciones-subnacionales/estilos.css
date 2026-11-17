@@ -57,3 +57,6 @@
 .ley-cat .ley-continua { justify-content: flex-start; font-size: 15px; }
 .ley-cat .ley-continua i { width: 320px; max-width: 55vw; height: 16px; border-radius: 3px; }
 .ley-cat .ley-continua .ley-marca { top: -4px; height: 24px; }
+
+/* Filtros de provincia y distrito: ocultos fuera de las elecciones provinciales y distritales */
+.filtro[hidden] { display: none; }
