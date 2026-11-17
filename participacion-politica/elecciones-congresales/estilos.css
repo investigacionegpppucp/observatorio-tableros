@@ -23,7 +23,7 @@
 /* Matriz de escaños por organización y elección */
 /* Matriz de escaños: el nombre ocupa solo lo que necesita y las celdas de cada elección se reparten el resto */
 .tabla.matriz td, .tabla.matriz th { padding: 7px 10px; font-size: 14px; white-space: nowrap; }
-.tabla.matriz td:first-child, .tabla.matriz th:first-child { width: 250px; min-width: 200px; white-space: normal; line-height: 1.3; padding-right: 16px; }
+.tabla.matriz td:first-child, .tabla.matriz th:first-child { width: 1%; white-space: nowrap; padding-right: 24px; }
 .tabla.matriz td.num, .tabla.matriz th.num { text-align: center; }
 /* Totales: tono suave y una franja blanca que los separa, sin líneas gruesas */
 .tabla.matriz .total { font-weight: 700; color: var(--navy); background: #eef1f6; box-shadow: inset 4px 0 0 #fff; }
