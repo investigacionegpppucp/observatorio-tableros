@@ -19,6 +19,27 @@
 /* Flecha de cambio neutra: que un indicador suba o baje no es bueno ni malo */
 .kpi-cambio { color: var(--texto-suave); font-weight: 600; }
 
+/* Gráfico (más cuadrado: pocos puntos) con sus definiciones al lado */
+.con-definiciones { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.con-definiciones[hidden] { display: none; }
+.con-definiciones > .tarjeta { margin-bottom: 0; }
+.grafico.cuadrado { height: 420px; }
+/* Definiciones: tarjeta blanca; cada término con una barra del color de su línea */
+.definiciones { display: flex; flex-direction: column; justify-content: center; gap: 30px; padding: 28px 30px; }
+.def { position: relative; padding-left: 20px; }
+.def::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px; border-radius: 2px; background: var(--c); }
+.def h4 { margin: 0 0 8px; font-family: var(--fuente-titulos); font-size: 20px; line-height: 1.25; color: var(--navy); }
+.def p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--texto); max-width: 60ch; }
+/* El ejemplo, como una cuenta: cifras grandes y operadores suaves */
+.def .cuenta { margin: 14px 0 4px; font-family: var(--fuente-titulos); font-size: 22px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; line-height: 1.3; }
+.def .cuenta .op { margin: 0 8px; font-weight: 500; color: var(--texto-suave); }
+.def .cuenta-pie { font-size: 15px; line-height: 1.5; color: var(--texto-suave); }
+@media (max-width: 900px) {
+  .con-definiciones { grid-template-columns: 1fr; }
+  .grafico.cuadrado { height: 340px; }
+}
+.definicion-ind { margin: 12px 0 0; font-size: 16px; line-height: 1.5; color: var(--texto-suave); max-width: 900px; }
+
 /* Par de gráficos (NEP y organizaciones) */
 .par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 .par[hidden] { display: none; }
@@ -72,3 +93,41 @@
   .filtros .segmentado { width: 100%; flex-wrap: wrap; }
   .filtros .segmentado button { flex: 1 1 auto; min-width: 0; }
 }
+
+/* Etiqueta de la región elegida en la franja de filtros */
+.chip-region {
+  display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border: 0; border-radius: var(--radio);
+  background: var(--lima); color: var(--navy); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.chip-region span { font-size: 13px; opacity: 0.75; }
+.chip-region:hover span { opacity: 1; }
+.chip-region:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* Ficha regional */
+.ficha-cabeza { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 24px; }
+.ficha-cabeza > div:first-child { min-width: 0; flex: 1 1 360px; }
+.atajos { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 22px; margin: 16px 0 4px; padding: 14px 16px; background: var(--fondo); border-radius: var(--radio); font-size: 15px; color: var(--texto-suave); }
+.atajos[hidden] { display: none; }
+.atajos-titulo { flex-basis: 100%; font-weight: 700; color: var(--navy); }
+.atajo button { all: unset; cursor: pointer; font-weight: 700; color: var(--azul); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.atajo button:hover { text-decoration-thickness: 2px; }
+.atajo button:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; border-radius: 2px; }
+.atajo em { font-style: normal; font-variant-numeric: tabular-nums; }
+.ley i.l.sola { border-top-width: 3px; }
+.ficha-graficos { display: grid; grid-template-columns: repeat(var(--columnas, 4), minmax(0, 1fr)); gap: 12px 20px; margin-top: 12px; }
+.mini h4 { margin: 0; padding-top: 10px; border-top: 3px solid var(--c); font-family: var(--fuente-titulos); font-size: 16px; color: var(--navy); }
+.grafico.mini-g { height: 220px; margin-top: 4px; }
+.ficha-graficos[style*="--columnas: 1"] { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1100px) { .ficha-graficos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .ficha-graficos { grid-template-columns: minmax(0, 1fr); } }
+
+/* Selector de región dentro de la ficha (mismo aspecto que los demás selectores de tarjeta) */
+.filtro-local select {
+  height: 44px; max-width: 100%; padding: 0 36px 0 12px; border: 1px solid #8f9aab; border-radius: var(--radio); background: #fff; color: var(--texto);
+  font: inherit; font-size: 15px; font-weight: 600; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23042355' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+.filtro-local select:focus-visible { outline: 3px solid rgba(40, 65, 221, 0.3); border-color: var(--azul); }
+#f-region-ficha { min-width: 220px; }
+@media (max-width: 560px) { .ficha-cabeza .filtro-local, #f-region-ficha { width: 100%; } }

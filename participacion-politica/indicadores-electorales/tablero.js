@@ -40,6 +40,40 @@ const INDICADORES = {
   nep: { nombre: "Número efectivo de partidos", fmt: (v) => n2(v), corto: "número efectivo de partidos" },
   organizaciones: { nombre: "Organizaciones", fmt: (v) => n0(v), corto: "número de organizaciones" },
 };
+/* Definiciones resumidas (al lado de los gráficos y bajo el selector de indicador) */
+const DEFINICIONES = {
+  concentracion: {
+    titulo: "Concentración",
+    texto: "Porcentaje de los votos válidos que suman las dos organizaciones más votadas. Alta: pocas dominan la elección. Baja: el voto está más repartido.",
+    cuenta: () => [`60 %`, "+", `20 %`, "=", `80 %`], pie: () => "Si la primera obtiene 60 % y la segunda 20 %. En segunda vuelta siempre es 100 %.",
+  },
+  margen: {
+    titulo: "Margen de victoria",
+    texto: "Diferencia entre el porcentaje de votos válidos de la organización más votada y el de la segunda. Bajo: elección reñida. Alto: predominio de la más votada.",
+    cuenta: () => [`60 %`, "−", `20 %`, "=", `40 p. p.`], pie: () => "Con los mismos votos del ejemplo anterior. Antes se llamaba «competitividad».",
+  },
+  nep: {
+    titulo: "Número efectivo de partidos",
+    texto: "Cuántos partidos de igual tamaño producirían el mismo reparto del voto. Bajo: pocas organizaciones concentran los votos. Alto: el voto se dispersa entre muchas.",
+    cuenta: () => ["3 partidos con 33 %", "→", "3"], pie: () => "Se calcula como 1 entre la suma de los cuadrados de la proporción de votos de cada organización.",
+  },
+  organizaciones: {
+    titulo: "Organizaciones",
+    texto: "Partidos, movimientos y alianzas que se presentaron. Muchas: oferta amplia, pero también fragmentación. Pocas: un sistema más consolidado o una oferta limitada.",
+    cuenta: (f) => (f ? [`${n0(f.organizaciones)} organizaciones`, "→", `${n2(f.nep)} efectivas`] : null),
+    pie: (f) => (f ? `En ${f.anio}: la distancia entre ambas cifras indica que la mayoría recibió pocos votos.` : ""),
+  },
+};
+/* Panel de definiciones: cada una con una barra del color de su línea en el gráfico (también sirve de leyenda)
+   y un ejemplo en forma de cuenta. f: la última elección, para el ejemplo con datos reales */
+function definiciones(claves, f = null) {
+  return claves.map((k) => {
+    const d = DEFINICIONES[k], c = d.cuenta(f);
+    const cuenta = c ? `<p class="cuenta" aria-label="Ejemplo">${c.map((x) => (["+", "−", "=", "→"].includes(x) ? `<span class="op">${x}</span>` : `<span>${x}</span>`)).join("")}</p>` : "";
+    return `<section class="def" style="--c:${C.tema[k]}"><h4>${d.titulo}</h4><p>${d.texto}</p>${cuenta}<p class="cuenta-pie">${d.pie(f)}</p></section>`;
+  }).join("");
+}
+
 const DEPS = {
   "01": "Amazonas", "02": "Áncash", "03": "Apurímac", "04": "Arequipa", "05": "Ayacucho", "06": "Cajamarca", "07": "Callao",
   "08": "Cusco", "09": "Huancavelica", "10": "Huánuco", "11": "Ica", "12": "Junín", "13": "La Libertad", "14": "Lambayeque",
@@ -120,24 +154,20 @@ function pintarGenerales() {
   $("#d-conc").textContent = `Porcentaje de los votos válidos.${nota2026}`;
   const series = seg ? [["margen", "Margen de victoria", C.tema.margen]] : [["concentracion", "Concentración", C.tema.concentracion], ["margen", "Margen de victoria", C.tema.margen]];
   $("#ley-conc").innerHTML = series.map(([, n, c]) => `<span><i class="l" style="border-color:${c}"></i>${n}</span>`).join("");
+  $("#def-conc").innerHTML = definiciones(seg ? ["margen"] : ["concentracion", "margen"]);
   lineas("g-conc", anios, series.map(([k, n, c]) => ({ nombre: n, color: c, datos: serie.map((f) => f[k]), fmt: pct })), { max: seg ? null : 1, fmtEje: (x) => `${Math.round(x * 100)} %` });
 
   // NEP y organizaciones (no en segunda vuelta)
   $("#par-nep").hidden = seg;
   if (!seg) {
-    $("#d-nep").textContent = `Entre cuántas organizaciones de igual tamaño se reparte el voto, ${a0}-${a1}.${nota2026}`;
-    lineas("g-nep", anios, [{ nombre: "Número efectivo de partidos", color: C.tema.nep, datos: serie.map((f) => f.nep), fmt: n2 }], { min: 0, fmtEje: (x) => Obs.fmtN(x, 0) });
-    $("#d-org").textContent = `Organizaciones políticas en la cédula, ${a0}-${a1}.${nota2026}`;
-    const g = Obs.grafico("g-org");
-    g.setOption({
-      textStyle: { fontFamily: C.fuente }, animation: ANIM,
-      tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } } },
-      grid: { left: 40, right: 12, top: 24, bottom: 30 },
-      xAxis: { type: "category", data: anios, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
-      yAxis: { type: "value", splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
-      series: [{ name: "Organizaciones", type: "bar", barMaxWidth: 36, itemStyle: { color: C.tema.organizaciones, borderRadius: [2, 2, 0, 0] },
-        label: { show: true, position: "top", ...txt({ color: C.texto, fontWeight: 700 }) }, data: serie.map((f) => f.organizaciones) }],
-    }, true);
+    // El número efectivo de partidos y el de organizaciones, juntos: la distancia entre ambos dice cuántas recibieron pocos votos
+    $("#t-nep").textContent = `Número efectivo de partidos y organizaciones, ${a0}-${a1}`;
+    $("#d-nep").textContent = `Organizaciones que se presentaron y entre cuántas de igual tamaño se reparte el voto.${nota2026}`;
+    const s2 = [{ nombre: "Organizaciones", color: C.tema.organizaciones, datos: serie.map((f) => f.organizaciones), fmt: n0 },
+      { nombre: "Número efectivo de partidos", color: C.tema.nep, datos: serie.map((f) => f.nep), fmt: n2 }];
+    $("#ley-nep").innerHTML = s2.map((x) => `<span><i class="l" style="border-color:${x.color}"></i>${x.nombre}</span>`).join("");
+    lineas("g-nep", anios, s2, { min: 0, fmtEje: (x) => Obs.fmtN(x, 0) });
+    $("#def-nep").innerHTML = definiciones(["nep", "organizaciones"], ult);
   }
 
   // Tabla: todas las elecciones de la serie (en el Congreso, las tres de 2026)
@@ -157,19 +187,20 @@ function pintarGenerales() {
 }
 
 /* Gráfico de líneas por año: una o más series, con la última cifra al final de cada línea */
-function lineas(id, anios, series, { min = 0, max = null, fmtEje = (x) => x } = {}) {
+function lineas(id, anios, series, { min = 0, max = null, intervalo = null, fmtEje = (x) => x, compacto = false, conectar = true, resaltar = null } = {}) {
   const g = Obs.grafico(id);
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
     tooltip: { ...Obs.tooltipBase(), trigger: "axis",
       formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.map((p) => `<br>${p.marker}${p.seriesName}: <strong>${series[p.seriesIndex].fmt(p.value)}</strong>`).join("") },
-    grid: { left: 48, right: 72, top: 16, bottom: 30 },
-    xAxis: { type: "category", data: anios, boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
-    yAxis: { type: "value", min, max, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: fmtEje }) },
+    grid: compacto ? { left: 40, right: 64, top: 12, bottom: 26 } : { left: 48, right: 72, top: 16, bottom: 30 },
+    xAxis: { type: "category", data: anios, boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+      axisLabel: txt(compacto ? { fontSize: 12, interval: (i) => i === 0 || i === anios.length - 1 || anios[i] === resaltar, formatter: (x) => (x === resaltar ? `{b|${x}}` : x), rich: { b: txt({ fontSize: 12, color: C.texto, fontWeight: 800 }) } } : {}) },
+    yAxis: { type: "value", min, max, ...(intervalo ? { interval: intervalo } : { splitNumber: compacto ? 3 : 5 }), splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: fmtEje, ...(compacto ? { fontSize: 12 } : {}) }) },
     series: series.map((s) => ({
-      name: s.nombre, type: "line", data: s.datos, symbol: "circle", symbolSize: 7, connectNulls: true,
+      name: s.nombre, type: "line", data: s.datos, symbol: "circle", symbolSize: compacto ? 6 : 7, connectNulls: conectar,
       lineStyle: { width: 2.5, color: s.color }, itemStyle: { color: s.color },
-      endLabel: { show: true, formatter: (p) => s.fmt(p.value), ...txt({ color: s.color, fontWeight: 800 }) },
+      endLabel: { show: !s.sinEtiqueta, formatter: (p) => s.fmt(p.value), ...txt({ color: s.color, fontWeight: 800, ...(compacto ? { fontSize: 12 } : {}) }) },
     })),
   }, true);
 }
@@ -222,8 +253,10 @@ function pintarSub() {
   const disp = Object.keys(INDICADORES).filter((k) => !(nivel === "regional2" && (k === "nep" || k === "organizaciones")));
   if (!disp.includes(estado.indicador)) estado.indicador = "margen";
   $("#f-indicador").innerHTML = botones(disp.map((k) => [k, INDICADORES[k].nombre]), estado.indicador, "ind");
+  const d = DEFINICIONES[estado.indicador];
+  $("#def-ind").innerHTML = `<strong>${d.titulo}:</strong> ${d.texto}`;
   pintarMapaSub();
-  pintarEvolucion();
+  pintarFicha();
   pintarTablaSub(fs);
 }
 
@@ -324,23 +357,54 @@ function pintarDistribucion(vs, k) {
 }
 
 /* Evolución 2002-2026: la región elegida (su valor o la mediana de sus provincias o distritos) frente a la mediana del Perú */
-function pintarEvolucion() {
-  const { nivel, region } = estado, k = estado.indicador, ind = INDICADORES[k];
+/* Ficha regional: los cuatro indicadores de la región elegida (su valor, o la mediana de sus provincias o distritos),
+   2002-2026, frente a la mediana del Perú. Sin región elegida, muestra el Perú y atajos a regiones destacadas. */
+function valorRegion(anio, nivel, reg, k) {
+  return mediana(filasSub(anio, nivel, reg).filter((f) => !f.anulada).map((f) => f[k]));
+}
+function pintarFicha() {
+  const { nivel, region, anio } = estado, hay = region !== PE, seg = nivel === "regional2";
   const anios = aniosNivel(nivel);
-  const medianaDe = (reg) => anios.map((a) => mediana(filasSub(a, nivel, reg).filter((f) => !f.anulada).map((f) => f[k])));
-  const peru = medianaDe(PE);
-  const unaRegion = regionalNivel() && region !== PE;
-  const propia = region === PE ? null : medianaDe(region);
-  $("#t-evol").textContent = `${ind.nombre}, ${anios[0]}-${anios.at(-1)}`;
-  $("#d-evol").textContent = unaRegion ? `${nombreRegion(region)} frente a la mediana de las regiones.`
-    : region === PE ? `Mediana de ${LOS[nivel]} del Perú en cada elección.` : `Mediana de ${LOS[nivel]} de ${nombreRegion(region)} frente a la del Perú.`;
-  const series = [
-    ...(propia ? [{ nombre: unaRegion ? nombreRegion(region) : `${nombreRegion(region)} (mediana)`, color: C.tema[k], datos: propia, fmt: ind.fmt }] : []),
-    { nombre: region === PE ? "Perú (mediana)" : "Perú (mediana)", color: propia ? C.gris : C.tema[k], datos: peru, fmt: ind.fmt },
-  ];
-  $("#ley-evol").innerHTML = series.length > 1 ? series.map((s) => `<span><i class="l" style="border-color:${s.color}"></i>${s.nombre}</span>`).join("") : "";
-  const pctEje = k === "concentracion" || k === "margen";
-  lineas("g-evol", anios.map(String), series, { min: 0, max: k === "concentracion" ? 1 : null, fmtEje: (x) => (pctEje ? `${Math.round(x * 100)} %` : Obs.fmtN(x, 0)) });
+  const regional = regionalNivel();
+  const de = regional ? "" : ` (mediana de sus ${LUGARES[nivel]})`;
+  $("#t-ficha").textContent = hay ? `Ficha de ${nombreRegion(region)}: ${NOMBRE_NIVEL[nivel].replace(/^(la|las) /, "")}` : `Ficha regional: ${NOMBRE_NIVEL[nivel].replace(/^(la|las) /, "")}`;
+  $("#d-ficha").textContent = hay ? `Cada indicador de ${nombreRegion(region)}${de}, frente a la mediana del Perú, ${anios[0]}-${anios.at(-1)}.`
+    : `Mediana del Perú en cada elección, ${anios[0]}-${anios.at(-1)}. Al elegir una región, se compara con ella.`;
+  $("#f-region-ficha").value = region;
+
+  // Atajos: regiones que destacan en el año elegido
+  const vals = (k) => Object.keys(DEPS).map((c) => ({ c, v: valorRegion(anio, nivel, c, k) })).filter((x) => x.v != null);
+  const extremo = (k, signo) => vals(k).sort((x, y) => signo * (y.v - x.v))[0];
+  const atajo = (texto, x, fmt) => (x ? `<span class="atajo">${texto}: <button type="button" data-region="${x.c}">${nombreRegion(x.c)}</button> <em>${fmt(x.v)}</em></span>` : "");
+  const sufijo = regional ? "" : " (mediana)";
+  $("#atajos").innerHTML = hay ? "" : `<span class="atajos-titulo">Regiones que destacan en ${anio}${sufijo}</span>` +
+    atajo("Elección más reñida", extremo("margen", -1), pp) + atajo("Mayor margen", extremo("margen", 1), pp) +
+    (seg ? "" : atajo("Voto más disperso", extremo("nep", 1), n2) + atajo("Más organizaciones", extremo("organizaciones", 1), n0));
+  $("#atajos").hidden = hay;
+
+  const claves = seg ? ["margen"] : ["concentracion", "margen", "nep", "organizaciones"];
+  const colorR = C.navy;
+  $("#ley-ficha").innerHTML = (hay ? `<span><i class="l" style="border-color:${colorR}"></i>${nombreRegion(region)}${regional ? "" : " (mediana)"}</span>` : "") +
+    `<span><i class="l ${hay ? "" : "sola"}" style="border-color:${hay ? C.gris : colorR}"></i>Perú (mediana de ${LOS[nivel]})</span>`;
+  const caja = $("#ficha-graficos");
+  if (caja.dataset.claves !== claves.join()) {
+    caja.innerHTML = claves.map((k) => `<div class="mini" style="--c:${C.tema[k]}"><h4>${INDICADORES[k].nombre}</h4><div class="grafico mini-g" id="fg-${k}"></div></div>`).join("");
+    caja.dataset.claves = claves.join();
+  }
+  caja.style.setProperty("--columnas", claves.length);
+  for (const k of claves) {
+    const ind = INDICADORES[k];
+    const peru = anios.map((a) => valorRegion(a, nivel, PE, k));
+    const propia = hay ? anios.map((a) => valorRegion(a, nivel, region, k)) : null;
+    // Con una región elegida, solo ella lleva la cifra al final de la línea (la del Perú está en el tooltip)
+    const series = [...(propia ? [{ nombre: nombreRegion(region), color: colorR, datos: propia, fmt: ind.fmt }] : []),
+      { nombre: "Perú (mediana)", color: hay ? C.gris : colorR, datos: peru, fmt: ind.fmt, sinEtiqueta: hay }];
+    const pctEje = k === "concentracion" || k === "margen";
+    lineas(`fg-${k}`, anios.map(String), series, {
+      min: 0, max: k === "concentracion" ? 1 : null, intervalo: k === "concentracion" ? 0.25 : null,
+      fmtEje: (x) => (pctEje ? `${Math.round(x * 100)} %` : Obs.fmtN(x, 0)), compacto: true, conectar: !seg, resaltar: String(anio),
+    });
+  }
 }
 
 /* Tabla de los lugares del ámbito elegido */
@@ -412,6 +476,10 @@ function render() {
     b.tabIndex = activo ? 0 : -1;
   });
   document.querySelectorAll("[data-modulo-filtro]").forEach((f) => (f.hidden = f.dataset.moduloFiltro !== estado.modulo));
+  // Etiqueta de la región elegida, con su ✕ para volver a todo el Perú
+  $("#filtro-viendo").hidden = estado.modulo !== "subnacionales" || estado.region === PE;
+  $("#chip-region").innerHTML = `${nombreRegion(estado.region)} <span aria-hidden="true">✕</span>`;
+  $("#chip-region").setAttribute("aria-label", `Quitar ${nombreRegion(estado.region)}: volver a todo el Perú`);
   $("#m-generales").hidden = estado.modulo !== "generales";
   $("#m-subnacionales").hidden = estado.modulo !== "subnacionales";
   $("#f-eleccion").innerHTML = botones(ELECCIONES, estado.eleccion, "eleccion");
@@ -452,7 +520,12 @@ Obs.iniciar(TABLERO, async () => {
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
   $("#actualizado").textContent = aa ? `${dd} de ${MESES[mm - 1]} de ${aa}` : "—";
-  $("#f-region").innerHTML = `<option value="${PE}">Perú (todas las regiones)</option>` + Object.entries(DEPS).map(([c, nm]) => `<option value="${c}">${nm}</option>`).join("");
+  const opcionesRegion = `<option value="${PE}">Todas (Perú)</option>` + Object.entries(DEPS).map(([c, nm]) => `<option value="${c}">${nm}</option>`).join("");
+  $("#f-region").innerHTML = opcionesRegion;
+  $("#f-region-ficha").innerHTML = opcionesRegion.replace("Todas (Perú)", "Elegir una región");
+  $("#f-region-ficha").onchange = (e) => actualizar({ region: e.target.value, lugar: null });
+  $("#chip-region").onclick = () => actualizar({ region: PE, lugar: null });
+  $("#atajos").onclick = (e) => { const b = e.target.closest("button[data-region]"); if (b) actualizar({ region: b.dataset.region, lugar: null }); };
 
   // Estado inicial desde la URL
   const p = Obs.parametros();
