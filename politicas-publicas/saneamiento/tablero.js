@@ -210,7 +210,7 @@ function pintarPresupuesto() {
   $("#d-pres").textContent = `Presupuesto de la función Saneamiento en todo el país, en millones de soles de cada año.` + (ultimo.corte ? ` * ${ultimo.anio} está en curso: datos al ${fechaCorta(ultimo.corte)}.` : "");
   // PIA, PIM y devengado
   const series = [["PIA", "pia", C.categorias[3]], ["PIM", "pim", C.unica], ["Devengado", "devengado", C.categorias[2]]];
-  $("#ley-pres").innerHTML = series.map(([n, , c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("");
+  $("#ley-pres").innerHTML = series.map(([n, k, c]) => `<span><i${k === "devengado" ? ` class="l" style="border-color:${c}"` : ` style="background:${c}"`}></i>${n}</span>`).join("");
   const g = Obs.grafico("g-pres");
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
@@ -219,8 +219,12 @@ function pintarPresupuesto() {
     grid: { left: 60, right: 16, top: 12, bottom: 30 },
     xAxis: ejeX,
     yAxis: { type: "value", splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Obs.fmtN(x / 1e6, 0) }) },
-    series: series.map(([n, k, c]) => ({ name: n, type: "bar", barGap: "10%", barCategoryGap: "28%",
-      data: P.map((x) => ({ value: x[k], itemStyle: { color: c, opacity: x.corte ? 0.45 : 1, borderRadius: [2, 2, 0, 0] } })) })),
+    // PIA y PIM en barras; el devengado, en línea sobre ellas
+    series: series.map(([n, k, c]) => (k === "devengado"
+      ? { name: n, type: "line", z: 5, symbol: "circle", symbolSize: 8, lineStyle: { width: 3, color: c }, itemStyle: { color: c, borderColor: "#fff", borderWidth: 2 },
+          data: P.map((x) => ({ value: x[k], itemStyle: { opacity: x.corte ? 0.5 : 1 } })) }
+      : { name: n, type: "bar", barGap: "10%", barCategoryGap: "28%",
+          data: P.map((x) => ({ value: x[k], itemStyle: { color: c, opacity: x.corte ? 0.45 : 1, borderRadius: [2, 2, 0, 0] } })) })),
   }, true);
   clicAnio(g);
   // Peso en el presupuesto público
