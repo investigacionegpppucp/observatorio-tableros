@@ -8,17 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=9098212">
-  <link rel="stylesheet" href="../../comun/tema.css?v=9098212">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=9098212">
-  <link rel="stylesheet" href="estilos.css?v=9098212">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=5378e38">
+  <link rel="stylesheet" href="../../comun/tema.css?v=5378e38">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=5378e38">
+  <link rel="stylesheet" href="estilos.css?v=5378e38">
 </head>
 <body>
   <header class="cabecera">
     <div class="cabecera-interior">
       <div>
         <h1>Saneamiento</h1>
-        <p class="subtitulo">Cómo acceden al agua y al desagüe las viviendas del Perú según el Censo 2025, y cuánto pesa el saneamiento en el presupuesto público, cuánto se asigna y cuánto se gasta.</p>
+        <p class="subtitulo">Cómo acceden al agua y al desagüe las viviendas del Perú según el Censo 2025, y cuánto pesa el saneamiento en el presupuesto público, cuánto se asigna, cuánto se gasta y quién lo gasta, de 2012 a 2026.</p>
       </div>
       <button type="button" class="boton boton-lima" id="abrir-descarga" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>
@@ -115,20 +115,39 @@
       <p class="resumen" id="r-presupuesto" aria-live="polite"></p>
       <div class="kpis kpis-4" id="k-presupuesto"></div>
       <article class="tarjeta">
-        <header><h3>¿Cuánto se asignó y cuánto se gastó?</h3><p>Presupuesto de la función Saneamiento en todo el país, en millones de soles de cada año. Haz clic en un año para ver sus cifras.</p></header>
+        <header><h3>¿Cuánto se asignó y cuánto se gastó?</h3><p id="d-pres"></p></header>
         <div class="ley" id="ley-pres"></div>
         <div class="grafico" id="g-pres"></div>
+        <p class="pista">Haz clic en un año para ver sus cifras en toda la pestaña.</p>
       </article>
       <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Qué parte del presupuesto público va a saneamiento?</h3><p id="d-peso"></p></header>
+          <div class="ley" id="ley-peso"></div>
+          <div class="grafico" id="g-peso"></div>
+        </article>
         <article class="tarjeta">
           <header><h3>¿Qué parte del presupuesto se gastó?</h3><p id="d-ejec"></p></header>
           <div class="grafico" id="g-ejec"></div>
         </article>
-        <article class="tarjeta">
-          <header><h3>¿Cuánto creció el presupuesto durante el año?</h3><p>Diferencia entre el presupuesto modificado (PIM) y el de apertura (PIA), en millones de soles.</p></header>
-          <div class="grafico" id="g-mod"></div>
-        </article>
       </div>
+      <article class="tarjeta">
+        <header><h3>¿Quién gasta en saneamiento?</h3><p id="d-niveles"></p></header>
+        <div class="ley" id="ley-niveles"></div>
+        <div class="grafico" id="g-niveles"></div>
+      </article>
+      <article class="tarjeta">
+        <header><h3 id="t-gr"></h3><p id="d-gr"></p></header>
+        <div class="controles">
+          <div class="filtro-local" role="group" aria-labelledby="lbl-anio-gr"><span id="lbl-anio-gr">Año</span><div class="segmentado claro" id="f-anio-gr"></div></div>
+          <div class="filtro-local"><label for="f-ind-gr">Indicador</label><select id="f-ind-gr"></select></div>
+        </div>
+        <p class="lectura" id="l-gr" aria-live="polite"></p>
+        <div class="mapa-y-tabla">
+          <div><div id="mapa-gr"></div><div class="leyenda-mapa" id="ley-gr"></div></div>
+          <div><div class="grafico alto" id="g-gr"></div></div>
+        </div>
+      </article>
     </section>
   </main>
 
@@ -136,17 +155,17 @@
     <p><strong>Fuente:</strong> Instituto Nacional de Estadística e Informática (INEI), Censos Nacionales de Población y Vivienda 2025, consulta en Redatam. Ministerio de Economía y Finanzas (MEF), Consulta Amigable del gasto público, función Saneamiento y demás funciones del presupuesto.</p>
     <p><strong>Notas:</strong> <strong>Censo 2025:</strong> viviendas con información de cada pregunta; «red pública» de agua o de desagüe incluye la conexión dentro de la vivienda y dentro del lote o terreno. Los días de servicio se preguntan a las viviendas con agua por red pública o pilón, y las horas, a las que la reciben todos los días; el tiempo para ir por agua, a las que no tienen red pública. En el Censo, Lima Metropolitana y Lima Provincias se separan; los mapas por distrito usan los límites de 2017, así que los distritos creados después no se dibujan.
       <strong>Presupuesto:</strong> <strong>PIA:</strong> presupuesto institucional de apertura, aprobado al inicio del año. <strong>PIM:</strong> presupuesto institucional modificado, con los cambios del año. <strong>Devengado:</strong> gasto comprometido y reconocido. Montos en soles corrientes, de los tres niveles de gobierno.
-      La prioridad es el porcentaje del presupuesto total (o del departamento) que va a cada función. Según el archivo de origen, los datos tienen corte a octubre, por lo que el devengado del último año puede estar incompleto. Datos procesados el <span id="actualizado"></span>.</p>
+      La prioridad es el porcentaje del presupuesto total (o del departamento) que va a cada función. De 2023 en adelante, los montos vienen de la Consulta Amigable del MEF (consulta del 18 de noviembre de 2026): 2026 es un año en curso y su devengado está incompleto. Por departamento, el peso de cada función llega hasta 2023. Los gobiernos regionales incluyen a la Municipalidad Metropolitana de Lima, que cumple ese papel en Lima Metropolitana. Datos procesados el <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Saneamiento</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=9098212"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=9098212"></script>
-  <script src="../../comun/config.js?v=9098212"></script>
-  <script src="../../comun/base.js?v=9098212"></script>
-  <script src="../../comun/graficos.js?v=9098212"></script>
-  <script src="../../comun/mapa.js?v=9098212"></script>
-  <script src="../../comun/descarga.js?v=9098212"></script>
-  <script src="tablero.js?v=9098212"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=5378e38"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=5378e38"></script>
+  <script src="../../comun/config.js?v=5378e38"></script>
+  <script src="../../comun/base.js?v=5378e38"></script>
+  <script src="../../comun/graficos.js?v=5378e38"></script>
+  <script src="../../comun/mapa.js?v=5378e38"></script>
+  <script src="../../comun/descarga.js?v=5378e38"></script>
+  <script src="tablero.js?v=5378e38"></script>
 </body>
 </html>
