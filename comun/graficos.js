@@ -80,7 +80,7 @@ window.Obs = window.Obs || {};
        detalle     función(item) con una línea más para el tooltip (por ejemplo, el número de casos) */
   Obs.barras = (id, items, opciones = {}) => {
     const t = Obs.tema();
-    const { formato = (v) => Obs.fmtN(v), nombre = "", comparacion = null, seleccion = null, alClic = null, color = t.unica, limite = null, ordenar = true, detalle = null, compacto = false, alto = null } = opciones;
+    const { formato = (v) => Obs.fmtN(v), nombre = "", comparacion = null, seleccion = null, alClic = null, color = t.unica, limite = null, ordenar = true, detalle = null, compacto = false, alto = null, rotularComp = false } = opciones;
     let datos = items.filter((d) => d.valor != null && (d.valor > 0 || d.comp > 0));
     if (ordenar) datos.sort((a, b) => b.valor - a.valor);
     if (limite) datos = datos.slice(0, limite);
@@ -140,7 +140,12 @@ window.Obs = window.Obs || {};
           data: datos.map((d) => ({
             value: d.valor,
             itemStyle: { color: d.color ?? color, borderRadius: [0, 2, 2, 0], opacity: seleccion && !seleccion.has(d.clave) ? 0.25 : 1 },
-            label: { distance: distancia(d) },
+            // rotularComp: el número de la barra va dentro de ella (si cabe) y el de la marca, junto a la marca
+            label: rotularComp
+              ? ((d.valor / tope) * anchoTrazo >= 52
+                ? { position: "insideLeft", distance: 8, color: Obs.colorOscuro?.(d.color ?? color) === false ? t.texto : "#fff" }
+                : { position: "right", distance: 6 })
+              : { distance: distancia(d) },
           })),
           label: { show: true, position: "right", distance: 8, formatter: (p) => formato(p.value), ...texto({ fontWeight: 700 }) },
         },
@@ -149,6 +154,10 @@ window.Obs = window.Obs || {};
           type: "scatter", symbol: "rect", symbolSize: [3, 22], z: 5, silent: true,
           itemStyle: { color: t.navy },
           data: datos.map((d) => (comparacion ? d.comp ?? null : null)),
+          label: rotularComp ? { show: true, position: "right", distance: 6, formatter: (p) => (p.value ? formato(p.value) : ""), ...texto({ fontWeight: 700, color: t.navy }) } : { show: false },
+          // si la marca cae dentro de la barra (o justo al borde), su número se corre hasta después de la barra
+          ...(rotularComp ? { data: datos.map((d) => (d.comp == null ? null : { value: d.comp,
+            label: { offset: [Math.max(0, ((d.valor - d.comp) / tope) * anchoTrazo + (d.valor >= d.comp - tope * 0.02 ? 4 : 0)), 0] } })) } : {}),
         },
       ],
     }, true);

@@ -313,15 +313,15 @@ function lecturaGobiernos(gobs) {
 }
 
 /* ---------- ¿Con cuántos votos? (palitos, de los votos en contra a los votos a favor) ----------
-   Una votación por palito, en orden cronológico; el punto lleno (a favor) lleva el color del
-   resultado y el vacío (en contra) es gris. La rechazada de plano no tuvo votación: no aparece. */
+   Una votación por palito, en orden cronológico; el palito y el punto lleno (a favor) llevan el
+   color del resultado, el vacío (en contra) es gris y el rombo marca las abstenciones. La rechazada de plano no tuvo votación: no aparece. */
 function votaciones(votos) {
   const id = "g-votaciones";
   const lista = votos.filter((v) => v.favor != null);
   const el = document.getElementById(id);
   document.getElementById("ley-votaciones").innerHTML =
     ESTADOS.filter((e) => lista.some((v) => v.estado === e.clave)).map((e) => `<span><i class="punto" style="background:${C.estado[e.clave]}"></i>A favor: ${Obs.minus(e.nombre)}</span>`).join("") +
-    `<span><i class="punto vacio"></i>En contra</span>`;
+    `<span><i class="punto vacio"></i>En contra</span><span><i class="rombo"></i>Abstenciones</span>`;
   lecturaVotaciones(lista);
   if (!lista.length) return Obs.vacio(id);
   el.style.minWidth = `${Math.max(640, lista.length * 18)}px`;
@@ -329,9 +329,21 @@ function votaciones(votos) {
   g.resize();
   const elegidos = !todos(estado.gobiernos, GOB);
   const op = (v) => (elegidos && !estado.gobiernos.has(v.g) ? 0.2 : 1);
-  // en el eje, el año solo cuando cambia
+  // En el eje, cada año con votaciones, bajo su primera votación. Si dos años quedan muy juntos
+  // (años seguidos con una sola votación), el segundo baja a una segunda fila para no taparse.
   const anios = lista.map((v) => v.fecha.getUTCFullYear());
+  const espacio = (el.clientWidth - 60) / lista.length;
+  const medir = document.createElement("canvas").getContext("2d");
+  medir.font = `700 13px ${C.fuente}`;
+  const fila = new Array(lista.length).fill(0);
+  let previo = -1;
+  anios.forEach((a, i) => {
+    if (i > 0 && a === anios[i - 1]) return;
+    if (previo >= 0 && (i - previo) * espacio < medir.measureText(String(a)).width + 8) fila[i] = 1 - fila[previo];
+    previo = i;
+  });
   const etiquetas = lista.map((v, i) => (i === 0 || anios[i] !== anios[i - 1] ? String(anios[i]) : ""));
+  const dosFilas = fila.some((f) => f === 1);
   const bajo = lista.map((v) => Math.min(v.favor, v.contra ?? 0));
   const tramo = lista.map((v) => Math.abs(v.favor - (v.contra ?? 0)));
   g.setOption({
@@ -344,19 +356,24 @@ function votaciones(votos) {
         return `<strong>${Obs.escapar(v.gabinete)}</strong> · ${fmtFecha(v.fecha)}<br><span style="opacity:.85">Gobierno de ${Obs.escapar(v.gobierno)} · ${Obs.escapar(v.motivo)}</span>${quien}` +
           `<br>A favor: <strong>${num(v.favor)}</strong> · En contra: <strong>${num(v.contra)}</strong> · Abstenciones: <strong>${num(v.abst)}</strong>` +
           `<br>Diferencia: <strong>${num(v.favor - v.contra)}</strong> votos${debate}<br><strong>${nombreEstado(v.estado)}</strong>` +
+          (v.estado === "noresuelta" ? `<br><span style="opacity:.85">Las abstenciones (${num(v.abst)}) superaron a los votos a favor${v.abst > v.contra ? " y en contra" : ""}.</span>` : "") +
           (v.detalle ? `<div style="max-width:320px;white-space:normal;margin-top:6px;opacity:.9">${Obs.escapar(v.detalle)}</div>` : "") +
           (v.estado === "rechazada" && v.favor > v.contra ? "<br><span style=\"opacity:.85\">Se consigna como rechazada (ver nota al pie)</span>" : "");
       } },
-    grid: { left: 44, right: 16, top: 16, bottom: 36 },
+    grid: { left: 44, right: 16, top: 16, bottom: dosFilas ? 54 : 36 },
     xAxis: { type: "category", data: etiquetas, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
-      axisLabel: { ...txt({ color: C.texto, fontWeight: 700 }), interval: 0, hideOverlap: true } },
+      axisLabel: { interval: 0, formatter: (t, i) => (t ? `{${fila[i] ? "b" : "a"}|${t}}` : ""),
+        rich: { a: txt({ color: C.texto, fontWeight: 700, fontSize: 13 }), b: txt({ color: C.texto, fontWeight: 700, fontSize: 13, padding: [18, 0, 0, 0] }) } } },
     yAxis: { type: "value", name: "votos", nameTextStyle: txt(), splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
     series: [
       // el palito: una barra apilada sobre una base invisible
       { type: "bar", stack: "p", silent: true, itemStyle: { color: "transparent" }, data: bajo, barWidth: 3 },
-      { type: "bar", stack: "p", silent: true, barWidth: 3, data: tramo.map((t, i) => ({ value: t, itemStyle: { color: C.palito, opacity: op(lista[i]) } })) },
+      { type: "bar", stack: "p", silent: true, barWidth: 3, data: tramo.map((t, i) => ({ value: t, itemStyle: { color: C.estado[lista[i].estado], opacity: op(lista[i]) * 0.55 } })) },
       { name: "En contra", type: "scatter", symbolSize: 10, z: 3,
         data: lista.map((v) => ({ value: v.contra, itemStyle: { color: "#fff", borderColor: C.contra, borderWidth: 2, opacity: op(v) } })) },
+      // abstenciones: un rombo, fuera o dentro del palito
+      { name: "Abstenciones", type: "scatter", symbol: "diamond", symbolSize: 11, z: 3,
+        data: lista.map((v) => ({ value: v.abst ?? null, itemStyle: { color: C.abst, borderColor: "#fff", borderWidth: 1, opacity: op(v) } })) },
       { name: "A favor", type: "scatter", symbolSize: 12, z: 4,
         data: lista.map((v) => ({ value: v.favor, itemStyle: { color: C.estado[v.estado], borderColor: "#fff", borderWidth: 1, opacity: op(v) } })) },
     ],
@@ -459,18 +476,13 @@ function porMotivo(filas) {
     yAxis: { type: "category", inverse: true, data: etiquetas, triggerEvent: true, axisTick: { show: false }, axisLine: { show: false },
       axisLabel: { ...txt({ color: C.texto, fontWeight: 700 }), formatter: (v, i) => (elegidos && estado.motivos.has(mots[i].i) ? `{b|${v}}` : v),
         rich: { b: txt({ color: C.navy, fontWeight: 800 }) } } },
-    series: ESTADOS_C.map((e) => ({ name: e.nombre, type: "bar", stack: "t", barWidth: 34, cursor: "pointer",
+    series: ESTADOS_C.map((e) => ({ name: e.nombre, type: "bar", stack: "t", barWidth: 34, cursor: "default",
       itemStyle: { color: C.estado[e.clave], borderColor: "#fff", borderWidth: 2 },
       data: mots.map((x) => ({ value: x[e.clave] ? (x[e.clave] / x.total) * 100 : null, n: x[e.clave], itemStyle: { opacity: op(x) } })),
       // el número de cuestiones dentro del tramo, si cabe
       label: { show: true, formatter: (q) => (q.value >= 8 ? num(q.data.n) : ""), color: "#fff", fontFamily: C.fuente, fontSize: 15, fontWeight: 800 } })),
   }, true);
   g.off("click");
-  g.on("click", (q) => {
-    g.dispatchAction({ type: "hideTip" });
-    const i = q.componentType === "yAxis" ? etiquetas.indexOf(q.value) : q.dataIndex;
-    if (mots[i]) alternar("motivos", mots[i].i, MOT);
-  });
 }
 // Cada cuestión por otros motivos: son pocas y son los episodios que más dicen
 function listaOtros(otros) {
@@ -511,8 +523,8 @@ function tablaVotaciones(votos) {
   const lista = r ? votos.filter((v) => v.estado === r) : votos;
   const cues = new Set(lista.map((v) => v.cuestion)).size;
   document.getElementById("h-votaciones").textContent = lista.length
-    ? `${plural(lista.length, "votación", "votaciones")}${cues !== lista.length ? `, en ${plural(cues, "cuestión de confianza", "cuestiones de confianza")}` : ""}${r ? `: ${Obs.minus(nombreEstado(r))}` : ""}`
-    : "Cada votación";
+    ? `${plural(lista.length, "votación", "votaciones")}${cues !== lista.length ? `, en ${plural(cues, "cuestión de confianza", "cuestiones de confianza")}` : ""}${r ? `: ${Obs.minus(nombreEstado(r))}` : ""}. `
+    : "";
   const esc = Obs.escapar;
   const cifra = (clave, titulo, clase = "") => ({ clave, titulo, num: true, valor: (v) => v[clave],
     html: (v) => (v[clave] == null ? '<span class="sin-dato">—</span>' : `<span class="${clase}">${num(v[clave])}</span>`) });
@@ -600,7 +612,6 @@ function pintarAplicados() {
 
 function sincronizarControles() {
   multiGob.sincronizar(estado.gobiernos);
-  multiMot.sincronizar(estado.motivos);
   const buscar = document.getElementById("f-buscar");
   if (buscar.value !== estado.buscar) buscar.value = estado.buscar;
 }
@@ -618,11 +629,6 @@ function montarControles() {
     id: "f-gobiernos", etiqueta: "Gobierno", todos: "Todos los gobiernos",
     opciones: GOB.map((g) => ({ valor: g.i, etiqueta: g.nombre })),
     alCambiar: (sel) => actualizar({ gobiernos: sel }),
-  });
-  multiMot = new Obs.Multiseleccion(filtros, {
-    id: "f-motivos", etiqueta: "Motivo", todos: "Todos los motivos",
-    opciones: MOT.map((m, i) => ({ valor: i, etiqueta: m })),
-    alCambiar: (sel) => actualizar({ motivos: sel }),
   });
 
   document.getElementById("aplicados").onclick = (e) => {
@@ -665,7 +671,7 @@ function leerURL() {
     return v.length ? new Set(v) : todosLos(lista);
   };
   estado.gobiernos = indices("gobiernos", GOB);
-  estado.motivos = indices("motivos", MOT);
+  estado.motivos = todosLos(MOT);
   estado.buscar = q.get("buscar") ?? "";
   const res = q.get("resultado");
   estado.resultado = ESTADOS.some((e) => e.clave === res) ? res : RESULTADO_INICIAL;
@@ -675,7 +681,7 @@ Obs.iniciar(TABLERO, async () => {
   const datos = await Obs.cargarJSON("datos.json");
   const css = getComputedStyle(document.documentElement);
   const v = (n) => css.getPropertyValue(n).trim();
-  C = { ...Obs.tema(), estado: Object.fromEntries(ESTADOS_TODOS.map((e) => [e.clave, v(e.css)])), contra: v("--voto-contra"), palito: v("--palito"), ritmo: v("--ritmo") };
+  C = { ...Obs.tema(), estado: Object.fromEntries(ESTADOS_TODOS.map((e) => [e.clave, v(e.css)])), contra: v("--voto-contra"), abst: v("--voto-abst"), palito: v("--palito"), ritmo: v("--ritmo") };
   preparar(datos.tablas);
   ACTUALIZADO = datos.actualizado || "";
   const [a, m, d] = ACTUALIZADO.split("-").map(Number);

@@ -218,7 +218,7 @@ function tablaOrdenable(id, columnas, datosTabla, opciones) {
     const attrs = c.filtro ? `data-menu="${c.clave}" aria-haspopup="true" aria-expanded="false"` : `data-orden="${c.clave}"`;
     return `<th class="${c.num ? "num" : ""}" aria-sort="${activo ? (orden.dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" ${attrs}>${c.titulo}<span class="flecha" aria-hidden="true">${flecha}</span>${icono}</button></th>`;
   }).join("");
-  const tr = datos.map((f) => `<tr data-texto="${Obs.escapar(columnas.filter((c) => !c.num).map((c) => String(c.valor(f) ?? "")).join(" ").toLowerCase())}">` +
+  const tr = datos.map((f) => `<tr${opciones.claveFila ? ` data-clave="${Obs.escapar(opciones.claveFila(f))}"` : ""} data-texto="${Obs.escapar(columnas.filter((c) => !c.num).map((c) => String(c.valor(f) ?? "")).join(" ").toLowerCase())}">` +
     columnas.map((c) => `<td class="${c.num ? "num" : ""}">${c.html(f)}</td>`).join("") + "</tr>").join("");
   const caja = buscar ? `<div class="buscador-tabla"><label for="${id}-buscar">Buscar</label><input id="${id}-buscar" type="search" placeholder="${buscar}" autocomplete="off" value="${Obs.escapar(BUSCAR[id] ?? "")}"></div>` : "";
   const estadoFiltros = columnas.some((c) => c.filtro) ? `<p class="tabla-filtros"><span data-cuenta></span>${nFiltros ? ` <button type="button" class="quitar-filtros">Quitar filtros</button>` : ""}</p>` : "";
@@ -406,11 +406,12 @@ function pintarVotosEscanos() {
     const n = escDe(orgEsc);
     return { clave: v.organizacion, etiqueta: titulo(v.organizacion), valor: v.votos / rv.validos, comp: totalEsc ? n / totalEsc : null, color: col.get(orgEsc) ?? C.otros, detalle: `${n0(v.votos)} votos · ${n0(n)} escaños` };
   });
-  Obs.barras(`g-${id}`, items, { formato: pct, nombre: "Votos válidos", comparacion: "Escaños", detalle: (d) => d.detalle });
+  Obs.barras(`g-${id}`, items, { formato: pct, nombre: "Votos válidos", comparacion: "Escaños", detalle: (d) => d.detalle, rotularComp: true });
   const fuera = rv.org.filter((v) => !es.some((e) => titulo(e.organizacion) === titulo(v.organizacion)) && escDe(v.organizacion) === 0);
   const perdidos = fuera.reduce((s, v) => s + v.votos, 0) / rv.validos;
   lectura(id, `${EnRegion(r)}, el ${destacar(pct(perdidos))} de los votos válidos fue a organizaciones que no obtuvieron ningún escaño en ${nombreCamara()}.`);
-  nota(id, "Barra: porcentaje de los votos válidos. Marca vertical: porcentaje de los escaños. Desde 2006 hay una valla: para entrar al Congreso un partido necesita el 5 % de los votos válidos y un mínimo de escaños.");
+  document.getElementById(`n-${id}`).innerHTML = `<span class="clave-grafico"><span><i class="cg-barra"></i>Barra: porcentaje de los votos válidos</span><span><i class="cg-marca"></i>Marca: porcentaje de los escaños</span></span>`;
+  document.getElementById(`n-${id}`).insertAdjacentText("beforeend", "Desde 2006 hay una valla: para entrar al Congreso un partido necesita el 5 % de los votos válidos y un mínimo de escaños.");
 }
 
 function pintarMapa() {
@@ -423,7 +424,13 @@ function pintarMapa() {
     const geo = r === "LIMA METROPOLITANA" || r === "LIMA PROVINCIAS" ? r : r;
     valores.set(geo, modo === "ganador" ? { org: rv.org[0]?.organizacion, pct: rv.org[0] ? rv.org[0].votos / rv.validos : null } : rv.invalidos);
   }
-  if (!mapas[id]) mapas[id] = new Obs.Mapa(`mapa-${id}`, GEO, { alClic: (g) => actualizar({ region: estado.region === g ? PE : g, partido: null }), nombre: (g) => nombreRegion(g) });
+  if (!mapas[id]) mapas[id] = new Obs.Mapa(`mapa-${id}`, GEO, { alClic: (g) => actualizar({ region: estado.region === g ? PE : g, partido: null }), nombre: (g) => nombreRegion(g),
+    globo: { alClic: () => actualizar({ region: estado.region === "EXTRANJERO" ? PE : "EXTRANJERO", partido: null }) } });
+  // Peruanos en el extranjero: en un recuadro con un globo terráqueo (votan aparte desde 2021)
+  const rvE = a >= 2021 ? resumenVotos(a, "EXTRANJERO") : null, gE = rvE?.org[0];
+  const colE = !rvE ? null : modo === "ganador" ? (col.get(gE?.organizacion) ?? col.get([...col.keys()].find((k) => titulo(k) === titulo(gE?.organizacion))) ?? C.otros) : Obs.colorContinuo(rvE.invalidos, Obs.rango(valores.values()), C.escala);
+  mapas[id].pintarGlobo({ color: colE, titulo: "Extranjero", texto: !rvE ? "" : modo === "ganador" ? `${titulo(gE.organizacion)}, ${pct(gE.votos / rvE.validos)}` : `Blancos y nulos: ${pct(rvE.invalidos)}`,
+    elegido: estado.region === "EXTRANJERO", aria: rvE ? "Peruanos en el extranjero. Elegir" : "Peruanos en el extranjero: votan con Lima en esta elección" });
   if (modo === "ganador") {
     const orgs = [...new Set([...valores.values()].map((v) => v.org))];
     const colorOrg = (o) => col.get(o) ?? col.get([...col.keys()].find((k) => titulo(k) === titulo(o))) ?? C.otros;
@@ -439,9 +446,22 @@ function pintarMapa() {
     const orden = [...valores].sort((x, y) => y[1] - x[1]);
     lectura(id, orden.length ? `Los votos en blanco y nulos fueron más altos en ${destacar(nombreRegion(orden[0][0]))} (${pct(orden[0][1])}) y más bajos en ${destacar(nombreRegion(orden.at(-1)[0]))} (${pct(orden.at(-1)[1])}).` : "");
   }
+  // Al lado del mapa, las mismas cifras en una tabla (de mayor a menor), para leerlas sin pasar el cursor
+  const colorDe = (o) => col.get(o) ?? col.get([...col.keys()].find((k) => titulo(k) === titulo(o))) ?? C.otros;
+  const filasT = [...valores].filter(([, v]) => (modo === "ganador" ? v.pct != null : v != null))
+    .sort((x, y) => (modo === "ganador" ? y[1].pct - x[1].pct : y[1] - x[1]));
+  const filasO = filasT.map(([r, v]) => (modo === "ganador" ? { r, nombre: nombreRegion(r), org: titulo(v.org), color: colorDe(v.org), p: v.pct } : { r, nombre: nombreRegion(r), p: v }));
+  tablaOrdenable("g-mapa-barras", [
+    { clave: "nombre", titulo: "Región", valor: (f) => f.nombre, html: (f) => Obs.escapar(f.nombre) },
+    ...(modo === "ganador" ? [{ clave: "org", titulo: "Más votada", valor: (f) => f.org, html: (f) => `<i class="punto-org" style="background:${f.color}"></i>${Obs.escapar(f.org)}` }] : []),
+    { clave: "p", titulo: modo === "ganador" ? "Votos válidos" : "Blancos y nulos", num: true, valor: (f) => f.p, html: (f) => pct(f.p) },
+  ], filasO, { inicial: { clave: "nombre", dir: 1 }, claveFila: (f) => f.r, descripcion: "Resultado de cada región" });
+  const cajaT = document.getElementById("g-mapa-barras");
+  if (estado.region !== PE) cajaT.querySelector(`tr[data-clave="${CSS.escape(estado.region)}"]`)?.classList.add("elegida");
+  cajaT.onclick = (e) => { const tr = e.target.closest("tr[data-clave]"); if (tr) actualizar({ region: estado.region === tr.dataset.clave ? PE : tr.dataset.clave, partido: null }); };
   nota(id, (a <= 2006 ? "Hasta 2006 Lima fue un solo distrito electoral: Lima Metropolitana y Lima Provincias muestran el mismo valor. " : "") +
     (es2026(a) && estado.camara === "Senado" ? "Senado: votos de la elección de senadores regionales (distrito múltiple)." : "") +
-    (a >= 2021 ? " Los residentes en el extranjero no aparecen en el mapa: elígelos en el filtro de región." : ""));
+    (a < 2021 ? " Hasta 2020 los residentes en el extranjero votaron con Lima Metropolitana." : ""));
 }
 
 /* ---------------------------------------------------------
@@ -598,7 +618,7 @@ function tarjetas() {
       { cuerpo: `<div class="hemi-caja"><div class="hemi" id="hemi"></div><div class="hemi-lado"><div id="hemi-lista"></div><div id="hemi-congresistas"></div></div></div>` }) +
     tarjeta("votos-escanos", "¿Cuántos votos y cuántos escaños sacó cada organización?", "Porcentaje de los votos válidos (barra) y de los escaños (marca) de cada organización.") +
     tarjeta("mapa", "¿Cómo votó cada región?", "Organización más votada o votos en blanco y nulos en cada región. Haz clic en una región para elegirla en todo el tablero.",
-      { controles: local("vm", "Ver", '<div class="segmentado claro" data-mapa></div>'), cuerpo: `<div class="mapa-solo"><div id="mapa-mapa"></div></div>` });
+      { controles: local("vm", "Ver", '<div class="segmentado claro" data-mapa></div>'), cuerpo: `<div class="mapa-lado"><div class="mapa-solo"><div id="mapa-mapa"></div></div><div class="desliza"><div id="g-mapa-barras"></div></div></div>` });
   document.getElementById("c-historico").innerHTML =
     tarjeta("matriz", "Escaños de cada organización, de 2001 a 2026", "Número de escaños por organización en cada elección. Más oscuro, más escaños.", { cuerpo: `<div id="g-matriz"></div>` }) +
     par(tarjeta("partidos", "¿Cuántas organizaciones compiten y cuántas entran?", "Organizaciones que recibieron votos y que obtuvieron escaños, en cada elección."),

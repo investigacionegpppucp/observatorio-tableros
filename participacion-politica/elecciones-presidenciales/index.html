@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=5378e38">
-  <link rel="stylesheet" href="../../comun/tema.css?v=5378e38">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=5378e38">
-  <link rel="stylesheet" href="estilos.css?v=5378e38">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=4fc0c28">
+  <link rel="stylesheet" href="../../comun/tema.css?v=4fc0c28">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=4fc0c28">
+  <link rel="stylesheet" href="estilos.css?v=4fc0c28">
 </head>
 <body>
   <header class="cabecera">
@@ -56,9 +56,10 @@
 
       <article class="tarjeta">
         <header><h3>Voto no válido</h3><p>Votos en blanco y nulos sobre votos emitidos. Hay datos desde 1963.</p></header>
-        <div class="ley">
-          <span class="grupo"><i style="background:var(--bl1)"></i><i style="background:var(--nu1)"></i>Primera vuelta: en blanco y nulos</span>
-          <span class="grupo"><i style="background:var(--bl2)"></i><i style="background:var(--nu2)"></i>Segunda vuelta: en blanco y nulos</span>
+        <div class="nv-controles"><div class="segmentado" role="group" aria-label="Vuelta"><button type="button" data-nv="1">Primera vuelta</button><button type="button" data-nv="2">Segunda vuelta</button></div></div>
+        <div class="ley ley-centrada">
+          <span data-ley-v="1"><i style="background:var(--bl1)"></i>En blanco</span><span data-ley-v="1"><i style="background:var(--nu1)"></i>Nulos</span>
+          <span data-ley-v="2"><i style="background:var(--bl2)"></i>En blanco</span><span data-ley-v="2"><i style="background:var(--nu2)"></i>Nulos</span>
         </div>
         <div class="grafico" id="g-nv-hist"></div>
       </article>
@@ -131,13 +132,13 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Elecciones presidenciales</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=5378e38"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=5378e38"></script>
-  <script src="../../comun/config.js?v=5378e38"></script>
-  <script src="../../comun/base.js?v=5378e38"></script>
-  <script src="../../comun/graficos.js?v=5378e38"></script>
-  <script src="../../comun/mapa.js?v=5378e38"></script>
-  <script src="../../comun/descarga.js?v=5378e38"></script>
-  <script src="tablero.js?v=5378e38"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=4fc0c28"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=4fc0c28"></script>
+  <script src="../../comun/config.js?v=4fc0c28"></script>
+  <script src="../../comun/base.js?v=4fc0c28"></script>
+  <script src="../../comun/graficos.js?v=4fc0c28"></script>
+  <script src="../../comun/mapa.js?v=4fc0c28"></script>
+  <script src="../../comun/descarga.js?v=4fc0c28"></script>
+  <script src="tablero.js?v=4fc0c28"></script>
 </body>
 </html>

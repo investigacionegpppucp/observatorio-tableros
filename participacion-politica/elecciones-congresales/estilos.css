@@ -74,3 +74,27 @@
 .hemi-tip[hidden] { display: none; }
 .hemi-tip strong { display: block; font-size: 14px; }
 .hemi-tip span { display: block; color: #d6dcf0; }
+/* Clave grande bajo «votos y escaños»: qué es la barra y qué es la marca */
+.clave-grafico { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-bottom: 6px; font-size: 16px; font-weight: 600; color: var(--navy); }
+.clave-grafico span { display: inline-flex; align-items: center; gap: 8px; }
+.cg-barra { width: 26px; height: 12px; border-radius: 2px; background: #9aa5b8; }
+.cg-marca { width: 3px; height: 18px; background: var(--navy); }
+@media (min-width: 1101px) { #c-mapa .mapa-lado .mapa-solo .mapa-geo { height: 640px; } }
+/* Tabla al lado del mapa */
+#g-mapa-barras .tabla td, #g-mapa-barras .tabla th { padding: 6px 10px; font-size: 14px; }
+#g-mapa-barras .tabla thead th { position: sticky; top: 0; z-index: 1; }
+#g-mapa-barras .tabla tbody tr { cursor: pointer; }
+#g-mapa-barras .tabla tbody tr:hover { background: var(--fondo); }
+#g-mapa-barras .tabla tr.elegida td { background: #eef1f6; font-weight: 700; }
+.punto-org { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: 0; }
+@media (min-width: 1101px) { #c-mapa .desliza { max-height: 640px; overflow-y: auto; } }
+@media (min-width: 1101px) { #c-mapa .desliza { overflow: visible; max-height: none; } #g-mapa-barras .tabla-desliza { max-height: 640px; overflow-y: auto; } }
+/* «¿Quiénes repiten?» llega hasta abajo, a la altura de la tarjeta de los más votados */
+@media (min-width: 1101px) {
+  #c-reelectos { display: flex; flex-direction: column; }
+  #g-reelectos { flex: 1 1 0; min-height: 320px; max-height: none; contain: size; overflow: auto; }
+}
+@media (min-width: 1101px) {
+  #g-reelectos { display: flex; flex-direction: column; overflow: hidden; }
+  #g-reelectos .tabla-desliza { flex: 1 1 0; min-height: 0; max-height: none; overflow: auto; }
+}

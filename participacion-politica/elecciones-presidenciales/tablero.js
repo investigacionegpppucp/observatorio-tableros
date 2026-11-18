@@ -90,7 +90,7 @@ function vistazo() {
     xAxis: ejeAnios("g-parti", 52, 60, ANIOS, { boundaryGap: false }),
     yAxis: { type: "value", min: 0.3, max: 1, ...ejePct() },
     series: [
-      linea("Primera vuelta", p1, C.c1, { areaStyle: { color: "rgba(58,95,205,.08)" }, endLabel: finRotulo(),
+      linea("Primera vuelta", p1, C.c1, { endLabel: finRotulo(),
         markPoint: { symbol: "circle", symbolSize: 1, label: { show: true, position: "top", distance: 10, ...txt({ color: C.texto, fontWeight: 700 }), formatter: (p) => p.name },
           data: [{ name: `Máximo: ${pct(max)} en ${ANIOS[p1.indexOf(max)]}`, coord: [p1.indexOf(max), max] }, { name: `Mínimo: ${pct(min)} en ${ANIOS[p1.indexOf(min)]}`, coord: [p1.indexOf(min), min], label: { position: "right" } }] } }),
       linea("Segunda vuelta", p2, C.c2, { endLabel: finRotulo() }),
@@ -102,7 +102,8 @@ function vistazo() {
   // Voto no válido: columnas en el tiempo (dos por año, una por vuelta)
   const nvFilas = [];
   ELECCIONES.forEach((e) => [1, 2].forEach((v) => { const r = filaN(e, v); if (r && nv(r) != null) nvFilas.push({ e, v, blanco: r.blanco, nulo: r.nulo }); }));
-  columnasNoValido("g-nv-hist", nvFilas);
+  filasNv = nvFilas;
+  pintarNvHist();
   const ult = nvFilas.at(-1);
   describir("g-nv-hist", `Voto no válido en las elecciones presidenciales, 1963-2026. En ${ult.e}, ${ult.v === 1 ? "primera" : "segunda"} vuelta: ${pct(ult.blanco + ult.nulo)}.`);
 
@@ -150,6 +151,14 @@ function vistazo() {
       } }],
   }, true);
   describir("g-mujeres", `Mapa de calor con el porcentaje de candidatas por cargo y elección. En ${ANIOS.at(-1)}: ${pct(mp.at(-1))} en la presidencia, ${pct(mv1.at(-1))} en la primera vicepresidencia y ${pct(mv2.at(-1))} en la segunda.`);
+}
+
+/* Botones Primera / Segunda vuelta del gráfico de voto no válido en el tiempo */
+let vueltaNv = "1", filasNv = [];
+function pintarNvHist() {
+  document.querySelectorAll("[data-nv]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.nv === vueltaNv));
+  document.querySelectorAll("[data-ley-v]").forEach((x) => (x.hidden = vueltaNv !== "ambas" && x.dataset.leyV !== vueltaNv));
+  columnasNoValido("g-nv-hist", vueltaNv === "ambas" ? filasNv : filasNv.filter((f) => String(f.v) === vueltaNv));
 }
 
 /* Voto no válido en el tiempo: una columna apilada (en blanco + nulos) por vuelta, con el
@@ -449,6 +458,7 @@ Obs.iniciar("elecciones-presidenciales", async () => {
   selE.onchange = () => actualizar({ e: +selE.value });
   selR.onchange = () => actualizar({ ambito: "regional", region: selR.value });
   document.querySelectorAll("[data-v]").forEach((b) => (b.onclick = () => actualizar({ v: +b.dataset.v })));
+  document.querySelectorAll("[data-nv]").forEach((b) => (b.onclick = () => { vueltaNv = b.dataset.nv; pintarNvHist(); }));
   document.querySelectorAll("[data-ambito]").forEach((b) => (b.onclick = () => actualizar(b.dataset.ambito === "nacional" ? { ambito: "nacional" } : { ambito: "regional", region: estado.region === "NACION" ? "LIMA" : estado.region })));
   // Pestañas (con flechas del teclado, como pide el patrón de tablist)
   TABS.forEach((b, k) => {

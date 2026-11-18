@@ -15,6 +15,8 @@
   /* Votos en contra: punto vacío gris oscuro en el gráfico de votaciones */
   --voto-contra: #4f5a6b;
   --palito: #b3bdd0;
+  /* Abstenciones: rombo ámbar en el gráfico de votaciones */
+  --voto-abst: #d99a1e;
   /* Días por cuestión: un solo tono, sin el azul de «aprobada» */
   --ritmo: #5f7397;
 }
@@ -183,3 +185,4 @@
   .lista-otros .detalle { position: static; grid-column: 2 / -1; opacity: 1; visibility: visible; transform: none; box-shadow: none;
     background: none; color: var(--texto-suave); padding: 0; }
 }
+.ley i.rombo { width: 9px; height: 9px; background: var(--voto-abst); transform: rotate(45deg); border-radius: 1px; margin: 0 4px 0 2px; flex: none; }

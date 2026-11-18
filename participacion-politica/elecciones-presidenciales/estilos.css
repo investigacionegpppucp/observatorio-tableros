@@ -39,3 +39,6 @@ p.intro { margin: 0 0 20px; color: var(--texto-suave); font-size: 16px; max-widt
   .filtros .segmentado button { flex: 1; min-width: 0; }
 }
 .cabecera-interior { padding-bottom: 12px; }
+.nv-controles { margin: 4px 0 10px; }
+.ley [data-ley-v][hidden] { display: none; }
+.ley.ley-centrada { justify-content: center; }
