@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=7071b70">
-  <link rel="stylesheet" href="../../comun/tema.css?v=7071b70">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=7071b70">
-  <link rel="stylesheet" href="estilos.css?v=7071b70">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=84c14ee">
+  <link rel="stylesheet" href="../../comun/tema.css?v=84c14ee">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=84c14ee">
+  <link rel="stylesheet" href="estilos.css?v=84c14ee">
 </head>
 <body>
   <header class="cabecera">
@@ -43,13 +43,13 @@
       <p class="resumen" id="r-victimas" aria-live="polite">Cargando datos…</p>
       <div class="kpis kpis-4" id="k-victimas"></div>
       <article class="tarjeta">
-        <header><h3>¿Cuándo murieron?</h3><p>Personas fallecidas cada semana, según la circunstancia de su muerte.</p></header>
+        <header><h3>¿En qué semanas se registraron los fallecimientos?</h3><p>Número de personas fallecidas por semana, según la circunstancia del fallecimiento.</p></header>
         <div class="ley" id="ley-fallecidos"></div>
         <div class="grafico" id="g-fallecidos"></div>
       </article>
       <div class="par">
         <article class="tarjeta">
-          <header><h3>¿Quiénes eran?</h3><p>Personas fallecidas según su edad.</p></header>
+          <header><h3>¿Qué edad tenían las personas fallecidas?</h3><p>Personas fallecidas según su grupo de edad.</p></header>
           <div class="grafico bajo" id="g-edad"></div>
           <p class="lectura" id="l-sexo"></p>
         </article>
@@ -154,15 +154,15 @@
     <!-- Tablas de detalle: debajo del mapa, cambian con la pestaña -->
     <div class="abajo" data-modulo="victimas">
         <article class="tarjeta">
-          <header><h3 id="t-lista">Las personas fallecidas</h3><p>Fecha, lugar y circunstancia de cada muerte. Los menores de edad aparecen con sus iniciales, como en la fuente.</p></header>
+          <header><h3 id="t-lista">Las personas fallecidas</h3><p>Fecha, lugar y circunstancia de cada fallecimiento. Los menores de edad aparecen con sus iniciales, como en la fuente.</p></header>
           <div class="controles"><div class="buscador-tabla"><label for="f-buscar-f">Buscar</label><input id="f-buscar-f" type="search" placeholder="Nombre, región o provincia" autocomplete="off"></div></div>
           <div class="tabla-caja" id="t-fallecidos"></div>
         </article>
     </div>
     <div class="abajo" data-modulo="bloqueos" hidden>
         <article class="tarjeta">
-          <header><h3 id="t-violencia">Los hechos de violencia</h3><p>Cada hecho registrado, con su lugar, el tipo de bien afectado y quién lo realizó, si se conoce.</p></header>
-          <div class="controles"><div class="buscador-tabla"><label for="f-buscar-v">Buscar</label><input id="f-buscar-v" type="search" placeholder="Hecho, lugar o actor" autocomplete="off"></div></div>
+          <header><h3 id="t-violencia">Los hechos de violencia</h3><p>Cada hecho registrado, con su lugar y el tipo de bien afectado.</p></header>
+          <div class="controles"><div class="buscador-tabla"><label for="f-buscar-v">Buscar</label><input id="f-buscar-v" type="search" placeholder="Hecho o lugar" autocomplete="off"></div></div>
           <div class="tabla-caja" id="t-violencia-tabla"></div>
         </article>
     </div>
@@ -183,14 +183,14 @@
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Estallido social</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=7071b70"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=7071b70"></script>
-  <script src="../../comun/config.js?v=7071b70"></script>
-  <script src="../../comun/base.js?v=7071b70"></script>
-  <script src="../../comun/graficos.js?v=7071b70"></script>
-  <script src="../../comun/mapa.js?v=7071b70"></script>
-  <script src="../../comun/filtros.js?v=7071b70"></script>
-  <script src="../../comun/descarga.js?v=7071b70"></script>
-  <script src="tablero.js?v=7071b70"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=84c14ee"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=84c14ee"></script>
+  <script src="../../comun/config.js?v=84c14ee"></script>
+  <script src="../../comun/base.js?v=84c14ee"></script>
+  <script src="../../comun/graficos.js?v=84c14ee"></script>
+  <script src="../../comun/mapa.js?v=84c14ee"></script>
+  <script src="../../comun/filtros.js?v=84c14ee"></script>
+  <script src="../../comun/descarga.js?v=84c14ee"></script>
+  <script src="tablero.js?v=84c14ee"></script>
 </body>
 </html>

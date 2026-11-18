@@ -227,34 +227,18 @@ function pintarPresupuesto() {
           data: P.map((x) => ({ value: x[k], itemStyle: { color: c, opacity: x.corte ? 0.45 : 1, borderRadius: [2, 2, 0, 0] } })) })),
   }, true);
   clicAnio(g);
-  // Peso en el presupuesto público
-  const aniosPeso = P.map((x) => x.anio).filter((x) => pesoPim(x) != null);
-  $("#d-peso").textContent = `Porcentaje del presupuesto público (PIM) y del gasto (devengado) total que corresponde a la función Saneamiento. Antes de 2023, solo hay datos de 2012, 2017 y 2022.`;
-  $("#ley-peso").innerHTML = `<span><i style="background:${C.unica}"></i>Del presupuesto (PIM)</span><span><i style="background:${C.categorias[2]}"></i>Del gasto (devengado)</span>`;
-  const gp = Obs.grafico("g-peso");
-  gp.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
-      formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.filter((q) => q.value != null).map((q) => `<br>${q.marker}${q.seriesName}: <strong>${pct(q.value)}</strong>`).join("") },
-    grid: { left: 48, right: 12, top: 24, bottom: 30 },
-    xAxis: { ...ejeX, data: aniosPeso.map(String) },
-    yAxis: { type: "value", min: 0, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Obs.fmtN(x * 100, 0) + " %" }) },
-    series: [["Del presupuesto (PIM)", pesoPim, C.unica], ["Del gasto (devengado)", pesoDev, C.categorias[2]]].map(([n, fn, c]) => ({
-      name: n, type: "bar", barGap: "10%", barCategoryGap: "30%", data: aniosPeso.map((x) => ({ value: fn(x), itemStyle: { color: c, opacity: x === a ? 1 : 0.55, borderRadius: [2, 2, 0, 0] } })),
-      label: { show: true, position: "top", formatter: (q) => (q.value == null ? "" : Obs.fmtN(q.value * 100, 1)), ...txt({ fontSize: 12, color: C.texto }) } })),
-  }, true);
-  clicAnio(gp, aniosPeso);
   // Ejecución por año, con el promedio de los años completos
   $("#d-ejec").textContent = `Devengado como porcentaje del presupuesto modificado (PIM). La línea punteada es el promedio de ${completos[0].anio}-${completos.at(-1).anio} (${pct(prom)}).`;
   const ge = Obs.grafico("g-ejec");
   ge.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } }, formatter: (ps) => `<strong>${ps[0].axisValue}</strong><br>Ejecución: <strong>${pct(ps[0].value)}</strong>` },
-    grid: { left: 48, right: 16, top: 24, bottom: 30 },
-    xAxis: ejeX,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", formatter: (ps) => `<strong>${ps[0].axisValue}</strong><br>Ejecución: <strong>${pct(ps[0].value)}</strong>` },
+    grid: { left: 48, right: 24, top: 28, bottom: 30 },
+    xAxis: { ...ejeX, boundaryGap: false },
     yAxis: { type: "value", min: 0, max: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Math.round(x * 100) + " %" }) },
-    series: [{ type: "bar", barCategoryGap: "30%", data: P.map((x) => ({ value: ejec(x), itemStyle: { color: C.unica, opacity: x.anio === a ? 1 : x.corte ? 0.25 : 0.45, borderRadius: [2, 2, 0, 0] } })),
-      label: { show: true, position: "top", formatter: (q) => Obs.fmtN(q.value * 100, 0), ...txt({ fontSize: 12, color: C.texto }) },
+    series: [{ type: "line", data: P.map((x) => ({ value: ejec(x), symbolSize: x.anio === a ? 12 : 7, itemStyle: { color: C.unica, opacity: x.corte ? 0.5 : 1 } })),
+      symbol: "circle", lineStyle: { width: 3, color: C.unica }, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 2 },
+      label: { show: true, position: "top", distance: 8, formatter: (q) => Obs.fmtN(q.value * 100, 0), ...txt({ fontSize: 12, color: C.texto }) },
       markLine: { silent: true, symbol: "none", lineStyle: { color: C.texto, type: "dashed", opacity: 0.6 }, label: { show: false }, data: [{ yAxis: prom }] } }],
   }, true);
   clicAnio(ge);

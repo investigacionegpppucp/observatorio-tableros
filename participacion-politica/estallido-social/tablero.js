@@ -107,13 +107,15 @@ const filtrar = (tabla, campo = "fecha", { region = true } = {}) => D[tabla].fil
 const vigentes = (tabla) => D[tabla].filter((f) => f.inicio <= finPeriodo() && (f.fin ?? f.inicio) >= inicioPeriodo() && enRegion(f.region));
 
 /* Líneas por semana, una por categoría (una sola escala) */
-function columnasSemana(id, filas, campoFecha, categorias, claveCat) {
+function columnasSemana(id, filas, campoFecha, categorias, claveCat, { barras = false } = {}) {
   let sem = semanas();
   const idx = new Map(sem.map((s, i) => [s, i]));
   const series = categorias.map(([cat, nombre, color]) => {
     const v = sem.map(() => 0);
     filas.filter((f) => claveCat(f) === cat).forEach((f) => { const i = idx.get(semana(f[campoFecha])); if (i != null) v[i] += 1; });
-    return { name: nombre, type: "line", data: v, symbol: "circle", symbolSize: 5, showSymbol: false, lineStyle: { width: 2.5, color }, itemStyle: { color }, emphasis: { focus: "series" } };
+    return barras
+      ? { name: nombre, type: "bar", stack: "t", barCategoryGap: "20%", data: v, itemStyle: { color, borderColor: "#fff", borderWidth: 0.5 }, emphasis: { focus: "series" } }
+      : { name: nombre, type: "line", data: v, symbol: "circle", symbolSize: 5, showSymbol: false, lineStyle: { width: 2.5, color }, itemStyle: { color }, emphasis: { focus: "series" } };
   });
   if (!filas.length) return Obs.vacio(id);
   const [ini, fin] = conDatos(sem.length, series.map((x) => x.data));
@@ -124,12 +126,12 @@ function columnasSemana(id, filas, campoFecha, categorias, claveCat) {
   const cada = Math.max(1, Math.ceil(sem.length / Math.max(4, Math.floor(ancho / 90))));
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 300,
-    legend: categorias.length > 1 ? { top: 0, left: 0, icon: "roundRect", itemWidth: 14, itemHeight: 4, textStyle: txt() } : undefined,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "line", lineStyle: { color: C.linea } },
+    legend: categorias.length > 1 ? { top: 0, left: 0, icon: barras ? "rect" : "roundRect", itemWidth: barras ? 12 : 14, itemHeight: barras ? 12 : 4, textStyle: txt() } : undefined,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: barras ? { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } } : { type: "line", lineStyle: { color: C.linea } },
       formatter: (ps) => { const tot = ps.reduce((s, p) => s + (p.value ?? 0), 0);
         return `<strong>Semana del ${fmtFecha(sem[ps[0].dataIndex])}</strong>` + ps.filter((p) => p.value).map((p) => `<br>${p.marker}${p.seriesName}: <strong>${n0(p.value)}</strong>`).join("") + (ps.length > 1 ? `<br>Total: <strong>${n0(tot)}</strong>` : ""); } },
     grid: { left: 40, right: 24, top: categorias.length > 1 ? (ancho < 600 ? 72 : 40) : 12, bottom: 44 },
-    xAxis: { type: "category", data: sem, boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+    xAxis: { type: "category", data: sem, boundaryGap: barras, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
       axisLabel: txt({ interval: (i) => i % cada === 0, formatter: etiquetaEje }) },
     yAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt() },
     series,
@@ -187,7 +189,7 @@ function pintarVictimas() {
   const menores = f.filter((x) => x.grupo === "Menor de edad").length;
   const porRegion = [...contar(f, "region")].sort((a, b) => b[1] - a[1]);
   document.getElementById("r-victimas").innerHTML = f.length
-    ? `${EnLugar(estado.region)}, ${periodoTxt()}, murieron ${destacar(`${n0(f.length)} ${f.length === 1 ? "persona" : "personas"}`)} en el contexto de las protestas: ` +
+    ? `${EnLugar(estado.region)}, ${periodoTxt()}, se registraron ${destacar(`${n0(f.length)} ${f.length === 1 ? "persona fallecida" : "personas fallecidas"}`)} en el contexto de las protestas: ` +
       `${n0(enfr)} en enfrentamientos y represión, y ${n0(vias)} a consecuencia del bloqueo de vías.` +
       (menores ? ` ${n0(menores)} ${menores === 1 ? "era menor" : "eran menores"} de edad.` : "") +
       (estado.region === NACIONAL && porRegion.length ? ` La región con más fallecidos fue ${destacar(nombreRegion(porRegion[0][0]))} (${n0(porRegion[0][1])}).` : "")
@@ -200,7 +202,7 @@ function pintarVictimas() {
     { etiqueta: "Heridos policías y militares", valor: n0((H.Policías ?? 0) + (H.Militares ?? 0)), pie: `${n0(H.Policías ?? 0)} policías y ${n0(H.Militares ?? 0)} militares` },
   ]);
   const colores = [C.categorias[1], C.categorias[0]];
-  columnasSemana("g-fallecidos", f, "fecha", CIRCUNSTANCIAS.map((c, i) => [c, c, colores[i]]), (x) => x.circunstancia);
+  columnasSemana("g-fallecidos", f, "fecha", CIRCUNSTANCIAS.map((c, i) => [c, c, colores[i]]), (x) => x.circunstancia, { barras: true });
   document.getElementById("ley-fallecidos").innerHTML = "";
   barrasConteo("g-edad", GRUPOS_EDAD.map((g) => [g, g, f.filter((x) => x.grupo === g).length]), { ordenar: false, nombre: "Fallecidos" });
   const sexo = contar(f, "sexo");
@@ -313,13 +315,12 @@ function pintarBloqueos() {
   barrasConteo("g-violencia-lugar", [...grupos].map(([k, x]) => [k, k, x]).sort((p, q) => q[2] - p[2]).slice(0, 15), { nombre: "Hechos", total: v.length });
 
   const q = sinTildeTxt(buscar.v.trim());
-  const filas = v.filter((x) => !q || sinTildeTxt(`${x.hecho} ${x.lugar} ${nombreRegion(x.region)} ${x.actor}`).includes(q));
+  const filas = v.filter((x) => !q || sinTildeTxt(`${x.hecho} ${x.lugar} ${nombreRegion(x.region)}`).includes(q));
   tablaOrdenable("t-violencia-tabla", [
     { clave: "fecha", titulo: "Fecha", valor: (x) => x.fecha, html: (x) => fmtFecha(x.fecha) },
     { clave: "lugar", titulo: "Lugar", valor: (x) => `${nombreRegion(x.region)} ${x.lugar ?? ""}`, html: (x) => `${Obs.escapar(nombreRegion(x.region))}${x.lugar ? `<small>${Obs.escapar(x.lugar)}</small>` : ""}` },
     { clave: "hecho", titulo: "Hecho", valor: (x) => x.hecho, html: (x) => Obs.escapar(x.hecho) },
     { clave: "bien", titulo: "Bien", valor: (x) => x.bien, html: (x) => Obs.escapar(x.bien ?? "—") },
-    { clave: "actor", titulo: "Quién", valor: (x) => x.actor, html: (x) => Obs.escapar(x.actor ?? "—") },
   ], filas, { inicial: { clave: "fecha", dir: 1 }, claveFila: (x) => `${x.fecha}${x.hecho}`, descripcion: `Hechos de violencia ${enLugar(estado.region)}` });
   document.getElementById("t-violencia").textContent = v.length === 1 ? "El hecho de violencia" : `Los ${n0(v.length)} hechos de violencia`;
 }
@@ -657,12 +658,9 @@ async function pintarMapa() {
       const [lat, lon] = centros.get(u.codigo);
       return partes.filter((b) => b.v).map((b) => ({ lat, lon, radio: radio(b.v), color: b.color, texto, alClic: () => elegirRegion(u.region) }));
     }));
-    // Leyenda: tamaños de referencia y colores
-    const refs = [...new Set([maxB, Math.round(maxB / 4), Math.round(maxB / 20)].filter((v) => v >= 1))];
-    document.getElementById("ley-mapa").innerHTML = unidades.length
-      ? `<div class="ley-burbujas">${refs.map((v) => { const r = Math.max(3, radio(v)); return `<span><svg width="${2 * r + 2}" height="${2 * r + 2}" aria-hidden="true"><circle cx="${r + 1}" cy="${r + 1}" r="${r}" fill="none" stroke="#5b6577" stroke-width="1.2"/></svg>${n0(v)}</span>`; }).join("")}</div>` +
-        (cats.length > 1 ? `<div class="ley">${cats.map(([, n, c]) => `<span><i style="background:${c}"></i>${Obs.escapar(n)}</span>`).join("")}</div>` : "")
-      : "";
+    // Leyenda: solo los colores (el número de cada burbuja se lee al pasar el cursor y en la tabla)
+    document.getElementById("ley-mapa").innerHTML = unidades.length && cats.length > 1
+      ? `<div class="ley">${cats.map(([, n, c]) => `<span><i style="background:${c}"></i>${Obs.escapar(n)}</span>`).join("")}</div>` : "";
   } else {
     const maxV = Math.max(1, ...unidades.map((u) => u.v));
     // Sin registros es cero, salvo los heridos del Minsa, que no cubren todas las regiones
