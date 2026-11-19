@@ -249,8 +249,9 @@ function pintarPresupuesto() {
     if (n.length) { const t = n.reduce((s, x) => s + x.pim, 0); const v = (k) => n.find((x) => x.nivel === k).pim / t; return [v("Ejecutivo"), v("Municipal"), null, v("Regional")]; }
     const r = regional(anio); return r == null ? [null, null, null, null] : [null, null, 1 - r, r];
   };
-  $("#d-niveles").textContent = "Reparto del presupuesto de saneamiento (PIM) entre niveles de gobierno. Hasta 2022 se separa el Gobierno nacional de los gobiernos locales; desde 2023, las consultas permiten separar solo a los gobiernos regionales.";
-  $("#ley-niveles").innerHTML = NIV.map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("");
+  const usados = NIV.filter((_, i) => P.some((x) => nivel(x.anio)[i]));
+  $("#d-niveles").textContent = "Reparto del presupuesto de saneamiento (PIM) entre el Gobierno nacional, los gobiernos regionales y los gobiernos locales, en porcentaje.";
+  $("#ley-niveles").innerHTML = usados.map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("");
   const gn = Obs.grafico("g-niveles");
   gn.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
@@ -260,7 +261,7 @@ function pintarPresupuesto() {
     xAxis: ejeX,
     yAxis: { type: "value", min: 0, max: 1, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Math.round(x * 100) + " %" }) },
     series: NIV.map(([n, c], i) => ({ name: n, type: "bar", stack: "n", barCategoryGap: "28%", data: P.map((x) => nivel(x.anio)[i]), itemStyle: { color: c, borderColor: "#fff", borderWidth: 1 },
-      label: { show: i === 3, position: "inside", formatter: (q) => (q.value ? Obs.fmtN(q.value * 100, 0) : ""), ...txt({ fontSize: 12, color: C.texto, fontWeight: 700 }) } })),
+      label: { show: i !== 2, position: "inside", formatter: (q) => (q.value ? Obs.fmtN(q.value * 100, 0) : ""), ...txt({ fontSize: 12, color: i === 0 ? "#fff" : C.texto, fontWeight: 700 }) } })),
   }, true);
   clicAnio(gn);
   pintarGR();
