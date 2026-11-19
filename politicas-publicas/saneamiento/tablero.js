@@ -344,8 +344,10 @@ async function pintarMapaCenso() {
     valores = new Map(regs.map((x) => [x.reg, x.v]));
     nombres = (c) => nombreRegion(c);
     Obs.barras("g-deps", regs.map((x) => ({ clave: x.reg, etiqueta: nombreRegion(x.reg), valor: x.v })), {
-      formato: pct, nombre: ind.nombre, seleccion: estado.region === NACIONAL ? null : new Set([estado.region]), alClic: elegirRegionCenso,
+      formato: pct, nombre: ind.nombre, alto: 600, seleccion: estado.region === NACIONAL ? null : new Set([estado.region]), alClic: elegirRegionCenso,
     });
+    // El mapa toma la misma altura que el ranking (en pantallas anchas, uno al lado del otro)
+    $("#mapa-censo-dep").style.height = window.matchMedia("(min-width: 901px)").matches ? `${$("#g-deps").offsetHeight}px` : "";
   } else {
     const filas = D.censo_distrito.map((x) => ({ ...x, v: ind.f(x), viv: suma(x, AGUA) }));
     valores = new Map(filas.map((x) => [x.ubigeo, x.v]));
