@@ -31,7 +31,7 @@ const ARCHIVOS = [
 ];
 const NACIONAL = "NACIONAL";
 const SANEAMIENTO = "SANEAMIENTO";
-const MODULOS = ["acceso", "prioridad", "presupuesto"];
+const MODULOS = ["acceso", "presupuesto"];
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const NOMBRES = {
   AMAZONAS: "Amazonas", ANCASH: "Áncash", APURIMAC: "Apurímac", AREQUIPA: "Arequipa", AYACUCHO: "Ayacucho", CAJAMARCA: "Cajamarca", CALLAO: "Callao",
@@ -50,7 +50,7 @@ const nombreFuncion = (f) => FUNCIONES[f] ?? f.charAt(0) + f.slice(1).toLowerCas
 const DEL_MAPA = { "LIMA METROPOLITANA": "LIMA", "LIMA PROVINCIAS": "LIMA" };
 
 const estado = { modulo: "acceso", region: NACIONAL, anio: null, medida: "pim", funcion: SANEAMIENTO, anioP: null, anioGR: null, indGR: "san_pim", area: "total", ind: "agua_red", nivel: "departamento", buscar: "" };
-let D = {}, C, mapa, ANIOS = [], ANIOS_REG = [], REGIONES = [], ANIOS_P = [], REGIONES_CENSO = [], GEO_REG = null;
+let D = {}, C, mapa, ANIO_INICIAL, ANIOS = [], ANIOS_REG = [], REGIONES = [], ANIOS_P = [], REGIONES_CENSO = [], GEO_REG = null;
 const mapasCenso = {};
 
 const pct = (v) => (v == null ? "—" : Obs.fmtPct(v, 1));
@@ -89,60 +89,6 @@ function kpis(id, lista) {
 }
 
 /* ---------------------------------------------------------
-   Prioridad en el presupuesto
-   --------------------------------------------------------- */
-function pintarPrioridad() {
-  const r = estado.region, a = estado.anio, anios = aniosDe(r), a0 = anios[0];
-  const v = peso(r, a), v0 = peso(r, a0), p = puesto(r, a);
-  const aMapa = anioMapa();
-  const regs = REGIONES.map((reg) => ({ reg, v: peso(reg, aMapa) })).filter((x) => x.v != null).sort((x, y) => y.v - x.v);
-  $("#r-prioridad").innerHTML = `En ${a}, el saneamiento recibió ${destacar(pct(v))} del ${nombreMedida()} ${enAmbito(r)}: el ${destacar(`puesto ${p.n}`)} entre ${p.de} funciones.` +
-    (v0 != null && a !== a0 ? ` En ${a0} era ${pct(v0)}.` : "");
-  const d = v != null && v0 != null && a !== a0 ? v - v0 : null;
-  const peru = peso(NACIONAL, a);
-  kpis("#k-prioridad", [
-    { etiqueta: "Peso del saneamiento", valor: pct(v), pie: `Del ${estado.medida.toUpperCase()} ${enAmbito(r)}, ${a}` },
-    { etiqueta: "Puesto entre las funciones", valor: `${p.n}.º de ${p.de}`, pie: `La primera es ${nombreFuncion(funcionesDe(r, a).sort((x, y) => y[campo()] - x[campo()])[0].funcion).toLowerCase()}` },
-    { etiqueta: `Cambio desde ${a0}`, valor: d == null ? "—" : `${d > 0 ? "+" : d < 0 ? "−" : ""}${Obs.fmtN(Math.abs(d * 100), 1)}`, pie: d == null ? "Es el primer año con datos" : `${puntos(d)} ${d > 0 ? "más" : "menos"} que en ${a0}` },
-    r === NACIONAL
-      ? { etiqueta: `El departamento con más peso${aMapa !== a ? ` (${aMapa})` : ""}`, valor: nombreRegion(regs[0].reg), pie: `${pct(regs[0].v)}; el de menos es ${nombreRegion(regs.at(-1).reg)} (${pct(regs.at(-1).v)})`, texto: true }
-      : { etiqueta: "Frente al Perú", valor: v != null && peru != null ? `${v >= peru ? "+" : "−"}${Obs.fmtN(Math.abs(v - peru) * 100, 1)}` : "—", pie: `En el Perú: ${pct(peru)}` },
-  ]);
-  // Evolución del peso de la función elegida
-  const fn = nombreFuncion(estado.funcion);
-  const conRef = r !== NACIONAL;
-  $("#t-evol").textContent = `¿Ganó o perdió prioridad ${laFuncion(estado.funcion)}?`;
-  $("#d-evol").textContent = `Porcentaje del ${nombreMedida()} ${enAmbito(r)} que va a ${fn.toLowerCase()}, y su puesto entre las funciones.`;
-  $("#ley-evol").innerHTML = conRef ? `<span><i class="l" style="border-color:${C.unica}"></i>${nombreRegion(r)}</span><span><i class="l" style="border-color:#9aa3b0"></i>Perú</span>` : "";
-  const serie = (reg) => anios.map((x) => peso(reg, x, estado.funcion));
-  const principal = serie(r), ref = conRef ? serie(NACIONAL) : [];
-  const g = Obs.grafico("g-evol");
-  g.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    tooltip: { ...Obs.tooltipBase(), trigger: "axis", formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.map((q) => `<br>${q.marker}${q.seriesName}: <strong>${pct(q.value)}</strong> (puesto ${puesto(q.seriesName === "Perú" ? NACIONAL : r, +q.axisValue, estado.funcion).n})`).join("") },
-    grid: { left: 52, right: 40, top: 48, bottom: 30 },
-    xAxis: { type: "category", data: anios.map(String), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
-      axisLabel: txt({ formatter: (x) => (+x === a ? `{b|${x}}` : x), rich: { b: txt({ color: C.texto, fontWeight: 800 }) } }) },
-    yAxis: { type: "value", min: 0, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Obs.fmtN(x * 100, 0) + " %" }) },
-    series: [
-      ...(conRef ? [{ name: "Perú", type: "line", data: ref, symbol: "circle", symbolSize: 6, lineStyle: { width: 2, color: "#9aa3b0" }, itemStyle: { color: "#9aa3b0" } }] : []),
-      { name: nombreRegion(r), type: "line", data: principal, symbol: "circle", symbolSize: 9, z: 3, lineStyle: { width: 2.5, color: C.unica }, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 2 },
-        label: { show: true, position: "top", distance: 10, formatter: (q) => `${pct(q.value)}\n{p|puesto ${puesto(r, anios[q.dataIndex], estado.funcion).n}}`, ...txt({ color: C.texto, fontWeight: 700, lineHeight: 18 }), rich: { p: txt({ fontSize: 13, fontWeight: 400 }) } } },
-    ],
-  }, true);
-  g.getZr().off("click");
-  g.getZr().on("click", (e) => {
-    if (!g.containPixel({ gridIndex: 0 }, [e.offsetX, e.offsetY])) return;
-    const i = Math.round(g.convertFromPixel({ xAxisIndex: 0 }, e.offsetX));
-    if (anios[i] && anios[i] !== estado.anio) actualizar({ anio: anios[i] });
-  });
-}
-
-// Por departamento, el peso de cada función llega hasta 2023: el mapa muestra el año más cercano
-const aniosDe = (reg) => (reg === NACIONAL ? ANIOS : ANIOS_REG);
-const anioMapa = () => (ANIOS_REG.includes(estado.anio) ? estado.anio : ANIOS_REG.filter((x) => x <= estado.anio).at(-1) ?? ANIOS_REG.at(-1));
-
-/* ---------------------------------------------------------
    Presupuesto y gasto (nacional)
    --------------------------------------------------------- */
 function pintarPresupuesto() {
@@ -165,7 +111,7 @@ function pintarPresupuesto() {
     (regional(a) != null ? `. Los gobiernos regionales manejaron ${pct(regional(a))} de ese presupuesto; el resto, el Gobierno nacional y los gobiernos locales.` : ".");
   kpis("#k-presupuesto", [
     { etiqueta: "Presupuesto modificado (PIM)", valor: `S/ ${mill(f.pim)} M`, pie: `${a}. Al inicio (PIA): S/ ${mill(f.pia)} M` },
-    { etiqueta: "Del presupuesto público", valor: pct(pesoPim(a)), pie: pesoDev(a) != null ? `Del gasto público: ${pct(pesoDev(a))}` : "Del PIM total" },
+    { etiqueta: "Del presupuesto público", valor: pct(pesoPim(a)), pie: ANIOS.includes(a) ? `Puesto ${puesto(NACIONAL, a).n} de ${puesto(NACIONAL, a).de} funciones` : "Del PIM total" },
     { etiqueta: "Ejecución", valor: pct(ejec(f)), pie: f.corte ? `Al ${fechaCorta(f.corte)}; el año no termina` : `El promedio de ${completos[0].anio}-${completos.at(-1).anio} es ${pct(prom)}` },
     { etiqueta: "En manos de los gobiernos regionales", valor: pct(regional(a)), pie: "Del presupuesto de saneamiento (PIM)" },
   ]);
@@ -198,6 +144,19 @@ function pintarPresupuesto() {
           data: P.map((x) => ({ value: x[k], itemStyle: { color: c, opacity: x.corte ? 0.45 : 1, borderRadius: [2, 2, 0, 0] } })) })),
   }, true);
   clicAnio(g);
+  // ¿Ganó o perdió prioridad? Peso en el PIM público y puesto entre las funciones
+  const gq = Obs.grafico("g-prio");
+  gq.setOption({
+    textStyle: { fontFamily: C.fuente }, animation: ANIM,
+    tooltip: { ...Obs.tooltipBase(), trigger: "axis", formatter: (ps) => `<strong>${ps[0].axisValue}</strong><br>Del presupuesto público: <strong>${pct(ps[0].value)}</strong><br>Puesto ${puesto(NACIONAL, +ps[0].axisValue).n} de ${puesto(NACIONAL, +ps[0].axisValue).de} funciones` },
+    grid: { left: 52, right: 40, top: 48, bottom: 30 },
+    xAxis: { type: "category", data: ANIOS.map(String), axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
+      axisLabel: txt({ formatter: (x) => { const t = P.find((q) => q.anio === +x)?.corte ? `${x}*` : x; return +x === a ? `{b|${t}}` : t; }, rich: { b: txt({ color: C.texto, fontWeight: 800 }) } }) },
+    yAxis: { type: "value", min: 0, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (x) => Obs.fmtN(x * 100, 0) + " %" }) },
+    series: [{ type: "line", data: ANIOS.map((x) => peso(NACIONAL, x)), symbol: "circle", symbolSize: 9, lineStyle: { width: 2.5, color: C.unica }, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 2 },
+      label: { show: true, position: "top", distance: 10, formatter: (q) => `${pct(q.value)}\n{p|puesto ${puesto(NACIONAL, ANIOS[q.dataIndex]).n}}`, ...txt({ color: C.texto, fontWeight: 700, lineHeight: 18 }), rich: { p: txt({ fontSize: 13, fontWeight: 400 }) } } }],
+  }, true);
+  clicAnio(gq, ANIOS);
   // Ejecución por año, con el promedio de los años completos
   $("#d-ejec").textContent = `Devengado como porcentaje del presupuesto modificado (PIM). La línea punteada es el promedio de ${completos[0].anio}-${completos.at(-1).anio} (${pct(prom)}).`;
   const ge = Obs.grafico("g-ejec");
@@ -460,13 +419,6 @@ function render() {
   $("#f-region").value = estado.region;
   $("#f-area").innerHTML = [["total", "Total"], ["urbano", "Urbana"], ["rural", "Rural"]].map(([k, e]) => `<button type="button" data-a="${k}" aria-pressed="${estado.area === k}">${e}</button>`).join("");
   document.querySelectorAll("#filtros [data-en]").forEach((el) => (el.hidden = el.dataset.en !== estado.modulo));
-  if (estado.modulo === "prioridad") {
-    const anios = aniosDe(estado.region);
-    if (!anios.includes(estado.anio)) estado.anio = anios.at(-1);
-    $("#f-anio").innerHTML = [...anios].reverse().map((x) => `<option value="${x}">${x}</option>`).join("");
-  }
-  $("#f-anio").value = estado.anio;
-  $("#f-medida").innerHTML = [["pim", "PIM"], ["pia", "PIA"]].map(([k, e]) => `<button type="button" data-m="${k}" aria-pressed="${estado.medida === k}">${e}</button>`).join("");
   document.querySelectorAll(".modulos button").forEach((b) => {
     const activo = b.dataset.modulo === estado.modulo;
     b.setAttribute("aria-selected", activo);
@@ -474,15 +426,14 @@ function render() {
   });
   MODULOS.forEach((m) => ($(`#m-${m}`).hidden = m !== estado.modulo));
   $("#filtros").hidden = estado.modulo === "presupuesto"; // la pestaña de presupuesto es nacional
-  ({ acceso: pintarAcceso, prioridad: pintarPrioridad, presupuesto: pintarPresupuesto })[estado.modulo]();
+  ({ acceso: pintarAcceso, presupuesto: pintarPresupuesto })[estado.modulo]();
   Obs.escribirURL({
     modulo: estado.modulo === "acceso" ? null : estado.modulo,
     area: estado.area === "total" ? null : estado.area,
     ind: estado.ind === "agua_red" ? null : estado.ind,
     nivel: estado.nivel === "departamento" ? null : estado.nivel,
     region: estado.region === NACIONAL ? null : estado.region,
-    anio: estado.anio === ANIOS.at(-1) ? null : estado.anio,
-    medida: estado.medida === "pim" ? null : estado.medida,
+    anio: estado.modulo === "presupuesto" && estado.anioP !== ANIO_INICIAL ? estado.anioP : null,
   });
 }
 function actualizar(parche) { Object.assign(estado, parche); render(); }
@@ -498,7 +449,8 @@ Obs.iniciar(TABLERO, async () => {
   REGIONES = Object.keys(NOMBRES).filter((r) => D.prioridad_regional.some((f) => f.region === r)).sort((a, b) => nombreRegion(a).localeCompare(nombreRegion(b), "es"));
   REGIONES_CENSO = Object.keys(NOMBRES).filter((r) => D.censo.some((f) => f.region === r)).sort((a, b) => nombreRegion(a).localeCompare(nombreRegion(b), "es"));
   ANIOS_REG = [...new Set(D.prioridad_regional.map((f) => f.anio))].sort((a, b) => a - b);
-  Object.assign(estado, { anio: ANIOS.at(-1), anioP: D.presupuesto.filter((f) => !f.corte).at(-1)?.anio ?? ANIOS_P.at(-1) });
+  ANIO_INICIAL = D.presupuesto.filter((f) => !f.corte).at(-1)?.anio ?? ANIOS_P.at(-1);
+  Object.assign(estado, { anio: ANIOS.at(-1), anioP: ANIO_INICIAL });
   const [aa, mm, dd] = String(datos.actualizado || "").split("-").map(Number);
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
   $("#actualizado").textContent = aa ? `${dd} de ${MESES[mm - 1]} de ${aa}` : "—";
@@ -510,21 +462,18 @@ Obs.iniciar(TABLERO, async () => {
   $("#f-anio-gr").onclick = (e) => { const b = e.target.closest("button[data-a]"); if (b) { estado.anioGR = +b.dataset.a; pintarGR(); } };
   $("#f-ind-gr").onchange = (e) => { estado.indGR = e.target.value; pintarGR(); };
   $("#f-buscar").oninput = (e) => { estado.buscar = e.target.value; clearTimeout(window.__b); window.__b = setTimeout(pintarMapaCenso, 200); };
-  $("#f-anio").innerHTML = [...ANIOS].reverse().map((a) => opcion(a, a)).join("");
   $("#f-region").onchange = (e) => actualizar({ region: e.target.value });
-  $("#f-anio").onchange = (e) => actualizar({ anio: +e.target.value });
-  $("#f-medida").onclick = (e) => { const b = e.target.closest("button[data-m]"); if (b) actualizar({ medida: b.dataset.m }); };
 
   // Estado inicial desde la URL
   const p = Obs.parametros();
   if (MODULOS.includes(p.get("modulo"))) estado.modulo = p.get("modulo");
+  if (p.get("modulo") === "prioridad") estado.modulo = "presupuesto"; // la pestaña de prioridad se unió a la de presupuesto
   const reg = String(p.get("region") || "").toUpperCase();
   if (NOMBRES[reg]) estado.region = reg;
   if (["urbano", "rural"].includes(p.get("area"))) estado.area = p.get("area");
   if (IND_CENSO.some((i) => i.id === p.get("ind"))) estado.ind = p.get("ind");
   if (p.get("nivel") === "distrito") estado.nivel = "distrito";
-  if (ANIOS.includes(+p.get("anio"))) estado.anio = +p.get("anio");
-  if (p.get("medida") === "pia") estado.medida = "pia";
+  if (ANIOS_P.includes(+p.get("anio"))) estado.anioP = +p.get("anio");
 
   const pestanas = [...document.querySelectorAll(".modulos button")];
   pestanas.forEach((b, i) => {
