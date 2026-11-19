@@ -291,13 +291,16 @@ function pintarGR() {
   $("#l-gr").innerHTML = `En ${a}, los gobiernos regionales destinaron ${destacar(pct(tot.san_pim / tot.pim))} de su presupuesto a saneamiento (${destacar(millones(tot.san_pim))}) y gastaron ${pct(tot.san_devengado / tot.san_pim)} de él.`;
   const vals = filas.map((x) => ({ reg: x.region, v: ind.f(x), x })).filter((q) => q.v != null && isFinite(q.v));
   const vs = vals.map((q) => q.v), min = Math.min(...vs), max = Math.max(...vs);
+  Obs.barras("g-gr", vals.map((q) => ({ clave: q.reg, etiqueta: nombreRegion(q.reg), valor: q.v })), {
+    formato: ind.fmt, nombre: ind.nombre, alto: 600,
+    detalle: (d) => { const x = vals.find((q) => q.reg === d.clave).x; return `PIM de saneamiento: ${millones(x.san_pim)} · del presupuesto regional: ${pct(x.san_pim / x.pim)}`; },
+  });
+  // El mapa toma la misma altura que el ranking (en pantallas anchas, uno al lado del otro)
+  const ancho = window.matchMedia("(min-width: 901px)").matches;
+  $("#mapa-gr").style.height = ancho ? `${$("#g-gr").offsetHeight}px` : "";
   if (!mapaGR) mapaGR = new Obs.Mapa("mapa-gr", GEO_REG, { alClic: () => {}, nombre: nombreRegion });
   mapaGR.pintar({ valores: new Map(vals.map((q) => [q.reg, q.v])), color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: ind.fmt });
   $("#ley-gr").innerHTML = `<div class="ley-continua"><span>${ind.fmt(min)}</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${ind.fmt(max)}</span></div>`;
-  Obs.barras("g-gr", vals.map((q) => ({ clave: q.reg, etiqueta: nombreRegion(q.reg), valor: q.v })), {
-    formato: ind.fmt, nombre: ind.nombre,
-    detalle: (d) => { const x = vals.find((q) => q.reg === d.clave).x; return `PIM de saneamiento: ${millones(x.san_pim)} · del presupuesto regional: ${pct(x.san_pim / x.pim)}`; },
-  });
 }
 const fechaCorta = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${d} de ${["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"][m - 1]} de ${y}`; };
 
