@@ -209,24 +209,48 @@ function porGobierno(filas) {
   el.setAttribute("aria-label", "Aprobación promedio del premier en cada gobierno: " + datos.map((d) => `${d.gob}, ${pct(d.ap)}`).join("; ") + ".");
 }
 
-/* ---------- Tabla por premier ---------- */
+/* ---------- Tabla por premier (ordenable: cada título de columna ordena) ---------- */
+let ordenTabla = { clave: "inicio", dir: 1 };
 function tabla(filas) {
   const el = document.getElementById("t-premiers");
   const lista = tramos(filas, (f) => `${f.gob}|${f.premier}`)
     .map((t) => ({ ...t, m: medidas(t.filas) }))
-    .filter((t) => t.m.length);
+    .filter((t) => t.m.length)
+    .map((t, i) => {
+      const ambos = t.m.filter((f) => f.pres != null);
+      return { t, i, premier: t.filas[0].premier, gob: t.filas[0].gob, inicio: i, n: t.m.length, primera: t.m[0].ap, ultima: t.m.at(-1).ap,
+        promedio: promedio(t.m.map((f) => f.ap)), presidente: ambos.length ? promedio(ambos.map((f) => f.pres)) : null };
+    });
   if (!lista.length) { el.innerHTML = '<p class="pista">Sin mediciones para esta selección.</p>'; return; }
-  const filasHTML = lista.map((t) => {
-    const ambos = t.m.filter((f) => f.pres != null);
+  const COLS = [["premier", "Premier", false], ["gob", "Gobierno", false], ["inicio", "Período", false], ["n", "Mediciones", true],
+    ["primera", "Primera", true], ["ultima", "Última", true], ["promedio", "Promedio", true], ["presidente", "Presidente", true]];
+  const { clave, dir } = ordenTabla;
+  const ordenada = [...lista].sort((x, y) => {
+    const a = x[clave], b = y[clave];
+    if (a == null || b == null) return (a == null) - (b == null);
+    return (typeof a === "string" ? a.localeCompare(b, "es") : a - b) * dir;
+  });
+  const filasHTML = ordenada.map(({ t, premier, gob, n, primera, ultima, promedio: pr, presidente }) => {
     const desde = t.filas[0], hasta = t.filas.at(-1);
-    return `<tr><td class="premier">${Obs.escapar(desde.premier)}</td><td>${Obs.escapar(desde.gob)}</td>
+    return `<tr><td class="premier">${Obs.escapar(premier)}</td><td>${Obs.escapar(gob)}</td>
       <td class="suave">${mesCorto(desde)}${desde === hasta ? "" : ` a ${mesCorto(hasta)}`}</td>
-      <td class="num">${t.m.length}</td><td class="num">${pct(t.m[0].ap)}</td><td class="num">${pct(t.m.at(-1).ap)}</td>
-      <td class="num"><strong>${pct(promedio(t.m.map((f) => f.ap)))}</strong></td>
-      <td class="num">${ambos.length ? pct(promedio(ambos.map((f) => f.pres))) : "—"}</td></tr>`;
+      <td class="num">${n}</td><td class="num">${pct(primera)}</td><td class="num">${pct(ultima)}</td>
+      <td class="num"><strong>${pct(pr)}</strong></td>
+      <td class="num">${presidente != null ? pct(presidente) : "—"}</td></tr>`;
   }).join("");
-  el.innerHTML = `<table class="tabla"><thead><tr><th>Premier</th><th>Gobierno</th><th>Período</th><th class="num">Mediciones</th>
-    <th class="num">Primera</th><th class="num">Última</th><th class="num">Promedio</th><th class="num">Presidente</th></tr></thead><tbody>${filasHTML}</tbody></table>`;
+  const th = COLS.map(([k, titulo, num]) => {
+    const activo = k === clave;
+    return `<th class="${num ? "num" : ""}" aria-sort="${activo ? (dir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-orden="${k}">${titulo}<span class="flecha" aria-hidden="true">${activo ? (dir === 1 ? "▲" : "▼") : "▲▼"}</span></button></th>`;
+  }).join("");
+  el.innerHTML = `<table class="tabla ordenable"><caption class="solo-lectores">Aprobación de cada premier. Los títulos de columna ordenan la tabla.</caption><thead><tr>${th}</tr></thead><tbody>${filasHTML}</tbody></table>`;
+  el.querySelector("thead").onclick = (e) => {
+    const b = e.target.closest("button[data-orden]");
+    if (!b) return;
+    const k = b.dataset.orden, num = COLS.find((c) => c[0] === k)[2];
+    ordenTabla = ordenTabla.clave === k ? { clave: k, dir: -ordenTabla.dir } : { clave: k, dir: num ? -1 : 1 };
+    tabla(filas);
+    el.querySelector(`button[data-orden="${k}"]`)?.focus();
+  };
   document.getElementById("t-tabla").textContent = lista.length === 1 ? "El premier" : `Los ${lista.length} premieres`;
 }
 

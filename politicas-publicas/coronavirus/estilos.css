@@ -98,3 +98,5 @@
   #filtro-dosis, #f-dosis { width: 100%; }
   #f-dosis button { flex: 1 1 0; min-width: 0; padding: 7px 4px; }
 }
+
+.aviso-dato { display: inline-block; margin-top: 6px; font-size: 14px; color: var(--texto-suave); }

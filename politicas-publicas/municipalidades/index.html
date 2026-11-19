@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=48849ae">
-  <link rel="stylesheet" href="../../comun/tema.css?v=48849ae">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=48849ae">
-  <link rel="stylesheet" href="estilos.css?v=48849ae">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=449151b">
+  <link rel="stylesheet" href="../../comun/tema.css?v=449151b">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=449151b">
+  <link rel="stylesheet" href="estilos.css?v=449151b">
 </head>
 <body>
   <header class="cabecera">
@@ -86,8 +86,21 @@
     <!-- ================= RECURSOS ================= -->
     <section class="modulo" id="m-recursos" role="tabpanel" aria-labelledby="tab-recursos" hidden>
       <p class="resumen" id="r-recursos" aria-live="polite"></p>
-      <div class="kpis kpis-2" id="k-recursos"></div>
-      <p class="aviso">Por ahora, la base del tablero solo trae el acceso a internet. El personal de las municipalidades y su maquinaria y vehículos se sumarán cuando estén en el Sheet.</p>
+      <div class="kpis kpis-4" id="k-recursos"></div>
+      <div class="par">
+        <article class="tarjeta">
+          <header><h3>¿Qué personal trabaja en las municipalidades?</h3><p>Porcentaje del personal según su cargo, al 31 de diciembre de 2024. No incluye al personal por locación de servicios.</p></header>
+          <div class="grafico" id="g-personal"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Con qué vehículos cuentan?</h3><p>Porcentaje de municipalidades que tiene cada tipo de vehículo en funcionamiento.</p></header>
+          <div class="grafico" id="g-vehiculos"></div>
+        </article>
+      </div>
+      <article class="tarjeta">
+        <header><h3>¿Con qué maquinaria pesada cuentan?</h3><p>Porcentaje de municipalidades que tiene cada tipo de maquinaria pesada en funcionamiento.</p></header>
+        <div class="grafico" id="g-maquinaria"></div>
+      </article>
     </section>
 
     <!-- ================= SERVICIOS SOCIALES ================= -->
@@ -104,6 +117,14 @@
           <div class="grafico" id="g-atienden"></div>
         </article>
       </div>
+      <h2 class="titulo-seccion">Organizaciones sociales</h2>
+      <div class="kpis kpis-3" id="k-org"></div>
+      <article class="tarjeta">
+        <header><h3>¿Cuántas municipalidades tienen comedores populares, clubes de madres u ollas comunes?</h3><p>Porcentaje de municipalidades que reporta al menos una organización de cada tipo, al 31 de diciembre de 2024.</p></header>
+        <div class="grafico bajo" id="g-org"></div>
+      </article>
+      <h2 class="titulo-seccion">Oficinas de promoción social</h2>
+      <div class="kpis kpis-4" id="k-promo"></div>
     </section>
 
     <!-- ================= VIGILANCIA Y SEGURIDAD ================= -->
@@ -166,18 +187,18 @@
     <p><strong>Notas:</strong> Cada municipalidad cuenta una vez, sea provincial o distrital; los porcentajes son sobre el total de municipalidades de la selección. Las cifras son las que reporta cada municipalidad.
       <strong>Gestión de residuos:</strong> camiones recolectores de basura y su estado, frecuencia del recojo, parte del territorio que cubre y cantidad promedio diaria recogida (en kilos, sumada por región).
       <strong>Participación vecinal:</strong> espacios de concertación y actividades en los que participó la población, y Junta de Delegados Vecinales Comunales.
-      <strong>Recursos:</strong> acceso de la municipalidad a internet. <strong>Servicios sociales:</strong> beneficiarios del Programa del Vaso de Leche según su perfil. <strong>Vigilancia y seguridad:</strong> efectivos e intervenciones del serenazgo, y rondas urbanas, rondas campesinas y comités de autodefensa. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.</p>
+      <strong>Recursos:</strong> personal al 31 de diciembre de 2024 (sin locación de servicios), vehículos y maquinaria pesada propios en funcionamiento, y acceso a internet. <strong>Servicios sociales:</strong> beneficiarios del Programa del Vaso de Leche según su perfil; comedores populares, clubes de madres y ollas comunes, con sus beneficiarios al 31 de diciembre de 2024; Centros Integrales de Atención al Adulto Mayor (CIAM) y Oficinas Municipales de Atención a la Persona con Discapacidad (OMAPED). <strong>Vigilancia y seguridad:</strong> efectivos e intervenciones del serenazgo, y rondas urbanas, rondas campesinas y comités de autodefensa. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Gestión municipal</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=48849ae"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=48849ae"></script>
-  <script src="../../comun/config.js?v=48849ae"></script>
-  <script src="../../comun/base.js?v=48849ae"></script>
-  <script src="../../comun/graficos.js?v=48849ae"></script>
-  <script src="../../comun/mapa.js?v=48849ae"></script>
-  <script src="../../comun/filtros.js?v=48849ae"></script>
-  <script src="../../comun/descarga.js?v=48849ae"></script>
-  <script src="tablero.js?v=48849ae"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=449151b"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=449151b"></script>
+  <script src="../../comun/config.js?v=449151b"></script>
+  <script src="../../comun/base.js?v=449151b"></script>
+  <script src="../../comun/graficos.js?v=449151b"></script>
+  <script src="../../comun/mapa.js?v=449151b"></script>
+  <script src="../../comun/filtros.js?v=449151b"></script>
+  <script src="../../comun/descarga.js?v=449151b"></script>
+  <script src="tablero.js?v=449151b"></script>
 </body>
 </html>

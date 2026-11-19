@@ -100,50 +100,6 @@ function cifras(s) {
   Obs.kpi("k-vacados", { etiqueta: "Presidentes vacados", valor: Obs.fmtN(vacados.length), pie: vacados.length ? Obs.escapar(vacados.join(", ")) : "" });
 }
 
-/* ---------- Línea de tiempo ----------
-   Una fila por presidente; los pedidos del mismo día se apilan. Lo que no
-   entra en el filtro queda atenuado, para no perder el contexto. */
-function lineaTiempo(s) {
-  const id = "g-linea";
-  const el = document.getElementById(id);
-  const presis = PRESIDENTES;
-  el.style.height = `${presis.length * 52 + 50}px`;
-  const g = Obs.grafico(id);
-  g.resize();
-  const elegidos = new Set(s.elegidos.map((p) => p.n));
-  const mismoDia = new Map();
-  PEDIDOS.forEach((p) => { const k = `${p.presidente}|${+p.pres}`; mismoDia.set(k, (mismoDia.get(k) ?? []).concat(p)); });
-  const datos = PEDIDOS.map((p) => {
-    const grupo = mismoDia.get(`${p.presidente}|${+p.pres}`), i = grupo.indexOf(p);
-    return { value: [+p.pres, presis.indexOf(p.presidente)], p, symbolOffset: [0, (i - (grupo.length - 1) / 2) * 11],
-      itemStyle: { color: C.estado[p.estado], opacity: elegidos.has(p.n) ? 1 : 0.15, borderColor: "#fff", borderWidth: 1.5 } };
-  });
-  const ini = Date.UTC(PEDIDOS[0].pres.getUTCFullYear(), 0, 1), fin = Date.UTC(PEDIDOS.at(-1).pres.getUTCFullYear() + 1, 0, 1);
-  const angosto = el.clientWidth < 600;
-  g.setOption({
-    textStyle: { fontFamily: C.fuente }, animation: ANIM,
-    tooltip: { ...Obs.tooltipBase(), trigger: "item", formatter: (q) => detalle(q.data.p) },
-    grid: { left: angosto ? 92 : 168, right: 20, top: 8, bottom: 30 },
-    xAxis: { type: "time", min: ini, max: fin, splitNumber: angosto ? 4 : 10, axisLine: { lineStyle: { color: C.linea } }, axisTick: { show: false },
-      splitLine: { show: true, lineStyle: { color: C.linea } }, axisLabel: { ...txt(), formatter: "{yyyy}" } },
-    yAxis: { type: "category", data: presis.map((x) => (angosto ? x.split(" ").at(-1) : x)), inverse: true, axisTick: { show: false }, axisLine: { show: false },
-      splitLine: { show: true, lineStyle: { color: C.fondo, width: 1 } },
-      axisLabel: { ...txt({ color: C.texto }), formatter: (v, i) => (presis[i] === estado.presidente ? `{b|${v}}` : v), rich: { b: txt({ color: C.texto, fontWeight: 800 }) } } },
-    series: [{ type: "scatter", symbolSize: 12, data: datos, cursor: "pointer" }],
-  }, true);
-  g.off("click");
-  g.on("click", (q) => q.data?.p && actualizar({ presidente: q.data.p.presidente === estado.presidente ? "" : q.data.p.presidente }));
-  document.getElementById("ley-linea").innerHTML = ESTADOS.map((e) => `<span><i class="p" style="background:${C.estado[e.clave]}"></i>${e.nombre}</span>`).join("");
-  el.setAttribute("aria-label", "Línea de tiempo de los pedidos de vacancia: " + s.elegidos.map((p) => `${p.doc}, ${p.presidente}, ${fmtFecha(p.pres)}, ${NOMBRE_ESTADO[p.estado]}`).join("; ") + ".");
-}
-function detalle(p) {
-  const fila = (k, v) => (v ? `<br>${k}: <strong>${fmtFecha(v)}</strong>` : "");
-  return `<strong>${Obs.escapar(p.doc)}</strong><br>Contra ${Obs.escapar(p.presidente)}` +
-    fila("Presentado", p.pres) + fila("Votación de admisión", p.adm) + fila("Votación de la vacancia", p.vac) +
-    `<br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${C.estado[p.estado]};margin-right:6px"></span>${NOMBRE_ESTADO[p.estado]}` +
-    (p.detalle ? `<br><span style="opacity:.85">${Obs.escapar(p.detalle)}</span>` : "");
-}
-
 /* ---------- Pedidos por presidente (barras apiladas por resultado) ---------- */
 function porPresidente(s) {
   const id = "g-presidentes";
@@ -218,7 +174,6 @@ function render() {
   $("#f-bancada").value = estado.bancada;
   const s = filtrar(PEDIDOS, estado);
   cifras(s);
-  lineaTiempo(s);
   porPresidente(s);
   porBancada(s);
   tabla(s);

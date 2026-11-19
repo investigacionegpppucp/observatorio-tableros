@@ -275,8 +275,11 @@ function pintarMapa() {
   mapa.pintar({ valores: new Map(regs.map((x) => [x.reg, x.v])), color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: ind.fmt, elegida: estado.region === NACIONAL ? null : estado.region });
   $("#ley-mapa").innerHTML = `<div class="ley-continua"><span>${ind.fmt(min)}</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${ind.fmt(max)}</span></div>`;
   const orden = [...regs].sort((a, b) => b.v - a.v), peru = ind.valor(NACIONAL);
-  $("#l-mapa").innerHTML = `Va de ${destacar(ind.fmt(min))} en ${nombreRegion(orden.at(-1).reg)} a ${destacar(ind.fmt(max))} en ${nombreRegion(orden[0].reg)}.` + (peru != null ? ` En el Perú: ${ind.fmt(peru)}.` : "");
-  Obs.ranking("g-regiones", regs.map((x) => ({ clave: x.reg, etiqueta: nombreRegion(x.reg), valor: x.v })), {
+  // Más de 100 %: el Minsa registra cada vacuna donde se aplicó, no donde vive la persona
+  const sobre = ind.id === "cobertura" ? orden.filter((x) => x.v > 1) : [];
+  $("#l-mapa").innerHTML = `Va de ${destacar(ind.fmt(min))} en ${nombreRegion(orden.at(-1).reg)} a ${destacar(ind.fmt(max))} en ${nombreRegion(orden[0].reg)}.` + (peru != null ? ` En el Perú: ${ind.fmt(peru)}.` : "") +
+    (sobre.length ? `<br><span class="aviso-dato">* En ${sobre.map((x) => nombreRegion(x.reg)).join(" y ")} el porcentaje supera el 100 %. No es un error de población (coincide con la del Censo 2025): el Minsa registra cada vacuna en la región donde se aplicó, no donde vive la persona, y ahí se vacunaron también personas de otras regiones, sobre todo de Lima Metropolitana. Por eso, en esas regiones, la cobertura está sobrestimada.</span>` : "");
+  Obs.ranking("g-regiones", regs.map((x) => ({ clave: x.reg, etiqueta: nombreRegion(x.reg) + (sobre.some((y) => y.reg === x.reg) ? " *" : ""), valor: x.v })), {
     formato: ind.fmt, nombre: ind.nombre, elegida: estado.region === NACIONAL ? null : estado.region, alClic: elegirRegion,
     referencia: peru != null ? { valor: peru, etiqueta: "Perú" } : null,
   });

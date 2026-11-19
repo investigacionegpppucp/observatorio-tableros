@@ -71,6 +71,15 @@ const MOTIVOS = [["P71A_6", "Consumo de alcohol en la vía pública"], ["P71A_7"
   ["P71A_2", "Robo a domicilio"], ["P71A_3", "Robo de vehículos"], ["P71A_5", "Robo a establecimientos"], ["P71A_4", "Robo de autopartes"], ["P71A_12", "Otro"]];
 const ORGS = [["rondasCampesinas", "Rondas campesinas"], ["rondasUrbanas", "Rondas urbanas"], ["comites", "Comités de autodefensa"]];
 const ANIM = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Tabla «RENAMU extra» (procesos/municipalidades/renamu_extra.py): personal, vehículos, maquinaria y programas sociales
+const PERSONAL = [["funcionarios", "Funcionarios y directivos"], ["profesionales", "Profesionales"], ["tecnicos", "Técnicos"], ["auxiliares", "Auxiliares"],
+  ["obreros_limpieza", "Obreros de limpieza"], ["obreros_otros", "Otros obreros"], ["vigilantes", "Vigilantes"]];
+const VEHICULOS = [["auto", "Auto o camioneta"], ["moto", "Motocicleta"], ["camion", "Camión"], ["volquete", "Volquete"], ["recolector", "Camión recolector de basura"],
+  ["cisterna", "Camión cisterna"], ["ambulancia", "Ambulancia"]];
+const MAQUINARIA = [["retroexcavadora", "Retroexcavadora"], ["cargador", "Cargador frontal"], ["motoniveladora", "Motoniveladora"], ["excavadora", "Excavadora"],
+  ["compactadora", "Compactadora de suelo"], ["tractor_oruga", "Tractor oruga"], ["tractor_agricola", "Tractor agrícola"]];
+const ORGANIZACIONES = [["comedores", "Comedores populares"], ["clubes_madres", "Clubes de madres"], ["ollas", "Ollas comunes"]];
+const sumaOp = (m, lista) => lista.reduce((s, [k]) => s + (m.x?.[`${k}_op`] ?? 0), 0);
 
 /* Indicadores del mapa por pestaña. tipo: "pct" (municipalidades que cumplen / todas),
    "razon" (suma de un campo / suma de otro) o "suma" (total de un campo) */
@@ -84,11 +93,19 @@ const IND = {
   ],
   recursos: [
     { id: "internet", nombre: "Tienen servicio de internet", tipo: "pct", cumple: (m) => m.internet },
+    { id: "personal", nombre: "Personal de las municipalidades (número)", tipo: "suma", unidad: "personas", campo: (m) => m.x?.personal ?? 0 },
+    { id: "vehiculo", nombre: "Tienen al menos un vehículo operativo", tipo: "pct", cumple: (m) => sumaOp(m, VEHICULOS) > 0 },
+    { id: "ambulancia", nombre: "Tienen ambulancia operativa", tipo: "pct", cumple: (m) => (m.x?.ambulancia_op ?? 0) > 0 },
+    { id: "maquinaria", nombre: "Tienen maquinaria pesada operativa", tipo: "pct", cumple: (m) => sumaOp(m, MAQUINARIA) > 0 },
   ],
   sociales: [
     { id: "beneficiarios", nombre: "Beneficiarios del Vaso de Leche", tipo: "suma", unidad: "personas", campo: (m) => m.vasoTotal },
     ...PERFILES.map((p, i) => ({ id: `perfil${i}`, nombre: `Beneficiarios: ${(ETIQ_PERFIL[p] ?? p).toLowerCase()}`, tipo: "suma", unidad: "personas", campo: (m) => m.vaso[p] })),
     { id: "adultos", nombre: "Atienden a adultos mayores", tipo: "pct", cumple: (m) => m.vaso["Adultos mayores"] > 0 },
+    ...ORGANIZACIONES.map(([k, nombre]) => ({ id: k, nombre: `${nombre} (número)`, tipo: "suma", unidad: "organizaciones", campo: (m) => m.x?.[`${k}_n`] ?? 0 })),
+    ...ORGANIZACIONES.map(([k, nombre]) => ({ id: `${k}_ben`, nombre: `${nombre}: beneficiarios`, tipo: "suma", unidad: "personas", campo: (m) => m.x?.[`${k}_ben`] ?? 0 })),
+    { id: "ciam", nombre: "Tienen Centro Integral de Atención al Adulto Mayor (CIAM)", tipo: "pct", cumple: (m) => m.x?.ciam },
+    { id: "omaped", nombre: "Tienen Oficina Municipal de Atención a la Persona con Discapacidad (OMAPED)", tipo: "pct", cumple: (m) => m.x?.omaped },
   ],
   seguridad: [
     { id: "serenazgo", nombre: "Tienen serenazgo", tipo: "pct", cumple: (m) => m.serenos > 0 },
@@ -244,13 +261,22 @@ function pintarParticipacion() {
 function pintarRecursos() {
   const munis = filtrar(estado.region), peru = filtrar(NACIONAL), total = munis.length;
   const con = munis.filter((m) => m.internet).length;
+  const personal = munis.reduce((s, m) => s + (m.x?.personal ?? 0), 0);
+  const medianaPersonal = (() => { const v = munis.map((m) => m.x?.personal ?? 0).sort((a, b) => a - b); return v.length ? v[Math.floor((v.length - 1) / 2)] : null; })();
+  const vehOp = munis.reduce((s, m) => s + sumaOp(m, VEHICULOS), 0), vehNo = munis.reduce((s, m) => s + VEHICULOS.reduce((t, [k]) => t + (m.x?.[`${k}_no`] ?? 0), 0), 0);
+  const conMaq = munis.filter((m) => sumaOp(m, MAQUINARIA) > 0).length;
   document.getElementById("r-recursos").innerHTML = !total ? "No hay municipalidades para esta selección." :
-    `${EnLugar(estado.region)}, ${destacar(`${n0(con)} de ${n0(total)}`)} ${delTipo()} (${pct(con / total)}) tiene servicio de internet` +
-    (total - con ? `; ${n0(total - con)} no lo tiene${total - con === 1 ? "" : "n"}.` : ".");
+    `${EnLugar(estado.region)}, las ${delTipo()} tenían ${destacar(`${n0(personal)} trabajadores`)} al 31 de diciembre de 2024 (la mitad de las municipalidades tenía ${n0(medianaPersonal)} o menos). ` +
+    `${destacar(`${n0(con)} de ${n0(total)}`)} (${pct(con / total)}) tiene servicio de internet, y ${destacar(pct(conMaq / total))} cuenta con maquinaria pesada operativa.`;
   kpis("k-recursos", [
+    { etiqueta: "Personal", valor: n0(personal), pie: `Mediana por municipalidad: ${n0(medianaPersonal)}` },
+    { etiqueta: "Vehículos operativos", valor: n0(vehOp), pie: vehOp + vehNo ? `${pct(vehNo / (vehOp + vehNo))} de los vehículos no funciona` : "" },
+    { etiqueta: "Tienen maquinaria pesada operativa", valor: pct(total ? conMaq / total : null), pie: `${n0(conMaq)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => sumaOp(m, MAQUINARIA) > 0))}` },
     { etiqueta: "Tienen servicio de internet", valor: pct(total ? con / total : null), pie: `${n0(con)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => m.internet))}` },
-    { etiqueta: "Sin servicio de internet", valor: n0(total - con), pie: `${pct(total ? (total - con) / total : null)} de las ${delTipo()}` },
   ]);
+  barrasParte("g-personal", PERSONAL.map(([k, e]) => [k, e, (m) => m.x?.[k] ?? 0]), munis, peru, (m) => PERSONAL.reduce((s, [k]) => s + (m.x?.[k] ?? 0), 0), "personas");
+  barras("g-vehiculos", VEHICULOS.map(([k, e]) => [k, e, (m) => (m.x?.[`${k}_op`] ?? 0) > 0]), munis, peru, { ordenar: true });
+  barras("g-maquinaria", MAQUINARIA.map(([k, e]) => [k, e, (m) => (m.x?.[`${k}_op`] ?? 0) > 0]), munis, peru, { ordenar: true });
 }
 
 /* ---------------------------------------------------------
@@ -274,6 +300,19 @@ function pintarSociales() {
   ]);
   barrasParte("g-perfiles", PERFILES.map((p) => [p, ETIQ_PERFIL[p] ?? p, (m) => m.vaso[p]]), munis, peru, (m) => m.vasoTotal, "beneficiarios");
   barras("g-atienden", PERFILES.map((p) => [p, ETIQ_PERFIL[p] ?? p, (m) => m.vaso[p] > 0]), munis, peru, { ordenar: true });
+  // Comedores populares, clubes de madres y ollas comunes
+  const suma = (k) => munis.reduce((s, m) => s + (m.x?.[k] ?? 0), 0);
+  kpis("k-org", ORGANIZACIONES.map(([k, nombre]) => ({ etiqueta: nombre, valor: n0(suma(`${k}_n`)),
+    pie: `${n0(suma(`${k}_ben`))} beneficiarios, en ${n0(munis.filter((m) => (m.x?.[`${k}_n`] ?? 0) > 0).length)} municipalidades` })));
+  barras("g-org", ORGANIZACIONES.map(([k, e]) => [k, e, (m) => (m.x?.[`${k}_n`] ?? 0) > 0]), munis, peru);
+  // Oficinas de promoción social: CIAM y OMAPED
+  const ciam = munis.filter((m) => m.x?.ciam).length, omaped = munis.filter((m) => m.x?.omaped).length;
+  kpis("k-promo", [
+    { etiqueta: "Tienen CIAM", valor: pct(total ? ciam / total : null), pie: `Centro Integral de Atención al Adulto Mayor: ${n0(ciam)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => m.x?.ciam))}` },
+    { etiqueta: "Beneficiarios de los CIAM", valor: n0(suma("ciam_ben")), pie: `En ${n0(suma("ciam_locales"))} locales` },
+    { etiqueta: "Tienen OMAPED", valor: pct(total ? omaped / total : null), pie: `Oficina Municipal de Atención a la Persona con Discapacidad: ${n0(omaped)} de ${n0(total)}. ${pieComp(pct, parte(peru, (m) => m.x?.omaped))}` },
+    { etiqueta: "Beneficiarios de las OMAPED", valor: n0(suma("omaped_ben")), pie: "Personas con discapacidad atendidas" },
+  ]);
 }
 
 /* ---------------------------------------------------------
@@ -497,9 +536,11 @@ function pintarMunicipalidades() {
     { clave: "distrito", titulo: "Distrito", valor: (m) => m.distrito, html: (m) => `<strong>${Obs.escapar(titulo(m.distrito))}</strong>` },
     texto("tipo", "Tipo de municipalidad", (m) => m.tipo)];
   const datos = {
-    recursos: [sn("internet", "Servicio de internet", (m) => m.internet)],
+    recursos: [numero("personal", "Personal", (m) => m.x?.personal, true), numero("veh", "Vehículos operativos", (m) => sumaOp(m, VEHICULOS)),
+      numero("maq", "Maquinaria pesada operativa", (m) => sumaOp(m, MAQUINARIA)), sn("internet", "Servicio de internet", (m) => m.internet)],
     sociales: [numero("vaso", "Beneficiarios del Vaso de Leche", (m) => m.vasoTotal, true), numero("ninos", "Niños de 0 a 6", (m) => m.vaso["Niños de 0 a 6"]),
-      numero("mayores", "Adultos mayores", (m) => m.vaso["Adultos mayores"]), numero("otros", "Otros", (m) => m.vasoTotal - m.vaso["Niños de 0 a 6"] - m.vaso["Adultos mayores"])],
+      numero("mayores", "Adultos mayores", (m) => m.vaso["Adultos mayores"]), numero("otros", "Otros", (m) => m.vasoTotal - m.vaso["Niños de 0 a 6"] - m.vaso["Adultos mayores"]),
+      ...ORGANIZACIONES.map(([k, nombre]) => numero(k, nombre, (m) => m.x?.[`${k}_n`])), sn("ciam", "CIAM", (m) => m.x?.ciam), sn("omaped", "OMAPED", (m) => m.x?.omaped)],
     seguridad: [numero("serenos", "Efectivos de serenazgo", (m) => m.serenos), numero("interv", "Intervenciones", (m) => m.intervenciones),
       numero("rc", "Rondas campesinas", (m) => m.rondasCampesinas), numero("ru", "Rondas urbanas", (m) => m.rondasUrbanas), numero("ca", "Comités de autodefensa", (m) => m.comites)],
     residuos: [numero("op", "Camiones operativos", (m) => m.operativos), texto("frec", "Frecuencia del recojo", (m) => m.frecuencia), numero("kg", "Kilos por día", (m) => m.kilos)],
@@ -598,6 +639,8 @@ Obs.iniciar(TABLERO, async () => {
       rondasUrbanas: num(f["Rondas Urbanas"]) ?? 0, rondasCampesinas: num(f["Rondas Campesinas"]) ?? 0, comites: num(f["Comités de Autodefensa"]) ?? 0 });
     m.orgs = m.rondasUrbanas + m.rondasCampesinas + m.comites;
   }
+  const extra = new Map(Obs.expandir(datos.tablas["RENAMU extra"] ?? { idmunici: [] }).map((f) => [String(f.idmunici), f]));
+  orden.forEach((m) => (m.x = extra.get(m.id) ?? null));
   MUNIS = orden.filter((m) => NOMBRES[m.region]);
 
   // Estado inicial desde la URL

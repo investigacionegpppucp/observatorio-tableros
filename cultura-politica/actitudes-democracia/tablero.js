@@ -288,10 +288,7 @@ function pintarMapa() {
   sel.innerHTML = lista.map((i) => `<option value="${i.id}"${i.id === ind.id ? " selected" : ""}>${Obs.escapar(i.nombre)}</option>`).join("");
   const a = estado.anio;
   document.getElementById("t-mapa").textContent = `${ind.nombre} por región, ${a}`;
-  const pano = !temaActual();
-  document.getElementById("d-mapa").textContent = pano
-    ? `Porcentaje de personas de 18 años y más. El mapa muestra el indicador elegido; la tabla, los tres indicadores.`
-    : `Porcentaje de personas de 18 años y más en cada región.`;
+  document.getElementById("d-mapa").textContent = `Porcentaje de personas de 18 años y más en cada región. El mapa y el ranking muestran el indicador elegido.`;
   const regs = REGIONES.map((reg) => ({ reg, v: valor(ind.tema, ind.campo, reg, a) })).filter((x) => x.v != null);
   const vs = regs.map((x) => x.v);
   const min = Math.min(...vs), max = Math.max(...vs);
@@ -302,17 +299,13 @@ function pintarMapa() {
   const peru = valor(ind.tema, ind.campo, NACIONAL, a);
   document.getElementById("l-mapa").innerHTML = orden.length
     ? `En ${a}, va de ${destacar(pct(min))} en ${Obs.escapar(NOMBRE_REGION.get(orden.at(-1).reg))} a ${destacar(pct(max))} en ${Obs.escapar(NOMBRE_REGION.get(orden[0].reg))}. En el Perú es ${pct(peru)}.` : "";
-  document.getElementById("g-regiones").hidden = pano;
-  document.getElementById("t-regiones").hidden = !pano;
-  // En pantallas angostas, la tabla muestra solo el indicador elegido para el mapa
-  document.getElementById("t-regiones").dataset.ind = ind.tema;
-  if (pano) pintarTablaRegiones();
-  else {
-    Obs.ranking("g-regiones", orden.map((x) => ({ clave: x.reg, etiqueta: NOMBRE_REGION.get(x.reg), valor: x.v })), {
-      formato: pct, nombre: `${ind.nombre} por región`, color: C.tema[ind.tema], alClic: elegirRegion,
-      elegida: estado.region === NACIONAL ? null : estado.region, referencia: peru != null ? { valor: peru, etiqueta: "Perú" } : null,
-    });
-  }
+  // El ranking muestra solo el indicador elegido para el mapa (también en el panorama)
+  document.getElementById("g-regiones").hidden = false;
+  document.getElementById("t-regiones").hidden = true;
+  Obs.ranking("g-regiones", orden.map((x) => ({ clave: x.reg, etiqueta: NOMBRE_REGION.get(x.reg), valor: x.v })), {
+    formato: pct, nombre: `${ind.nombre} por región`, color: C.tema[ind.tema], alClic: elegirRegion,
+    elegida: estado.region === NACIONAL ? null : estado.region, referencia: peru != null ? { valor: peru, etiqueta: "Perú" } : null,
+  });
   mapa.pintar({ valores, color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: (v) => pct(v), elegida: estado.region === NACIONAL ? null : estado.region });
 }
 

@@ -31,3 +31,12 @@
   .filtros .segmentado { width: 100%; }
   .filtros .segmentado button { flex: 1; min-width: 0; }
 }
+
+/* Tabla ordenable: cada título de columna es un botón */
+.tabla.ordenable th { padding: 0; }
+.tabla.ordenable th button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 9px 12px; cursor: pointer; font-weight: 700; color: #fff; }
+.tabla.ordenable th.num button { justify-content: flex-end; text-align: right; }
+.tabla.ordenable th button:focus-visible { outline: 3px solid var(--lima); outline-offset: -3px; }
+.tabla.ordenable .flecha { font-size: 11px; opacity: 0.75; }
+.tabla.ordenable th[aria-sort="none"] .flecha { opacity: 0.4; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
