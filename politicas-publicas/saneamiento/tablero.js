@@ -136,31 +136,11 @@ function pintarPrioridad() {
     const i = Math.round(g.convertFromPixel({ xAxisIndex: 0 }, e.offsetX));
     if (anios[i] && anios[i] !== estado.anio) actualizar({ anio: anios[i] });
   });
-  pintarMapa();
 }
 
-/* Mapa de departamentos (escala continua) y ranking */
 // Por departamento, el peso de cada función llega hasta 2023: el mapa muestra el año más cercano
 const aniosDe = (reg) => (reg === NACIONAL ? ANIOS : ANIOS_REG);
 const anioMapa = () => (ANIOS_REG.includes(estado.anio) ? estado.anio : ANIOS_REG.filter((x) => x <= estado.anio).at(-1) ?? ANIOS_REG.at(-1));
-function pintarMapa() {
-  const a = anioMapa(), fn = nombreFuncion(estado.funcion);
-  const todas = [...new Set(D.prioridad.map((f) => f.funcion))];
-  $("#f-funcion").innerHTML = todas.map((f) => `<option value="${Obs.escapar(f)}"${f === estado.funcion ? " selected" : ""}>${Obs.escapar(nombreFuncion(f))}</option>`).join("");
-  $("#t-mapa").textContent = `¿Cuánto pesa ${laFuncion(estado.funcion)} en cada departamento? ${a}`;
-  const regs = REGIONES.map((reg) => ({ reg, v: peso(reg, a, estado.funcion) })).filter((x) => x.v != null);
-  const vs = regs.map((x) => x.v), min = Math.min(...vs), max = Math.max(...vs);
-  const valores = new Map(regs.map((x) => [x.reg, x.v]));
-  valores.set("LIMA METROPOLITANA", valores.get("LIMA")); valores.set("LIMA PROVINCIAS", valores.get("LIMA"));
-  const elegida = estado.region === NACIONAL ? null : estado.region;
-  mapa.pintar({ valores, color: (v) => colorContinuo(max > min ? (v - min) / (max - min) : 1), texto: pct, elegida: elegida === "LIMA" ? "LIMA METROPOLITANA" : elegida });
-  $("#ley-mapa").innerHTML = regs.length ? `<div class="ley-continua"><span>${pct(min)}</span><i style="background:linear-gradient(90deg,${escalaContinua().join(",")})"></i><span>${pct(max)}</span></div>` : "";
-  const orden = [...regs].sort((x, y) => y.v - x.v), peru = peso(NACIONAL, a, estado.funcion);
-  $("#l-mapa").innerHTML = (a !== estado.anio ? `Por departamento, los datos llegan hasta ${ANIOS_REG.at(-1)}: se muestra ${a}. ` : "") + (orden.length ? `Va de ${destacar(pct(min))} en ${nombreRegion(orden.at(-1).reg)} a ${destacar(pct(max))} en ${nombreRegion(orden[0].reg)}. En el Perú: ${pct(peru)}.` : "");
-  Obs.barras("g-regiones", regs.map((x) => ({ clave: x.reg, etiqueta: nombreRegion(x.reg), valor: x.v })), {
-    formato: pct, nombre: fn, seleccion: elegida ? new Set([elegida]) : null, alClic: elegirRegion,
-  });
-}
 
 /* ---------------------------------------------------------
    Presupuesto y gasto (nacional)
@@ -503,7 +483,6 @@ function render() {
     region: estado.region === NACIONAL ? null : estado.region,
     anio: estado.anio === ANIOS.at(-1) ? null : estado.anio,
     medida: estado.medida === "pim" ? null : estado.medida,
-    funcion: estado.funcion === SANEAMIENTO ? null : estado.funcion,
   });
 }
 function actualizar(parche) { Object.assign(estado, parche); render(); }
@@ -535,7 +514,6 @@ Obs.iniciar(TABLERO, async () => {
   $("#f-region").onchange = (e) => actualizar({ region: e.target.value });
   $("#f-anio").onchange = (e) => actualizar({ anio: +e.target.value });
   $("#f-medida").onclick = (e) => { const b = e.target.closest("button[data-m]"); if (b) actualizar({ medida: b.dataset.m }); };
-  $("#f-funcion").onchange = (e) => actualizar({ funcion: e.target.value });
 
   // Estado inicial desde la URL
   const p = Obs.parametros();
@@ -547,7 +525,6 @@ Obs.iniciar(TABLERO, async () => {
   if (p.get("nivel") === "distrito") estado.nivel = "distrito";
   if (ANIOS.includes(+p.get("anio"))) estado.anio = +p.get("anio");
   if (p.get("medida") === "pia") estado.medida = "pia";
-  if (D.prioridad.some((f) => f.funcion === p.get("funcion"))) estado.funcion = p.get("funcion");
 
   const pestanas = [...document.querySelectorAll(".modulos button")];
   pestanas.forEach((b, i) => {
@@ -561,7 +538,6 @@ Obs.iniciar(TABLERO, async () => {
     };
   });
 
-  mapa = new Obs.Mapa("mapa-regiones", geo, { alClic: elegirRegion, nombre: (c) => (DEL_MAPA[c] ? `Lima (departamento)` : nombreRegion(c)) });
   Obs.descarga({ archivos: ARCHIVOS });
   let anchoPrevio = window.innerWidth;
   window.addEventListener("resize", () => {
