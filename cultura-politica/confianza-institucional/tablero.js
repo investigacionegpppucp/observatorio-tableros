@@ -98,40 +98,47 @@ function ranking(s) {
 }
 
 /* ---------- Evolución ----------
-   La línea del ámbito elegido; con una región, el Perú en gris como referencia. */
+   Confía (suficiente o bastante) y no confía (nada o poco) en el ámbito elegido;
+   con una región, el Perú en línea punteada como referencia. */
 function evolucion(s) {
   const id = "g-evol";
   const anios = ANIOS;
   const conRef = estado.region !== NACIONAL;
-  const valores = (filas) => anios.map((a) => filas.find((f) => f.anio === a)?.confia ?? null);
-  const principal = valores(s.serie), ref = conRef ? valores(s.nacional) : [];
+  const valores = (filas, campo) => anios.map((a) => filas.find((f) => f.anio === a)?.[campo] ?? null);
+  const LINEAS = [["confia", "Suficiente o bastante confianza", C.resp.bastante], ["noconfia", "Nada o poca confianza", C.resp.nada]];
+  const series = LINEAS.map(([c, n, col]) => ({ campo: c, nombre: n, color: col, principal: valores(s.serie, c), ref: conRef ? valores(s.nacional, c) : [] }));
   document.getElementById("t-evol").textContent = `Confianza en ${conArticulo(estado.institucion)}, ${anios[0]}-${anios.at(-1)}`;
-  document.getElementById("d-evol").textContent = `Porcentaje que confía suficiente o bastante, ${enAmbito(estado.region)}.`;
-  document.getElementById("ley-evol").innerHTML = conRef
-    ? `<span><i class="l" style="border-color:${C.unica}"></i>${Obs.escapar(NOMBRE_REGION.get(estado.region))}</span><span><i class="l" style="border-color:${C.gris}"></i>Perú</span>` : "";
-  if (!principal.some((v) => v != null)) return Obs.vacio(id);
-  const tope = Math.min(1, Math.ceil((Math.max(...principal.concat(ref).filter((v) => v != null)) + 0.05) * 10) / 10);
+  document.getElementById("d-evol").textContent = `Porcentaje que confía suficiente o bastante, y que confía nada o poco, ${enAmbito(estado.region)}.` + (conRef ? " En línea punteada, el Perú." : "");
+  document.getElementById("ley-evol").innerHTML = series.map((x) => `<span><i class="l" style="border-color:${x.color}"></i>${x.nombre}</span>`).join("") +
+    (conRef ? `<span><i class="l" style="border-color:${C.gris};border-top-style:dashed"></i>Perú</span>` : "");
+  // Misma altura que el gráfico de respuestas por año, que va al lado
+  const el = document.getElementById(id);
+  el.style.height = window.matchMedia("(min-width: 901px)").matches ? `${Math.max(300, s.serie.length * 30 + 40)}px` : "";
+  if (!series[0].principal.some((v) => v != null)) return Obs.vacio(id);
+  const todos = series.flatMap((x) => x.principal.concat(x.ref)).filter((v) => v != null);
+  const tope = Math.min(1, Math.ceil((Math.max(...todos) + 0.08) * 10) / 10);
   const k = anios.indexOf(estado.anio);
-  // los nulos iniciales se quitan: si no, el rótulo final de ECharts arranca en NaN
+  // los nulos iniciales se quitan: si no, el rótulo de ECharts arranca en NaN
   const pares = (vals) => vals.map((v, i) => [String(anios[i]), v]).filter((p) => p[1] != null);
   const g = Obs.grafico(id);
+  g.resize();
   g.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM, animationDurationUpdate: 400,
     tooltip: { ...Obs.tooltipBase(), trigger: "axis",
       formatter: (ps) => `<strong>${ps[0].axisValue}</strong>` + ps.map((p) => `<br>${p.marker}${Obs.escapar(p.seriesName)}: <strong>${pct(p.value[1])}</strong>`).join("") },
     grid: { left: 52, right: 24, top: 30, bottom: 30 },
     xAxis: { type: "category", data: anios.map(String), boundaryGap: false, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
-      axisLabel: txt({ interval: (i) => (anios.length - 1 - i) % (document.getElementById(id).clientWidth < 420 ? 3 : 2) === 0 }) },
+      axisLabel: txt({ interval: (i) => (anios.length - 1 - i) % (el.clientWidth < 420 ? 3 : 2) === 0 }) },
     yAxis: { type: "value", min: 0, max: tope, splitLine: { lineStyle: { color: C.linea } }, axisLabel: txt({ formatter: (v) => Math.round(v * 100) + " %" }) },
-    series: [
-      ...(conRef ? [{ name: "Perú", type: "line", data: pares(ref), connectNulls: true, symbol: "circle", symbolSize: 6, z: 1,
-        lineStyle: { width: 2, color: C.gris }, itemStyle: { color: C.gris }, emphasis: { disabled: true } }] : []),
-      { name: NOMBRE_REGION.get(estado.region), type: "line", data: pares(principal), connectNulls: true, symbol: "circle", symbolSize: 8, z: 3,
-        lineStyle: { width: 2, color: C.unica }, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 2 },
-        markPoint: principal[k] != null ? { symbol: "circle", symbolSize: 14, itemStyle: { color: C.unica, borderColor: "#fff", borderWidth: 3 },
-          label: { show: true, position: "top", distance: 8, formatter: () => pct(principal[k]), ...txt({ color: C.texto, fontWeight: 700 }) },
-          data: [{ coord: [String(estado.anio), principal[k]] }] } : undefined },
-    ],
+    series: series.flatMap((x, j) => [
+      ...(conRef ? [{ name: `${x.nombre} (Perú)`, type: "line", data: pares(x.ref), connectNulls: true, symbol: "none", z: 1,
+        lineStyle: { width: 1.5, type: "dashed", color: x.color, opacity: 0.6 }, itemStyle: { color: x.color }, emphasis: { disabled: true } }] : []),
+      { name: x.nombre, type: "line", data: pares(x.principal), connectNulls: true, symbol: "circle", symbolSize: 7, z: 3,
+        lineStyle: { width: 2.5, color: x.color }, itemStyle: { color: x.color, borderColor: "#fff", borderWidth: 2 },
+        markPoint: x.principal[k] != null ? { symbol: "circle", symbolSize: 14, itemStyle: { color: x.color, borderColor: "#fff", borderWidth: 3 },
+          label: { show: true, position: x.principal[k] >= (series[1 - j].principal[k] ?? 0) ? "top" : "bottom", distance: 8, formatter: () => pct(x.principal[k]), ...txt({ color: x.color, fontWeight: 800 }) },
+          data: [{ coord: [String(estado.anio), x.principal[k]] }] } : undefined },
+    ]),
   }, true);
   g.off("click");
   g.getZr().off("click");
@@ -141,8 +148,8 @@ function evolucion(s) {
     const i = Math.round(g.convertFromPixel({ xAxisIndex: 0 }, e.offsetX));
     if (anios[i] && anios[i] !== estado.anio) actualizar({ anio: anios[i] });
   });
-  document.getElementById(id).setAttribute("aria-label", `Confianza en ${conArticulo(estado.institucion)} ${enAmbito(estado.region)}: ` +
-    anios.map((a, i) => (principal[i] == null ? null : `${a}, ${pct(principal[i])}`)).filter(Boolean).join("; ") + ".");
+  el.setAttribute("aria-label", `Confianza en ${conArticulo(estado.institucion)} ${enAmbito(estado.region)}: ` +
+    anios.map((a, i) => (series[0].principal[i] == null ? null : `${a}, confía ${pct(series[0].principal[i])} y no confía ${pct(series[1].principal[i])}`)).filter(Boolean).join("; ") + ".");
 }
 
 /* ---------- Respuestas por año (barras apiladas al 100 %) ---------- */
@@ -222,7 +229,7 @@ Obs.iniciar(TABLERO, async () => {
     const nombre = nombreBonito(String(f.region).trim());
     const cod = nac ? NACIONAL : codigo(nombre);
     if (!nac) NOMBRE_REGION.set(cod, nombre);
-    return { anio: +f["AÑO"], org: String(f.org).trim(), region: cod, codigo: cod, confia: f.sufi_bast_p,
+    return { anio: +f["AÑO"], org: String(f.org).trim(), region: cod, codigo: cod, confia: f.sufi_bast_p, noconfia: f.nada_poca_p,
       nada: f.nada_p, poca: f.poca_p, suficiente: f.suficiente_p, bastante: f.bastante_p, nosabe: f.no_sabe_p };
   });
   FILAS.forEach((f) => INDICE.set(`${f.org}|${f.region}|${f.anio}`, f));

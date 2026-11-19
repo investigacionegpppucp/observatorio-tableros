@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=a3ef0d7">
-  <link rel="stylesheet" href="../../comun/tema.css?v=a3ef0d7">
-  <link rel="stylesheet" href="../../comun/estilos.css?v=a3ef0d7">
-  <link rel="stylesheet" href="estilos.css?v=a3ef0d7">
+  <link rel="stylesheet" href="../../comun/lib/leaflet-1.9.4.css?v=48849ae">
+  <link rel="stylesheet" href="../../comun/tema.css?v=48849ae">
+  <link rel="stylesheet" href="../../comun/estilos.css?v=48849ae">
+  <link rel="stylesheet" href="estilos.css?v=48849ae">
 </head>
 <body>
   <header class="cabecera">
@@ -113,29 +113,6 @@
         <div class="grafico" id="g-estado"></div>
         <div class="leyenda-mapa" id="ley-estado"></div>
       </article>
-      <article class="tarjeta">
-        <header><h3>¿Qué dijo Dina Boluarte en sus mensajes a la nación?</h3><p>Línea de tiempo de los mensajes, con las personas fallecidas hasta cada fecha. En la nube, el tamaño de cada palabra indica cuántas veces la repitió y el color, su tema.</p></header>
-        <div class="linea-mensajes" id="lm" role="group" aria-label="Mensajes a la nación"></div>
-        <div class="discurso">
-          <div>
-            <h4 id="t-nube">Sus palabras</h4>
-            <div class="nube" id="nube"></div>
-            <div class="ley" id="ley-temas"></div>
-          </div>
-          <div>
-            <h4 id="t-temas">¿De qué temas habló?</h4>
-            <p class="nota-tarjeta" id="d-temas"></p>
-            <div class="grafico bajo" id="g-temas"></div>
-          </div>
-        </div>
-      </article>
-      <article class="tarjeta">
-        <header><h3>¿Cómo cambió su discurso de un mensaje a otro?</h3><p>Cuántas de cada 100 palabras de cada mensaje corresponden a cada tema.</p></header>
-        <div class="controles"><div class="buscador-tabla"><label for="f-palabra">Seguir una palabra</label><input id="f-palabra" type="search" placeholder="Por ejemplo, diálogo" list="lista-palabras" autocomplete="off"><datalist id="lista-palabras"></datalist></div></div>
-        <p class="lectura" id="l-palabra" aria-live="polite"></p>
-        <div class="grafico" id="g-evolucion"></div>
-        <p class="nota-tarjeta">Los temas agrupan palabras afines según una clasificación del Observatorio para este tablero; las palabras de uso general no se cuentan.</p>
-      </article>
     </section>
 
     <!-- Mapa: una sola tarjeta, cambia con la pestaña -->
@@ -168,9 +145,33 @@
     </div>
     <div class="abajo" data-modulo="estado" hidden>
         <article class="tarjeta">
-          <header><h3 id="t-medidas">Las medidas, una por una</h3><p>Cada declaratoria o prórroga, con la provincia, el inicio, el fin y su duración.</p></header>
+          <header><h3 id="t-medidas">Las provincias con medidas de excepción</h3><p>Una fila por provincia: desde el primer decreto que la incluyó hasta el fin de la última prórroga, con su duración y el número de decretos.</p></header>
+          <p class="nota-tarjeta">Una provincia puede figurar en más de un decreto supremo: el que declara el estado de emergencia y los que lo prorrogan, porque un estado de emergencia no puede durar más de 60 días sin un nuevo decreto (artículo 137 de la Constitución). Por eso aquí no se cuenta cada decreto por separado, sino el periodo completo de cada provincia.</p>
           <div class="controles"><div class="buscador-tabla"><label for="f-buscar-e">Buscar</label><input id="f-buscar-e" type="search" placeholder="Provincia o región" autocomplete="off"></div></div>
           <div class="tabla-caja" id="t-medidas-tabla"></div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Qué dijo Dina Boluarte en sus mensajes a la nación?</h3><p>Línea de tiempo de los mensajes, con las personas fallecidas hasta cada fecha. En la nube, el tamaño de cada palabra indica cuántas veces la repitió y el color, su tema.</p></header>
+          <div class="linea-mensajes" id="lm" role="group" aria-label="Mensajes a la nación"></div>
+          <div class="discurso">
+            <div>
+              <h4 id="t-nube">Sus palabras</h4>
+              <div class="nube" id="nube"></div>
+              <div class="ley" id="ley-temas"></div>
+            </div>
+            <div>
+              <h4 id="t-temas">¿De qué temas habló?</h4>
+              <p class="nota-tarjeta" id="d-temas"></p>
+              <div class="grafico bajo" id="g-temas"></div>
+            </div>
+          </div>
+        </article>
+        <article class="tarjeta">
+          <header><h3>¿Cómo cambió su discurso de un mensaje a otro?</h3><p>Cuántas de cada 100 palabras de cada mensaje corresponden a cada tema.</p></header>
+          <div class="controles"><div class="buscador-tabla"><label for="f-palabra">Seguir una palabra</label><input id="f-palabra" type="search" placeholder="Por ejemplo, diálogo" list="lista-palabras" autocomplete="off"><datalist id="lista-palabras"></datalist></div></div>
+          <p class="lectura" id="l-palabra" aria-live="polite"></p>
+          <div class="grafico" id="g-evolucion"></div>
+          <p class="nota-tarjeta">Los temas agrupan palabras afines según una clasificación del Observatorio para este tablero; las palabras de uso general no se cuentan.</p>
         </article>
     </div>
   </main>
@@ -179,18 +180,18 @@
     <p><strong>Fuente:</strong> Observatorio para la Democracia y Gobernabilidad, con base en los reportes diarios de la Defensoría del Pueblo, los mensajes a la nación de la presidenta Dina Boluarte, los comunicados del Ministerio de Salud, los decretos supremos que declararon los estados de emergencia y la prensa nacional y regional.</p>
     <p><strong>Notas:</strong> El período va del 7 de diciembre de 2022 a mayo de 2024. <strong>Fallecidos:</strong> la lista suma 76 personas: 56 en enfrentamientos y represión, y 20 a consecuencia del bloqueo de vías. La Defensoría del Pueblo cuenta 67 (56 y 11): las otras nueve muertes vinculadas a los bloqueos salen de la prensa.
       <strong>Acciones de protesta:</strong> una acción por día, lugar y tipo. <strong>Bloqueos:</strong> «provincias con bloqueos» cuenta cada día que una provincia tuvo al menos una vía bloqueada; los «puntos de bloqueo» son los que reporta la Defensoría cada día.
-      <strong>Estados de emergencia:</strong> declaratorias y prórrogas no nacionales, por provincia. <strong>Mensajes a la nación:</strong> palabras de los mensajes de Dina Boluarte contadas con ATLAS.ti, sin artículos, preposiciones ni otras palabras de uso general; los mensajes no cambian con la región elegida. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
+      <strong>Estados de emergencia:</strong> estados de emergencia no nacionales y medidas de inmovilización social obligatoria; cada provincia se cuenta una vez, con su periodo completo (del primer decreto al fin de la última prórroga). <strong>Mensajes a la nación:</strong> palabras de los mensajes de Dina Boluarte contadas con ATLAS.ti, sin artículos, preposiciones ni otras palabras de uso general; los mensajes no cambian con la región elegida. Lima Metropolitana corresponde a la provincia de Lima, y Lima Provincias al resto del departamento. Datos actualizados al <span id="actualizado"></span>.</p>
     <p><strong>Cómo citar:</strong> Observatorio para la Democracia y Gobernabilidad (2026). <em>Estallido social</em>. Escuela de Gobierno y Políticas Públicas, PUCP.</p>
   </footer>
 
-  <script src="../../comun/lib/echarts-5.6.0.min.js?v=a3ef0d7"></script>
-  <script src="../../comun/lib/leaflet-1.9.4.js?v=a3ef0d7"></script>
-  <script src="../../comun/config.js?v=a3ef0d7"></script>
-  <script src="../../comun/base.js?v=a3ef0d7"></script>
-  <script src="../../comun/graficos.js?v=a3ef0d7"></script>
-  <script src="../../comun/mapa.js?v=a3ef0d7"></script>
-  <script src="../../comun/filtros.js?v=a3ef0d7"></script>
-  <script src="../../comun/descarga.js?v=a3ef0d7"></script>
-  <script src="tablero.js?v=a3ef0d7"></script>
+  <script src="../../comun/lib/echarts-5.6.0.min.js?v=48849ae"></script>
+  <script src="../../comun/lib/leaflet-1.9.4.js?v=48849ae"></script>
+  <script src="../../comun/config.js?v=48849ae"></script>
+  <script src="../../comun/base.js?v=48849ae"></script>
+  <script src="../../comun/graficos.js?v=48849ae"></script>
+  <script src="../../comun/mapa.js?v=48849ae"></script>
+  <script src="../../comun/filtros.js?v=48849ae"></script>
+  <script src="../../comun/descarga.js?v=48849ae"></script>
+  <script src="tablero.js?v=48849ae"></script>
 </body>
 </html>

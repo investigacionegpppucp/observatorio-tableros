@@ -50,7 +50,7 @@ const DIA = 86400000;
 const estado = { modulo: "victimas", ambito: "nacional", region: NACIONAL, desde: null, hasta: null, mapa: {}, nivel: {}, bloqueo: "provincias", medida: "emergencia", mensaje: "", palabra: "" };
 const buscar = { f: "", v: "", e: "" };
 // Nivel del mapa por pestaña: los estados de emergencia se declaran por provincia
-const NIVEL_INICIAL = { victimas: "regional", protestas: "regional", bloqueos: "regional", estado: "provincial" };
+const NIVEL_INICIAL = { victimas: "regional", protestas: "regional", bloqueos: "regional", estado: "regional" };
 const nivelMapa = () => estado.nivel[estado.modulo] ?? NIVEL_INICIAL[estado.modulo];
 let D, C, GEO, controles, MESES_LISTA = [];
 
@@ -329,94 +329,122 @@ function pintarBloqueos() {
    Pestaña: Estados de emergencia
    --------------------------------------------------------- */
 const finInmov = (x) => new Date(+aFecha(x.inicio) + ((x.dias ?? 1) - 1) * DIA).toISOString().slice(0, 10);
+/* Cada fila de la base es una provincia incluida en un decreto (el original o una prórroga), con la fecha
+   de inicio de ese decreto y el fin y los días del periodo completo de la provincia. Aquí se junta en un
+   periodo por provincia: del primer decreto al fin de la última prórroga, con el número de decretos. */
+function periodos(medida) {
+  const filas = medida === "emergencia" ? D.emergencia : D.inmovilizacion.map((x) => ({ ...x, fin: finInmov(x) }));
+  const g = new Map();
+  for (const x of filas) {
+    const k = `${x.region}|${x.provincia ?? x.lugar}`;
+    const p = g.get(k) ?? { region: x.region, provincia: x.provincia, lugar: x.lugar, inicio: x.inicio, fin: x.fin ?? x.inicio, decretos: 0, dias: 0 };
+    p.dias = Math.max(p.dias, x.dias ?? 0); // los días que da la base para el periodo completo
+    p.inicio = x.inicio < p.inicio ? x.inicio : p.inicio;
+    p.fin = (x.fin ?? x.inicio) > p.fin ? x.fin ?? x.inicio : p.fin;
+    p.decretos += 1;
+    g.set(k, p);
+  }
+  return [...g.values()].map((p) => ({ ...p, medida, dias: p.dias || Math.round((aFecha(p.fin) - aFecha(p.inicio)) / DIA) }));
+}
+const periodosVigentes = (medida) => periodos(medida).filter((x) => x.inicio <= finPeriodo() && x.fin >= inicioPeriodo() && enRegion(x.region));
+// Une intervalos que se tocan o se superponen: [[inicio, fin], …]
+function unir(intervalos) {
+  const o = [...intervalos].sort((a, b) => (a[0] < b[0] ? -1 : 1)), out = [];
+  for (const [i, f] of o) {
+    const u = out.at(-1);
+    if (u && +aFecha(i) <= +aFecha(u[1]) + DIA) { if (f > u[1]) u[1] = f; } else out.push([i, f]);
+  }
+  return out;
+}
 function pintarEstado() {
-  const ee = vigentes("emergencia"), im = D.inmovilizacion.map((x) => ({ ...x, fin: finInmov(x) })).filter((x) => x.inicio <= finPeriodo() && x.fin >= inicioPeriodo() && enRegion(x.region));
-  const provEE = new Set(ee.map((x) => x.provincia ?? x.lugar)), provIM = new Set(im.map((x) => x.provincia ?? x.lugar));
+  const ee = periodosVigentes("emergencia"), im = periodosVigentes("inmovilizacion");
   const regEE = new Set(ee.map((x) => x.region));
+  const conProrroga = ee.filter((x) => x.decretos > 1).length;
+  const largo = ee.length ? ee.reduce((m, x) => (x.dias > m.dias ? x : m)) : null;
+  const igualLargo = largo ? ee.filter((x) => x.dias === largo.dias) : [];
+  const regLargo = [...new Set(igualLargo.map((x) => nombreRegion(x.region)))];
   document.getElementById("r-estado").innerHTML = (ee.length
-    ? `${EnLugar(estado.region)}, ${periodoTxt()}, ${destacar(`${n0(provEE.size)} provincias`)} de ${n0(regEE.size)} ${regEE.size === 1 ? "región" : "regiones"} estuvieron en estado de emergencia, con ${n0(ee.length)} declaratorias y prórrogas.`
+    ? `${EnLugar(estado.region)}, ${periodoTxt()}, ${destacar(`${n0(ee.length)} ${ee.length === 1 ? "provincia" : "provincias"}`)} de ${n0(regEE.size)} ${regEE.size === 1 ? "región" : "regiones"} estuvieron en estado de emergencia. ` +
+      `En ${n0(conProrroga)} de ellas se prorrogó al menos una vez, y el periodo más largo duró ${destacar(`${n0(largo.dias)} días`)}${igualLargo.length > 1 ? ` (${n0(igualLargo.length)} provincias de ${regLargo.join(" y ")})` : ` (${Obs.escapar(largo.lugar)})`}.`
     : `${EnLugar(estado.region)} no hubo estados de emergencia vigentes ${periodoTxt()}.`) +
-    (im.length ? ` En ${destacar(`${n0(provIM.size)} provincias`)} se dispuso la inmovilización social obligatoria.` : "") +
+    (im.length ? ` En ${destacar(`${n0(im.length)} provincias`)} se dispuso la inmovilización social obligatoria.` : "") +
     (mensajesPeriodo().length ? ` Dina Boluarte dio ${n0(mensajesPeriodo().length)} ${mensajesPeriodo().length === 1 ? "mensaje" : "mensajes"} a la nación en ese período.` : "");
-  const largo = ee.length ? Math.max(...ee.map((x) => x.dias ?? 0)) : 0;
   kpis("k-estado", [
-    { etiqueta: "Provincias en estado de emergencia", valor: n0(provEE.size), pie: `De ${n0(regEE.size)} ${regEE.size === 1 ? "región" : "regiones"}` },
-    { etiqueta: "Declaratorias y prórrogas", valor: n0(ee.length), pie: "Por provincia" },
-    { etiqueta: "Provincias con inmovilización social", valor: n0(provIM.size), pie: `${n0(im.length)} medidas` },
-    { etiqueta: "El estado de emergencia más largo", valor: largo ? `${n0(largo)} días` : "—", pie: "Contando las prórrogas" },
+    { etiqueta: "Provincias en estado de emergencia", valor: n0(ee.length), pie: `De ${n0(regEE.size)} ${regEE.size === 1 ? "región" : "regiones"}` },
+    { etiqueta: "Provincias con prórroga", valor: n0(conProrroga), pie: ee.length ? `Las demás tuvieron solo el decreto original` : "" },
+    { etiqueta: "Provincias con inmovilización social", valor: n0(im.length), pie: "Inmovilización social obligatoria" },
+    { etiqueta: "El estado de emergencia más largo", valor: largo ? `${n0(largo.dias)} días` : "—", pie: largo ? `Del primer decreto al fin de la última prórroga (${regLargo.join(", ")})` : "" },
   ]);
-  // ¿Cuándo y dónde? Semanas × regiones (o provincias de la región elegida); el color cuenta las provincias bajo la medida
+
+  // Línea de tiempo: una barra por región (o por provincia de la región elegida), de cuándo empezó a cuándo terminó
   document.getElementById("f-medida").innerHTML = [["emergencia", "Estado de emergencia"], ["inmovilizacion", "Inmovilización social"]]
     .map(([k, e]) => `<button type="button" data-m="${k}" aria-pressed="${estado.medida === k}">${e}</button>`).join("");
   const lista = estado.medida === "emergencia" ? ee : im;
   const nombreMedida = estado.medida === "emergencia" ? "estado de emergencia" : "inmovilización social obligatoria";
+  const color = estado.medida === "emergencia" ? C.categorias[0] : C.categorias[1];
   const porRegion = estado.region === NACIONAL;
-  const claveFila = (x) => (porRegion ? x.region : x.provincia ?? x.lugar);
-  const etiquetaFila = (k) => (porRegion ? nombreRegion(k) : PROV.get(k) ?? k);
-  const provDe = (x) => x.provincia ?? x.lugar;
-  let sem = semanas();
-  const finSem = (s) => new Date(+aFecha(s) + 6 * DIA).toISOString().slice(0, 10);
-  const enSemana = (x, s) => x.inicio <= finSem(s) && (x.fin ?? x.inicio) >= s;
-  let claves = [...new Set(lista.map(claveFila))];
-  let conteo = claves.map((k) => sem.map((s) => new Set(lista.filter((x) => claveFila(x) === k && enSemana(x, s)).map(provDe)).size));
-  let totalSem = sem.map((s) => new Set(lista.filter((x) => enSemana(x, s)).map(provDe)).size);
   document.getElementById("d-estado").textContent = porRegion
-    ? `Cada fila es una región y cada columna, una semana. El color indica cuántas de sus provincias estaban en ${nombreMedida}.`
-    : `Cada fila es una provincia de ${nombreRegion(estado.region)} y cada columna, una semana: el color marca las semanas en que rigió la medida.`;
+    ? `Cada barra es una región: va desde que la primera de sus provincias entró en ${nombreMedida} hasta que terminó la última. Haz clic en una región para ver sus provincias.`
+    : `Cada barra es una provincia de ${nombreRegion(estado.region)}: va del primer decreto al fin de la última prórroga.`;
   const lEstado = document.getElementById("l-estado");
+  document.getElementById("ley-estado").innerHTML = "";
   if (!lista.length) {
     Obs.vacio("g-estado", `Sin ${nombreMedida} ${periodoTxt()}`);
     document.getElementById("g-estado").style.height = "";
-    document.getElementById("ley-estado").innerHTML = ""; lEstado.textContent = "";
+    lEstado.textContent = "";
   } else {
-    const [ini, fin] = conDatos(sem.length, [totalSem]);
-    sem = sem.slice(ini, fin); totalSem = totalSem.slice(ini, fin); conteo = conteo.map((c) => c.slice(ini, fin));
-    // Orden: primero las que entraron antes y, a igual fecha, las que sumaron más
-    const orden = claves.map((k, i) => ({ k, c: conteo[i], primera: conteo[i].findIndex((v) => v), suma: conteo[i].reduce((a, b) => a + b, 0) }))
-      .sort((a, b) => a.primera - b.primera || b.suma - a.suma);
-    claves = orden.map((o) => o.k); conteo = orden.map((o) => o.c);
-    const maxC = Math.max(1, ...conteo.flat());
-    const iPico = totalSem.indexOf(Math.max(...totalSem));
-    const regPico = new Set(lista.filter((x) => enSemana(x, sem[iPico])).map((x) => x.region)).size;
-    lEstado.innerHTML = `La medida alcanzó su mayor extensión la semana del ${destacar(fmtFecha(sem[iPico]))}, con ${destacar(`${n0(totalSem[iPico])} ${totalSem[iPico] === 1 ? "provincia" : "provincias"}`)}` +
-      (porRegion ? ` de ${n0(regPico)} ${regPico === 1 ? "región" : "regiones"}` : "") + ` en ${nombreMedida}.`;
+    const filas = porRegion
+      ? [...new Set(lista.map((x) => x.region))].map((r) => { const ps = lista.filter((x) => x.region === r);
+          return { clave: r, nombre: nombreRegion(r), tramos: unir(ps.map((x) => [x.inicio, x.fin])), provincias: ps.length, decretos: ps.reduce((s, x) => s + x.decretos, 0), dias: Math.max(...ps.map((x) => x.dias)) }; })
+      : lista.map((x) => ({ clave: x.provincia ?? x.lugar, nombre: PROV.get(x.provincia) ?? x.lugar, tramos: [[x.inicio, x.fin]], provincias: 1, decretos: x.decretos, dias: x.dias }));
+    filas.forEach((f) => { f.inicio = f.tramos[0][0]; f.fin = f.tramos.at(-1)[1]; });
+    filas.sort((a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : b.dias - a.dias));
+    const primero = filas.reduce((m, f) => (f.inicio < m ? f.inicio : m), filas[0].inicio), ultimo = filas.reduce((m, f) => (f.fin > m ? f.fin : m), filas[0].fin);
+    const masLarga = filas.reduce((m, f) => (f.dias > m.dias ? f : m));
+    lEstado.innerHTML = `La medida rigió del ${destacar(fmtFecha(primero))} al ${destacar(fmtFecha(ultimo))}. ` +
+      `${porRegion ? "La región" : "La provincia"} donde duró más fue ${destacar(Obs.escapar(masLarga.nombre))}: ${n0(masLarga.dias)} días.`;
     const el = document.getElementById("g-estado");
-    el.style.height = `${Math.max(200, claves.length * 26 + 70)}px`;
+    el.style.height = `${Math.max(180, filas.length * 34 + 60)}px`;
     const g = Obs.grafico("g-estado");
     g.resize();
-    const ancho = el.clientWidth;
-    const cada = Math.max(1, Math.ceil(sem.length / Math.max(3, Math.floor((ancho - 140) / 80))));
-    const datos = [];
-    conteo.forEach((c, y) => c.forEach((v, x) => v && datos.push([x, y, v])));
+    const datos = filas.flatMap((f, y) => f.tramos.map(([i, fi]) => ({ value: [y, +aFecha(i), +aFecha(fi) + DIA, f.dias], f })));
     g.setOption({
       textStyle: { fontFamily: C.fuente }, animation: ANIM,
-      tooltip: { ...Obs.tooltipBase(), formatter: (p) => `<strong>${Obs.escapar(etiquetaFila(claves[p.value[1]]))}</strong><br>Semana del ${fmtFecha(sem[p.value[0]])}` +
-        (porRegion ? `<br><strong>${n0(p.value[2])}</strong> ${p.value[2] === 1 ? "provincia" : "provincias"} en ${nombreMedida}` : `<br>En ${nombreMedida}`) },
-      grid: { left: 130, right: 16, top: 8, bottom: 44 },
-      xAxis: { type: "category", data: sem, splitArea: { show: false }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.linea } },
-        axisLabel: txt({ interval: (i) => i % cada === 0, formatter: etiquetaEje }) },
-      yAxis: { type: "category", data: claves.map(etiquetaFila), inverse: true, axisTick: { show: false }, axisLine: { show: false },
-        splitLine: { show: true, lineStyle: { color: C.linea, opacity: 0.5 } }, axisLabel: txt({ color: C.texto, width: 120, overflow: "truncate" }), triggerEvent: porRegion },
-      visualMap: { show: false, min: 1, max: Math.max(2, maxC), inRange: { color: maxC > 1 ? C.escala.slice(1) : [C.escala[3], C.escala[3]] } },
-      series: [{ type: "heatmap", data: datos, cursor: porRegion ? "pointer" : "default", itemStyle: { borderColor: "#fff", borderWidth: 1, borderRadius: 2 },
-        emphasis: { itemStyle: { borderColor: C.texto, borderWidth: 1 } } }],
+      tooltip: { ...Obs.tooltipBase(), formatter: (p) => { const f = p.data.f;
+        return `<strong>${Obs.escapar(f.nombre)}</strong><br>Del ${fmtFecha(f.inicio)} al ${fmtFecha(f.fin)}<br>${porRegion && f.provincias > 1 ? "La provincia con más días: " : ""}<strong>${n0(f.dias)} días</strong>` +
+          (porRegion ? `<br>${n0(f.provincias)} ${f.provincias === 1 ? "provincia" : "provincias"}` : "") +
+          (estado.medida === "emergencia" ? `<br>${n0(f.decretos)} ${f.decretos === 1 ? "decreto" : "decretos"} (original y prórrogas${porRegion ? ", sumando sus provincias" : ""})` : ""); } },
+      grid: { left: 8, right: 70, top: 8, bottom: 30, containLabel: true },
+      xAxis: { type: "time", min: +aFecha(primero) - 3 * DIA, max: +aFecha(ultimo) + 4 * DIA, splitLine: { show: true, lineStyle: { color: C.linea } }, axisLine: { lineStyle: { color: C.linea } },
+        axisLabel: txt({ formatter: (v) => { const d = new Date(v); return `${d.getUTCDate()} ${MESES_C[d.getUTCMonth()]}${d.getUTCMonth() === 0 ? `\n${d.getUTCFullYear()}` : ""}`; } }) },
+      yAxis: { type: "category", data: filas.map((f) => f.nombre), inverse: true, axisTick: { show: false }, axisLine: { show: false }, axisLabel: txt({ color: C.texto }), triggerEvent: porRegion },
+      series: [{ type: "custom", encode: { x: [1, 2], y: 0 }, data: datos, cursor: porRegion ? "pointer" : "default",
+        renderItem: (params, api) => {
+          const y = api.value(0), ini = api.coord([api.value(1), y]), fin = api.coord([api.value(2), y]), alto = Math.min(18, api.size([0, 1])[1] * 0.6);
+          const rect = { x: ini[0], y: ini[1] - alto / 2, width: Math.max(3, fin[0] - ini[0]), height: alto };
+          const esUltimo = datos.filter((d) => d.value[0] === y).at(-1).value[2] === api.value(2);
+          return { type: "group", children: [
+            { type: "rect", shape: { ...rect, r: 3 }, style: { fill: color } },
+            ...(esUltimo ? [{ type: "text", style: { text: `${n0(api.value(3))} días`, x: rect.x + rect.width + 6, y: ini[1], verticalAlign: "middle", fill: C.texto, font: `600 13px ${C.fuente}` } }] : []),
+          ] };
+        } }],
     }, true);
     g.off("click");
-    if (porRegion) g.on("click", (p) => { const y = p.componentType === "yAxis" ? claves.findIndex((k) => etiquetaFila(k) === p.value) : p.value?.[1]; if (y >= 0 && claves[y]) elegirRegion(claves[y]); });
-    document.getElementById("ley-estado").innerHTML = porRegion && maxC > 1
-      ? `<div class="ley-continua"><span>1</span><i style="background:linear-gradient(90deg,${C.escala.slice(1).join(",")})"></i><span>${n0(maxC)} provincias</span></div>` : "";
+    if (porRegion) g.on("click", (p) => { const y = p.componentType === "yAxis" ? filas.findIndex((f) => f.nombre === p.value) : p.data?.value?.[0]; if (y >= 0 && filas[y]) elegirRegion(filas[y].clave); });
   }
+
+  // Tabla: un periodo por provincia
   const q = sinTildeTxt(buscar.e.trim());
-  const filas = [...ee.map((x) => ({ ...x, tipo: "Estado de emergencia" })), ...im.map((x) => ({ ...x, tipo: "Inmovilización social obligatoria" }))]
-    .filter((x) => !q || sinTildeTxt(`${x.lugar} ${nombreRegion(x.region)}`).includes(q));
+  const filasT = [...ee, ...im].filter((x) => !q || sinTildeTxt(`${x.lugar} ${nombreRegion(x.region)}`).includes(q));
   tablaOrdenable("t-medidas-tabla", [
-    { clave: "tipo", titulo: "Medida", valor: (x) => x.tipo, html: (x) => Obs.escapar(x.tipo) },
+    { clave: "medida", titulo: "Medida", valor: (x) => x.medida, html: (x) => (x.medida === "emergencia" ? "Estado de emergencia" : "Inmovilización social obligatoria") },
     { clave: "lugar", titulo: "Provincia", valor: (x) => x.lugar, html: (x) => `<strong>${Obs.escapar(x.lugar ?? "—")}</strong><small>${Obs.escapar(nombreRegion(x.region))}</small>` },
     { clave: "inicio", titulo: "Inicio", valor: (x) => x.inicio, html: (x) => fmtFecha(x.inicio) },
     { clave: "fin", titulo: "Fin", valor: (x) => x.fin, html: (x) => fmtFecha(x.fin) },
-    { clave: "dias", titulo: "Días", num: true, valor: (x) => x.dias, html: (x) => (x.dias == null ? "—" : n0(x.dias)) },
-  ], filas, { inicial: { clave: "inicio", dir: 1 }, claveFila: (x) => `${x.tipo}${x.inicio}${x.lugar}`, descripcion: `Medidas de excepción ${enLugar(estado.region)}` });
-  document.getElementById("t-medidas").textContent = `Las ${n0(filas.length)} medidas, una por una`;
+    { clave: "dias", titulo: "Días", num: true, valor: (x) => x.dias, html: (x) => n0(x.dias) },
+    { clave: "decretos", titulo: "Decretos", num: true, valor: (x) => x.decretos, html: (x) => (x.medida === "emergencia" ? `${n0(x.decretos)}<small>${x.decretos > 1 ? `original y ${n0(x.decretos - 1)} ${x.decretos === 2 ? "prórroga" : "prórrogas"}` : "solo el original"}</small>` : "—") },
+  ], filasT, { inicial: { clave: "inicio", dir: 1 }, claveFila: (x) => `${x.medida}${x.region}${x.lugar}`, descripcion: `Provincias con medidas de excepción ${enLugar(estado.region)}` });
+  document.getElementById("t-medidas").textContent = `Provincias con medidas de excepción: ${n0(ee.length)} en estado de emergencia y ${n0(im.length)} con inmovilización social`;
   pintarDiscursos();
 }
 
@@ -424,10 +452,10 @@ function pintarEstado() {
    Temas: clasificación del Observatorio para este tablero */
 const TEMAS = [
   ["Diálogo y unidad", "diálogo dialogar conversar concertación consensos consensuado acuerdo entendimiento unidad unido juntos paz calma tranquilidad tregua reconciliación hermanos hermanas perdón puentes"],
-  ["Elecciones y reformas", "elecciones elección electoral adelanto adelantar anticipadas congreso congresistas parlamento reforma reformas constitución constitucional constitucionales constituyente asamblea ley leyes voto transición generales plancha"],
+  ["Elecciones y reforma política", "elecciones elección electoral electorales adelanto adelantar anticipadas comicios voto transición generales plancha reforma reformas"],
   ["Orden y violencia", "violencia orden ordenada desorden caos policía fuerzas armadas seguridad control emergencia excepción declaratoria actos violentistas extremistas radicales azuzadores municiones aeropuertos confrontación odio"],
   ["Víctimas y derechos", "vida muerte muertes fallecidos fallecimiento víctimas sangres condolencias lamento familias familia familiares derechos derecho humanos justicia investigaciones investigue salud dolor"],
-  ["Demandas sociales", "demandas demanda pobreza pobres excluidos exclusiones necesidades preocupaciones indignación protesta agua educación agricultura heladas desarrollo crecimiento económico economía regiones sur puno apurímac andahuaylas"],
+  ["Demandas sociales", "demandas demanda constituyente asamblea pobreza pobres excluidos exclusiones necesidades preocupaciones indignación protesta agua educación agricultura heladas desarrollo crecimiento económico economía regiones sur puno apurímac andahuaylas"],
 ].map(([nombre, palabras], i) => ({ nombre, palabras: new Set(palabras.split(" ")), i }));
 const temaDe = (w) => TEMAS.find((t) => t.palabras.has(w)) ?? null;
 const colorTema = (t) => (t ? C.categorias[t.i] : "#5b6577");
@@ -477,19 +505,18 @@ function pintarDiscursos() {
   const pesoTema = (t, fechas) => { const tot = fechas.reduce((s, f) => s + largo.get(f), 0); let n = 0; t.palabras.forEach((w) => (n += veces(w, fechas))); return tot ? (100 * n) / tot : 0; };
   const temasSel = TEMAS.map((t) => pesoTema(t, elegidos)), temasTodos = TEMAS.map((t) => pesoTema(t, fms));
   document.getElementById("t-temas").textContent = estado.mensaje ? `¿De qué temas habló el ${fmtFecha(estado.mensaje)}?` : "¿De qué temas habló?";
-  document.getElementById("d-temas").textContent = estado.mensaje ? "Palabras de cada tema por cada 100 palabras del mensaje. La raya marca el promedio de todos los mensajes." : "Palabras de cada tema por cada 100 palabras de los mensajes.";
+  document.getElementById("d-temas").textContent = estado.mensaje ? "Palabras de cada tema por cada 100 palabras del mensaje." : "Palabras de cada tema por cada 100 palabras de los mensajes.";
   const gt = Obs.grafico("g-temas");
   gt.setOption({
     textStyle: { fontFamily: C.fuente }, animation: ANIM,
     tooltip: { ...Obs.tooltipBase(), trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(4,35,85,.05)" } },
-      formatter: (ps) => { const i = ps[0].dataIndex; return `<strong>${TEMAS[i].nombre}</strong><br>${estado.mensaje ? "Este mensaje" : "Todos los mensajes"}: <strong>${Obs.fmtN(temasSel[i], 1)}</strong> de cada 100 palabras` + (estado.mensaje ? `<br>Promedio de todos: ${Obs.fmtN(temasTodos[i], 1)}` : ""); } },
-    grid: { left: 150, right: 40, top: 4, bottom: 8 },
-    xAxis: { type: "value", show: false, max: Math.max(...temasSel, ...temasTodos) * 1.15 },
+      formatter: (ps) => { const i = ps[0].dataIndex; return `<strong>${TEMAS[i].nombre}</strong><br>${estado.mensaje ? "Este mensaje" : "Todos los mensajes"}: <strong>${Obs.fmtN(temasSel[i], 1)}</strong> de cada 100 palabras`; } },
+    grid: { left: 8, right: 44, top: 4, bottom: 8, containLabel: true },
+    xAxis: { type: "value", show: false, max: Math.max(...temasSel) * 1.15 },
     yAxis: { type: "category", inverse: true, data: TEMAS.map((t) => t.nombre), axisTick: { show: false }, axisLine: { show: false }, axisLabel: txt({ color: C.texto }) },
     series: [
       { type: "bar", barMaxWidth: 22, data: temasSel.map((v, i) => ({ value: v, itemStyle: { color: C.categorias[i], borderRadius: [0, 3, 3, 0] } })),
         label: { show: true, position: "right", fontFamily: C.fuente, fontSize: 14, fontWeight: 700, color: C.texto, formatter: (p) => Obs.fmtN(p.value, 1) } },
-      ...(estado.mensaje ? [{ type: "scatter", symbol: "rect", symbolSize: [3, 30], data: temasTodos, itemStyle: { color: C.texto }, z: 5, tooltip: { show: false } }] : []),
     ],
   }, true);
 
@@ -591,10 +618,10 @@ const IND = {
     { id: "violencia", nombre: "Hechos de violencia", provincial: true, filas: () => filtrar("violencia", "fecha", { region: false }) },
   ],
   estado: [
-    { id: "emergencia", nombre: "Declaratorias y prórrogas de estado de emergencia", provincial: true, color: () => C.categorias[0],
-      filas: () => D.emergencia.filter((x) => x.inicio <= finPeriodo() && (x.fin ?? x.inicio) >= inicioPeriodo()) },
-    { id: "inmovilizacion", nombre: "Medidas de inmovilización social obligatoria", provincial: true, color: () => C.categorias[1],
-      filas: () => D.inmovilizacion.filter((x) => x.inicio <= finPeriodo() && finInmov(x) >= inicioPeriodo()) },
+    { id: "emergencia", nombre: "Provincias en estado de emergencia", provincial: true, color: () => C.categorias[0],
+      filas: () => periodos("emergencia").filter((x) => x.inicio <= finPeriodo() && x.fin >= inicioPeriodo()) },
+    { id: "inmovilizacion", nombre: "Provincias con inmovilización social obligatoria", provincial: true, color: () => C.categorias[1],
+      filas: () => periodos("inmovilizacion").filter((x) => x.inicio <= finPeriodo() && x.fin >= inicioPeriodo()) },
   ],
 };
 const mapas = {}, GEOS = {}, CENTROS = {};
