@@ -108,15 +108,6 @@ function pintarPrioridad() {
       ? { etiqueta: `El departamento con más peso${aMapa !== a ? ` (${aMapa})` : ""}`, valor: nombreRegion(regs[0].reg), pie: `${pct(regs[0].v)}; el de menos es ${nombreRegion(regs.at(-1).reg)} (${pct(regs.at(-1).v)})`, texto: true }
       : { etiqueta: "Frente al Perú", valor: v != null && peru != null ? `${v >= peru ? "+" : "−"}${Obs.fmtN(Math.abs(v - peru) * 100, 1)}` : "—", pie: `En el Perú: ${pct(peru)}` },
   ]);
-  // Funciones, de mayor a menor peso
-  $("#t-funciones").textContent = `¿En qué se gasta el presupuesto ${enAmbito(r)}?`;
-  $("#d-funciones").textContent = `Porcentaje del ${nombreMedida()} que va a cada función, ${a}. En azul, la función elegida.`;
-  const lista = funcionesDe(r, a);
-  const el = $("#g-funciones");
-  el.style.height = `${lista.length * 24 + 30}px`;
-  Obs.barras("g-funciones", lista.map((f) => ({ clave: f.funcion, etiqueta: nombreFuncion(f.funcion), valor: f[campo()] })), {
-    formato: pct, nombre: nombreRegion(r), seleccion: new Set([estado.funcion]), alClic: (f) => actualizar({ funcion: f }),
-  });
   // Evolución del peso de la función elegida
   const fn = nombreFuncion(estado.funcion);
   const conRef = r !== NACIONAL;
